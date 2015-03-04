@@ -13,4 +13,4 @@ set(EXECUTABLE_OUTPUT_PATH "${PROJECT_BINARY_DIR}/bin")
 # Don't add "-save-temps" to FLAGS - this will break Qt Creator debugger
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c11 -Wall -Wextra -Werror -pedantic-errors")
 
-add_subdirectory(src)
+add_subdirectory(zf_log)
