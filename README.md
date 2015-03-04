@@ -1,2 +1,7 @@
 # zf_log
-Zee Logging - simple logging facility
+Zee Log - simple logging facility for C (and C++)
+
+To build shared library:
+```bash
+cmake -DBUILD_SHARED_LIBS:BOOL=ON
+```
