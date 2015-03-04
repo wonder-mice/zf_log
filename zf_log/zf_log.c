@@ -1,3 +1,14 @@
+/* Compile time options:
+ *
+ * = ZF_LOG_CONF_PTHREADS =
+ * Enable/disable pthreads support. 1 - enable, 0 - disable.
+ * If not defined will default to 1 (enable).
+ */
+
+#ifndef ZF_LOG_CONF_PTHREADS
+	#define ZF_LOG_CONF_PTHREADS 1
+#endif
+
 #include <assert.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -5,7 +16,9 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdbool.h>
-#include <pthread.h>
+#if ZF_LOG_CONF_PTHREADS
+	#include <pthread.h>
+#endif
 #include <sys/time.h>
 #include "zf_log.h"
 
@@ -31,7 +44,9 @@ struct zf_log_ctx
 	char prefix[c_tag_sz];
 };
 
+#if ZF_LOG_CONF_PTHREADS
 static pthread_mutex_t g_init_lock = PTHREAD_MUTEX_INITIALIZER;
+#endif
 static struct zf_log_ctx g_ctx;
 static struct zf_log_ctx *g_ctx_ptr = 0;
 
@@ -192,20 +207,24 @@ static int thread_id()
 }
 #endif
 
-struct zf_log_ctx *get_ctx()
+static struct zf_log_ctx *get_ctx()
 {
 	struct zf_log_ctx *ctx = __atomic_load_n(&g_ctx_ptr, __ATOMIC_RELAXED);
 	if (0 != ctx)
 	{
 		return ctx;
 	}
+#if ZF_LOG_CONF_PTHREADS
 	pthread_mutex_lock(&g_init_lock);
 	if (0 == g_ctx_ptr)
 	{
+#endif
 		g_ctx.prefix[0] = 0;
 		__atomic_store_n(&g_ctx_ptr, &g_ctx, __ATOMIC_RELEASE);
+#if ZF_LOG_CONF_PTHREADS
 	}
 	pthread_mutex_unlock(&g_init_lock);
+#endif
 	return g_ctx_ptr;
 }
 

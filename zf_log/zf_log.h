@@ -1,5 +1,8 @@
 #pragma once
 
+#ifndef _ZF_LOG_H_
+#define _ZF_LOG_H_
+
 #include <sys/cdefs.h>
 
 #if !defined(_ZF_LOG_STRINGIFY) && !defined(_ZF_LOG__STRINGIFY)
@@ -153,4 +156,6 @@ static inline void _zf_log_unused(const int dummy, ...) {(void)dummy;}
 			_ZF_LOG_IMP(ZF_LOG_FATAL, _ZF_LOG_TAG, __VA_ARGS__)
 #else
 	#define ZF_LOGF(...) _ZF_LOG_UNUSED(__VA_ARGS__)
+#endif
+
 #endif
