@@ -10,24 +10,62 @@
 #define _ZF_LOG_STRINGIFY(x) _ZF_LOG__STRINGIFY(x)
 #endif
 
+/* Log level guideline:
+ * - ZF_LOG_FATAL - happened something impossible and absolutely unexpected.
+ *   Process can't continue and must be terminated. In other words, semantic is
+ *   close to assert(). zf_log will call abort() after printing the log message.
+ *   Example: division by zero, unexpected modifications from other thread.
+ * - ZF_LOG_ERROR - happened something impossible and absolutely unexpected, but
+ *   process is able to recover and continue execution.
+ *   Example: out of memory (could also be FATAL if not handled properly).
+ * - ZF_LOG_WARN - happened something that *usually* should not happen and
+ *   significantly changes application behavior for some period of time.
+ *   Example: configuration file not found, auth error.
+ * - ZF_LOG_INFO - happened significant life cycle event or major state
+ *   transition.
+ *   Example: app started, user logged in.
+ * - ZF_LOG_DEBUG - minimal set of events that could help to reconstruct the
+ *   execution path.
+ * - ZF_LOG_VERBOSE - all other events.
+ *
+ * Idally, log file of debugged, well tested, production ready application
+ * should be empty (no messages with level ZF_LOG_INFO or higher) or very small.
+ */
 #define ZF_LOG_VERBOSE 1
 #define ZF_LOG_DEBUG   2
 #define ZF_LOG_INFO    3
 #define ZF_LOG_WARN    4
 #define ZF_LOG_ERROR   5
 #define ZF_LOG_FATAL   6
-#define ZF_LOG_NONE	   64
+#define ZF_LOG_NONE	   0xFFFF
 
-/* Compile time log level:
- * - ZF_LOG_DEF_LEVEL (optional)
- * - ZF_LOG_LEVEL (optional, overrides ZF_LOG_DEF_LEVEL)
- * Common use is to have ZF_LOG_DEF_LEVEL defined in the build script
- * (e.g. Makefile) for the entire target. Then ZF_LOG_LEVEL can be used in
- * in .c/.cpp files to override default value when necessary.
+/* Log level configuration:
+ * - ZF_LOG_DEF_LEVEL - defines default log level. Only messages with that level
+ *   and higher will be logged if ZF_LOG_LEVEL is undefined.
+ * - ZF_LOG_LEVEL - overrides default log level. Only messages with that level
+ *   and higher will be logged.
+ *
+ * Common pattern is to define ZF_LOG_DEF_LEVEL in the build script (e.g.
+ * Makefile, CMakeLists.txt) for the entire project/target:
+ *
+ *   CC_ARGS := -DZF_LOG_DEF_LEVEL=ZF_LOG_WARN
+ *
+ * And when necessary override it with ZF_LOG_LEVEL in .c/.cpp files (before
+ * including zf_log.h):
+ *
+ *   #define ZF_LOG_LEVEL ZF_LOG_VERBOSE
+ *   #include <zf_log.h>
+ *
  * Defining either ZF_LOG_DEF_LEVEL or ZF_LOG_LEVEL in header file is usually
  * undesired and produces weird results.
+ *
  * If both ZF_LOG_DEF_LEVEL and ZF_LOG_LEVEL are undefined, then ZF_LOG_INFO
- * will be used if NDEBUG is defined, ZF_LOG_DEBUG otherwise.
+ * will be used for release builds (NDEBUG is defined) and ZF_LOG_DEBUG
+ * otherwise.
+ *
+ * When log message has level bellow current log level it will be compiled out
+ * and its arguments will NOT be evaluated (no "unused variable" warning will be
+ * generated for variables that are only used in compiled out log messages).
  */
 #if defined(ZF_LOG_LEVEL)
 	#define _ZF_LOG_LEVEL ZF_LOG_LEVEL
@@ -41,18 +79,20 @@
 	#endif
 #endif
 
-/* Compile time log tag:
- * - ZF_LOG_DEF_TAG (optional)
- * - ZF_LOG_TAG (optional, overrides ZF_LOG_DEF_TAG)
- * When defined, value must be a string constant (i.e. contain double quotes).
- * Common use is to have ZF_LOG_DEF_TAG defined in the build script
- * (e.g. Makefile) for the entire target. Then ZF_LOG_TAG can be used in
- * in .c/.cpp files to override default value when necessary.
+/* Log tag configuration:
+ * - ZF_LOG_DEF_TAG - defines default log tag.
+ * - ZF_LOG_TAG - overrides default log tag.
+ *
+ * When defined, value must be a string constant (in double quotes):
+ *
+ *   #define ZF_LOG_TAG "MAIN"
+ *   #include <zf_log.h>
+ *
  * Defining either ZF_LOG_DEF_TAG or ZF_LOG_TAG in header files usually
  * undesired and produces weird results.
- * If both ZF_LOG_DEF_TAG and ZF_LOG_TAG are undefined process name will be used
- * as a tag. To disable tag completly - define ZF_LOG_DEF_TAG or ZF_LOG_DEF_TAG
- * as 0 (zero, no quotes).
+ *
+ * If both ZF_LOG_DEF_TAG and ZF_LOG_TAG are undefined no tag will be added to
+ * the log message.
  */
 #if defined(ZF_LOG_TAG)
 	#define _ZF_LOG_TAG ZF_LOG_TAG
@@ -62,23 +102,44 @@
 	#define _ZF_LOG_TAG 0
 #endif
 
+/* Runtime configuration */
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/* Set tag prefix. Prefix will be separated from the tag with dot ('.').
+ * Use 0 or empty string to disable (default).
+ */
+void zf_log_set_tag_prefix(const char *const prefix);
+
+/* Set output log level. Output log level can be higher than or equal to the
+ * current log level, but not less (messages below current log level are
+ * compiled out).
+ */
+void zf_log_set_output_level(const int lvl);
+
+int zf_log_get_output_level();
+
+/* Output callback function. Parameters:
+ * - s - zero terminated log message with line feed and/or carriage return.
+ * - len - number of bytes before line feed and/or carriage return.
+ * Callback is allowed to modify the buffer pointed by s.
+ */
+typedef void (*zf_log_output_cb)(char *s, unsigned len);
+
+/* Set output callback function. It will be called for each log message allowed
+ * by current log level and output log level.
+ */
+void zf_log_set_output_callback(const zf_log_output_cb cb);
+
+#ifdef __cplusplus
+}
+#endif
+
 #ifdef __printflike
 	#define _ZF_LOG_PRINTFLIKE(a, b) __printflike(a, b)
 #else
 	#define _ZF_LOG_PRINTFLIKE(a, b)
-#endif
-
-#define ZF_LOG_PROC_NAME 0
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-/* Runtime log prefix. If prefix is ZF_LOG_PROC_NAME, current process name
- * will be used. Empty by default ("").
- */
-int zf_log_set_prefix(const char *const prefix);
-#ifdef __cplusplus
-}
 #endif
 
 #ifdef __cplusplus
@@ -106,8 +167,21 @@ void _zf_log_write(const int lvl, const char *const tag,
 static inline void _zf_log_unused(const int dummy, ...) {(void)dummy;}
 
 #define _ZF_LOG_UNUSED(...) \
-		do { if (false) _zf_log_unused(0, __VA_ARGS__); } while (false)
+		do { if (0) _zf_log_unused(0, __VA_ARGS__); } while (0)
 
+/* Checking current log level in compile time (ignoring output log level).
+ * For example:
+ *
+ *   #if ZF_LOG_ALLOW_DEBUG
+ *       const char *const g_enum_strings[] = {
+ *           "enum_value_0", "enum_value_1", "enum_value_2"
+ *       };
+ *   #endif
+ *   // ...
+ *   #if ZF_LOG_ALLOW_DEBUG
+ *       ZF_LOGD("enum value: %s", g_enum_strings[v]);
+ *   #endif
+ */
 #define ZF_LOG_ALLOW(lvl) ((lvl) >= _ZF_LOG_LEVEL)
 #define ZF_LOG_ALLOW_VERBOSE ZF_LOG_ALLOW(ZF_LOG_VERBOSE)
 #define ZF_LOG_ALLOW_DEBUG ZF_LOG_ALLOW(ZF_LOG_DEBUG)
@@ -115,6 +189,25 @@ static inline void _zf_log_unused(const int dummy, ...) {(void)dummy;}
 #define ZF_LOG_ALLOW_WARN ZF_LOG_ALLOW(ZF_LOG_WARN)
 #define ZF_LOG_ALLOW_ERROR ZF_LOG_ALLOW(ZF_LOG_ERROR)
 #define ZF_LOG_ALLOW_FATAL ZF_LOG_ALLOW(ZF_LOG_FATAL)
+
+/* Checking output log level in run time (taking into account current log
+ * level). For example:
+ *
+ *   if (ZF_LOG_OUTPUT_DEBUG)
+ *   {
+ *       char hash[65];
+ *       sha256(data_ptr, data_sz, hash);
+ *       ZF_LOGD("data: len=%u, sha256=%s", data_sz, hash);
+ *   }
+ */
+#define ZF_LOG_OUTPUT(lvl) \
+		(ZF_LOG_ALLOW((lvl)) && (lvl) >= zf_log_get_output_level())
+#define ZF_LOG_OUTPUT_VERBOSE ZF_LOG_OUTPUT(ZF_LOG_VERBOSE)
+#define ZF_LOG_OUTPUT_DEBUG ZF_LOG_OUTPUT(ZF_LOG_DEBUG)
+#define ZF_LOG_OUTPUT_INFO ZF_LOG_OUTPUT(ZF_LOG_INFO)
+#define ZF_LOG_OUTPUT_WARN ZF_LOG_OUTPUT(ZF_LOG_WARN)
+#define ZF_LOG_OUTPUT_ERROR ZF_LOG_OUTPUT(ZF_LOG_ERROR)
+#define ZF_LOG_OUTPUT_FATAL ZF_LOG_OUTPUT(ZF_LOG_FATAL)
 
 #if ZF_LOG_ALLOW_VERBOSE
 	#define ZF_LOGV(...) \

@@ -1,24 +1,9 @@
-/* Compile time options:
- *
- * = ZF_LOG_CONF_PTHREADS =
- * Enable/disable pthreads support. 1 - enable, 0 - disable.
- * If not defined will default to 1 (enable).
- */
-
-#ifndef ZF_LOG_CONF_PTHREADS
-	#define ZF_LOG_CONF_PTHREADS 1
-#endif
-
 #include <assert.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
 #include <stdio.h>
-#include <stdbool.h>
-#if ZF_LOG_CONF_PTHREADS
-	#include <pthread.h>
-#endif
 #include <sys/time.h>
 #include "zf_log.h"
 
@@ -32,25 +17,18 @@
 #include <sys/prctl.h>
 #include <sys/types.h>
 #endif
+#if defined(__MACH__)
+#include <pthread.h>
+#endif
 
 #ifdef ANDROID
 	#include <android/log.h>
 #endif
 
-enum { c_tag_sz = 32 };
-
-struct zf_log_ctx
-{
-	char prefix[c_tag_sz];
-};
-
-#if ZF_LOG_CONF_PTHREADS
-static pthread_mutex_t g_init_lock = PTHREAD_MUTEX_INITIALIZER;
-#endif
-static struct zf_log_ctx g_ctx;
-static struct zf_log_ctx *g_ctx_ptr = 0;
-
 static const char c_log_eol[] = "\n";
+static int g_lvl = 0;
+static const char *g_tag_prefix = 0;
+static zf_log_output_cb g_output_cb = 0;
 
 #ifndef ANDROID
 static char lvl_char(const int lvl)
@@ -141,59 +119,6 @@ static int put_tag(char *const buf, const size_t len,
 	return p - buf;
 }
 
-int put_proc_name(char *const buf, const size_t len)
-{
-#if defined(__APPLE__) && defined(__MACH__)
-	char temp[64];
-	int n = proc_name(getpid(), temp, sizeof(temp));
-	if (0 >= n)
-	{
-		buf[0] = 0;
-		return 0;
-	}
-	if (len <= (size_t)n)
-	{
-		n = len - 1;
-	}
-	memcpy(buf, temp, n);
-	buf[n] = 0;
-	return n;
-#elif defined(ANDROID)
-	FILE *const f = fopen("/proc/self/comm", "r");
-	if (0 == f)
-	{
-		buf[0] = 0;
-		return 0;
-	}
-	size_t n = fread(buf, sizeof(char), len, f);
-	fclose(f);
-	if (0 < n)
-	{
-		--n;
-	}
-	buf[n] = 0;
-	return n;
-#elif defined(__linux__)
-	char exe[256];
-	size_t n = readlink("/proc/self/exe", exe, sizeof(exe));
-	const char *p = exe + n;
-	while (exe != p)
-	{
-		if ('/' == *--p)
-		{
-			++p;
-			break;
-		}
-	}
-	n -= p - exe;
-	memcpy(buf, p, n);
-	buf[n] = 0;
-	return n;
-#else
-	#error Unsupported platform
-#endif
-}
-
 #if !defined(ANDROID)
 static int thread_id()
 {
@@ -207,36 +132,18 @@ static int thread_id()
 }
 #endif
 
-static struct zf_log_ctx *get_ctx()
-{
-	struct zf_log_ctx *ctx = __atomic_load_n(&g_ctx_ptr, __ATOMIC_RELAXED);
-	if (0 != ctx)
-	{
-		return ctx;
-	}
-#if ZF_LOG_CONF_PTHREADS
-	pthread_mutex_lock(&g_init_lock);
-	if (0 == g_ctx_ptr)
-	{
-#endif
-		g_ctx.prefix[0] = 0;
-		__atomic_store_n(&g_ctx_ptr, &g_ctx, __ATOMIC_RELEASE);
-#if ZF_LOG_CONF_PTHREADS
-	}
-	pthread_mutex_unlock(&g_init_lock);
-#endif
-	return g_ctx_ptr;
-}
-
 static void log_write(const char *const func, const char *const loc,
 					  const int lvl, const char *const tag,
 					  const char *const fmt, va_list va)
 {
+	if (g_lvl > lvl)
+	{
+		return;
+	}
 	char buf[256];
 	char *p = buf;
 	char *const e = buf + sizeof(buf) - sizeof(c_log_eol);
 	int n;
-	const struct zf_log_ctx *const ctx = get_ctx();
 
 #if !defined(ANDROID)
 	struct timeval tv;
@@ -260,7 +167,7 @@ static void log_write(const char *const func, const char *const loc,
 	{
 		p = e;
 	}
-	n = put_tag(p, e - p, ctx->prefix, tag);
+	n = put_tag(p, e - p, g_tag_prefix, tag);
 	p += n;
 	if (0 < n && e != p)
 	{
@@ -288,11 +195,18 @@ static void log_write(const char *const func, const char *const loc,
 #if defined(ANDROID)
 	*p = 0;
 	char tag_buf[c_tag_sz];
-	put_tag(tag_buf, sizeof(tag_buf), ctx->prefix, tag);
+	put_tag(tag_buf, sizeof(tag_buf), g_tag_prefix, tag);
 	__android_log_print(lvl_android(lvl), tag_buf, "%s", buf);
 #else
 	strcpy(p, c_log_eol);
-	fputs(buf, stderr);
+	if (0 != g_output_cb)
+	{
+		g_output_cb(buf, p - buf);
+	}
+	else
+	{
+		fputs(buf, stderr);
+	}
 #endif
 	if (ZF_LOG_FATAL == lvl)
 	{
@@ -301,25 +215,19 @@ static void log_write(const char *const func, const char *const loc,
 	}
 }
 
-int zf_log_set_prefix(const char *const prefix)
+void zf_log_set_level(const int lvl)
 {
-	struct zf_log_ctx *const ctx = get_ctx();
-	char buf[sizeof(ctx->prefix)];
-	const char *p = prefix;
-	if (ZF_LOG_PROC_NAME == p)
-	{
-		put_proc_name(buf, sizeof(buf));
-		p = buf;
-	}
-	const int len = strlen(p);
-	// As a precaution, copy backward (a bit more safe if there are other
-	// threads already reading ctx->prefix). However, that function should be
-	// called from main as early as possible when there is only one thread yet.
-	for (int i = len + 1; 0 < i--;)
-	{
-		ctx->prefix[i] = p[i];
-	}
-	return 0;
+	g_lvl = lvl;
+}
+
+void zf_log_set_tag_prefix(const char *const prefix)
+{
+	g_tag_prefix = prefix;
+}
+
+void zf_log_set_output_callback(const zf_log_output_cb cb)
+{
+	g_output_cb = cb;
 }
 
 void _zf_log_write_d(const char *const func, const char *const loc,
