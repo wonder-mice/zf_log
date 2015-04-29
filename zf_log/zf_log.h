@@ -118,6 +118,8 @@ void zf_log_set_tag_prefix(const char *const prefix);
  */
 void zf_log_set_output_level(const int lvl);
 
+/* Get output log level. Default value is 0.
+ */
 int zf_log_get_output_level();
 
 /* Output callback function. Parameters:
@@ -169,7 +171,7 @@ static inline void _zf_log_unused(const int dummy, ...) {(void)dummy;}
 #define _ZF_LOG_UNUSED(...) \
 		do { if (0) _zf_log_unused(0, __VA_ARGS__); } while (0)
 
-/* Checking current log level in compile time (ignoring output log level).
+/* Checking current log level at compile time (ignoring output log level).
  * For example:
  *
  *   #if ZF_LOG_ALLOW_DEBUG
@@ -190,7 +192,7 @@ static inline void _zf_log_unused(const int dummy, ...) {(void)dummy;}
 #define ZF_LOG_ALLOW_ERROR ZF_LOG_ALLOW(ZF_LOG_ERROR)
 #define ZF_LOG_ALLOW_FATAL ZF_LOG_ALLOW(ZF_LOG_FATAL)
 
-/* Checking output log level in run time (taking into account current log
+/* Checking output log level at run time (taking into account current log
  * level). For example:
  *
  *   if (ZF_LOG_OUTPUT_DEBUG)
