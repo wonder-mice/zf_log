@@ -21,7 +21,7 @@ This code:
 ZF_LOGD("Number of arguments: %i", argc);
 ```
 
-Will produce following log line:
+Will produce following log line if `NDEBUG` is defined (release build):
 
 ```
 +- month           +- process id
@@ -33,6 +33,16 @@ Will produce following log line:
       |  |  +- second          | +- tag prefix (optional)
       |  +- minute             +- level
       +- hour
+```
+
+And if `NDEBUG` is NOT defined (debug build):
+
+```
+04-29 22:43:20.244 40059  1299 D hello.MAIN main@hello.c:9 Number of arguments: 1
+                                            |    |       |
+                                            |    |       +- line number
+                                            |    +- source file name
+                                            +- function name
 ```
 
 ### Building
