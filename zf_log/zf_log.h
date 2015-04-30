@@ -112,9 +112,9 @@ extern "C" {
  */
 void zf_log_set_tag_prefix(const char *const prefix);
 
-/* Set output log level. Output log level can be higher than or equal to the
- * current log level, but not less (messages below current log level are
- * compiled out).
+/* Set output log level. When output log level is higher than the current log
+ * level it overrides it. Otherwise output log level is ignored. This is because
+ * messages below current log level are compiled out.
  */
 void zf_log_set_output_level(const int lvl);
 

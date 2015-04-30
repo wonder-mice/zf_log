@@ -1,3 +1,13 @@
+#ifndef ZF_LOG_TAG_MAX
+	#define ZF_LOG_TAG_MAX 32
+#endif
+#ifndef ZF_LOG_LINE_MAX
+	#define ZF_LOG_LINE_MAX 256
+#endif
+#ifndef ZF_LOG_EOL
+	#define ZF_LOG_EOL "\n"
+#endif
+
 #include <assert.h>
 #include <string.h>
 #include <stdarg.h>
@@ -25,7 +35,7 @@ static void stderr_output_callback(int lvl, char *s, unsigned len)
 	fputs(s, stderr);
 }
 
-static const char c_log_eol[] = "\n";
+static const char c_log_eol[] = ZF_LOG_EOL;
 
 static zf_log_output_cb g_output_cb = stderr_output_callback;
 static const char *g_tag_prefix = 0;
@@ -138,7 +148,7 @@ static void log_write(const char *const func, const char *const loc,
 					  const int lvl, const char *const tag,
 					  const char *const fmt, va_list va)
 {
-	char buf[256];
+	char buf[ZF_LOG_LINE_MAX];
 	char *p = buf;
 	char *const e = buf + sizeof(buf) - sizeof(c_log_eol);
 	int n;
@@ -192,7 +202,7 @@ static void log_write(const char *const func, const char *const loc,
 	}
 #if defined(ANDROID)
 	*p = 0;
-	char tag_buf[32];
+	char tag_buf[ZF_LOG_TAG_MAX];
 	put_tag(tag_buf, sizeof(tag_buf), g_tag_prefix, tag);
 	__android_log_print(lvl_android(lvl), tag_buf, "%s", buf);
 #else
