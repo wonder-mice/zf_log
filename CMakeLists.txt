@@ -27,3 +27,8 @@ install(EXPORT zf_log
 configure_file(zf_log-config.cmake.in zf_log-config.cmake @ONLY)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/zf_log-config.cmake
 	DESTINATION ${INSTALL_CMAKE_DIR})
+
+# tests and examples
+enable_testing()
+add_subdirectory(tests)
+add_subdirectory(examples)
