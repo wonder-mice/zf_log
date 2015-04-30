@@ -93,6 +93,24 @@ static void test_args_evaluation()
 	TEST_VERIFY_EQUAL(g_arg, 0);
 }
 
+static void test_level_checks()
+{
+	reset();
+#if ZF_LOG_ALLOW_DEBUG
+	#error No debug log
+#endif
+#if !ZF_LOG_ALLOW_INFO
+	#error Info log
+#endif
+	TEST_VERIFY_FALSE(ZF_LOG_OUTPUT_DEBUG);
+	TEST_VERIFY_TRUE(ZF_LOG_OUTPUT_INFO);
+
+	reset();
+	zf_log_set_output_level(ZF_LOG_WARN);
+	TEST_VERIFY_FALSE(ZF_LOG_OUTPUT_INFO);
+	TEST_VERIFY_TRUE(ZF_LOG_OUTPUT_WARN);
+}
+
 int main(int argc, char *argv[])
 {
 	zf_log_set_output_callback(output_callback);
@@ -101,6 +119,7 @@ int main(int argc, char *argv[])
 	TEST_EXECUTE(test_current_level());
 	TEST_EXECUTE(test_output_level());
 	TEST_EXECUTE(test_args_evaluation());
+	TEST_EXECUTE(test_level_checks());
 
 	return TEST_RUNNER_EXIT_CODE();
 }
