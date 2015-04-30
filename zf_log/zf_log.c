@@ -1,34 +1,36 @@
 #include <assert.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <stdarg.h>
 #include <string.h>
+#include <stdarg.h>
+#include <stdlib.h>
 #include <stdio.h>
+#include <unistd.h>
 #include <sys/time.h>
 #include "zf_log.h"
 
-#if defined(__unix__) || (defined(__APPLE__) && defined(__MACH__))
-#include <sys/param.h>
-#endif
-#if defined(__APPLE__) && defined(__MACH__)
-#include <libproc.h>
-#endif
 #if defined(__linux__)
-#include <sys/prctl.h>
-#include <sys/types.h>
+	#include <sys/prctl.h>
+	#include <sys/types.h>
 #endif
 #if defined(__MACH__)
-#include <pthread.h>
+	#include <pthread.h>
 #endif
 
 #ifdef ANDROID
 	#include <android/log.h>
 #endif
 
+static void stderr_output_callback(int lvl, char *s, unsigned len)
+{
+	(void)lvl; (void)len;
+	fputs(s, stderr);
+}
+
 static const char c_log_eol[] = "\n";
-static int g_lvl = 0;
+
+static zf_log_output_cb g_output_cb = stderr_output_callback;
 static const char *g_tag_prefix = 0;
-static zf_log_output_cb g_output_cb = 0;
+
+int _zf_log_output_lvl = 0;
 
 #ifndef ANDROID
 static char lvl_char(const int lvl)
@@ -136,10 +138,6 @@ static void log_write(const char *const func, const char *const loc,
 					  const int lvl, const char *const tag,
 					  const char *const fmt, va_list va)
 {
-	if (g_lvl > lvl)
-	{
-		return;
-	}
 	char buf[256];
 	char *p = buf;
 	char *const e = buf + sizeof(buf) - sizeof(c_log_eol);
@@ -194,19 +192,12 @@ static void log_write(const char *const func, const char *const loc,
 	}
 #if defined(ANDROID)
 	*p = 0;
-	char tag_buf[c_tag_sz];
+	char tag_buf[32];
 	put_tag(tag_buf, sizeof(tag_buf), g_tag_prefix, tag);
 	__android_log_print(lvl_android(lvl), tag_buf, "%s", buf);
 #else
 	strcpy(p, c_log_eol);
-	if (0 != g_output_cb)
-	{
-		g_output_cb(buf, p - buf);
-	}
-	else
-	{
-		fputs(buf, stderr);
-	}
+	g_output_cb(lvl, buf, p - buf);
 #endif
 	if (ZF_LOG_FATAL == lvl)
 	{
@@ -215,9 +206,9 @@ static void log_write(const char *const func, const char *const loc,
 	}
 }
 
-void zf_log_set_level(const int lvl)
+void zf_log_set_output_level(const int lvl)
 {
-	g_lvl = lvl;
+	_zf_log_output_lvl = lvl;
 }
 
 void zf_log_set_tag_prefix(const char *const prefix)

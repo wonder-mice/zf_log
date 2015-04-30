@@ -28,7 +28,7 @@
  *   execution path.
  * - ZF_LOG_VERBOSE - all other events.
  *
- * Idally, log file of debugged, well tested, production ready application
+ * Ideally, log file of debugged, well tested, production ready application
  * should be empty (no messages with level ZF_LOG_INFO or higher) or very small.
  */
 #define ZF_LOG_VERBOSE 1
@@ -118,16 +118,13 @@ void zf_log_set_tag_prefix(const char *const prefix);
  */
 void zf_log_set_output_level(const int lvl);
 
-/* Get output log level. Default value is 0.
- */
-int zf_log_get_output_level();
-
 /* Output callback function. Parameters:
+ * - lvl - log message level
  * - s - zero terminated log message with line feed and/or carriage return.
- * - len - number of bytes before line feed and/or carriage return.
+ * - len - number of bytes in s before line feed and/or carriage return.
  * Callback is allowed to modify the buffer pointed by s.
  */
-typedef void (*zf_log_output_cb)(char *s, unsigned len);
+typedef void (*zf_log_output_cb)(int lvl, char *s, unsigned len);
 
 /* Set output callback function. It will be called for each log message allowed
  * by current log level and output log level.
@@ -147,6 +144,9 @@ void zf_log_set_output_callback(const zf_log_output_cb cb);
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+extern int _zf_log_output_lvl;
+
 void _zf_log_write_d(const char *const func, const char *const loc,
 					 const int lvl, const char *const tag,
 					 const char *const fmt, ...) _ZF_LOG_PRINTFLIKE(5, 6);
@@ -155,21 +155,6 @@ void _zf_log_write(const int lvl, const char *const tag,
 #ifdef __cplusplus
 }
 #endif
-
-#ifdef NDEBUG
-	#define _ZF_LOG_IMP(lvl, tag, ...) \
-			_zf_log_write(lvl, tag, __VA_ARGS__)
-#else
-	#define _ZF_LOG_IMP(lvl, tag, ...) \
-			_zf_log_write_d(__FUNCTION__, \
-							__FILE__ ":" _ZF_LOG_STRINGIFY(__LINE__), \
-							lvl, tag, __VA_ARGS__)
-#endif
-
-static inline void _zf_log_unused(const int dummy, ...) {(void)dummy;}
-
-#define _ZF_LOG_UNUSED(...) \
-		do { if (0) _zf_log_unused(0, __VA_ARGS__); } while (0)
 
 /* Checking current log level at compile time (ignoring output log level).
  * For example:
@@ -203,13 +188,34 @@ static inline void _zf_log_unused(const int dummy, ...) {(void)dummy;}
  *   }
  */
 #define ZF_LOG_OUTPUT(lvl) \
-		(ZF_LOG_ALLOW((lvl)) && (lvl) >= zf_log_get_output_level())
+		(ZF_LOG_ALLOW((lvl)) && (lvl) >= _zf_log_output_lvl)
 #define ZF_LOG_OUTPUT_VERBOSE ZF_LOG_OUTPUT(ZF_LOG_VERBOSE)
 #define ZF_LOG_OUTPUT_DEBUG ZF_LOG_OUTPUT(ZF_LOG_DEBUG)
 #define ZF_LOG_OUTPUT_INFO ZF_LOG_OUTPUT(ZF_LOG_INFO)
 #define ZF_LOG_OUTPUT_WARN ZF_LOG_OUTPUT(ZF_LOG_WARN)
 #define ZF_LOG_OUTPUT_ERROR ZF_LOG_OUTPUT(ZF_LOG_ERROR)
 #define ZF_LOG_OUTPUT_FATAL ZF_LOG_OUTPUT(ZF_LOG_FATAL)
+
+#ifdef NDEBUG
+	#define _ZF_LOG_IMP(lvl, tag, ...) \
+			do { \
+				if (ZF_LOG_OUTPUT(lvl)) \
+					_zf_log_write(lvl, tag, __VA_ARGS__); \
+			} while (0)
+#else
+	#define _ZF_LOG_IMP(lvl, tag, ...) \
+			do { \
+				if (ZF_LOG_OUTPUT(lvl)) \
+					_zf_log_write_d(__FUNCTION__, \
+							__FILE__ ":" _ZF_LOG_STRINGIFY(__LINE__), \
+							lvl, tag, __VA_ARGS__); \
+			} while (0)
+#endif
+
+static inline void _zf_log_unused(const int dummy, ...) {(void)dummy;}
+
+#define _ZF_LOG_UNUSED(...) \
+		do { if (0) _zf_log_unused(0, __VA_ARGS__); } while (0)
 
 #if ZF_LOG_ALLOW_VERBOSE
 	#define ZF_LOGV(...) \
