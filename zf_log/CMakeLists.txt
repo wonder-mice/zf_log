@@ -12,7 +12,7 @@ if(ANDROID)
 endif()
 
 # install (optional)
-if(NOT ZF_LOG_NO_INSTALL)
+if(ZF_LOG_CONFIGURE_INSTALL)
 	if(NOT DEFINED INSTALL_INCLUDE_DIR)
 		set(INSTALL_INCLUDE_DIR include)
 	endif()

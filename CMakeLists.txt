@@ -13,22 +13,28 @@ set(INSTALL_LIB_DIR lib CACHE PATH
 	"Installation directory for libraries")
 set(INSTALL_CMAKE_DIR lib/cmake/zf_queue CACHE PATH
 	"Installation directory for CMake files")
+option(ZF_LOG_CONFIGURE_INSTALL "Generate install target" YES)
+option(ZF_LOG_EXAMPLES "Build examples" YES)
+option(ZF_LOG_TESTS "Build tests" YES)
 
 # Don't add "-save-temps" to FLAGS - this will break Qt Creator debugger
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c11 -Wall -Wextra -Werror -pedantic-errors")
 
-# zf_log
 add_subdirectory(zf_log)
 
-# install
-export(EXPORT zf_log)
-install(EXPORT zf_log
-	DESTINATION ${INSTALL_CMAKE_DIR})
-configure_file(zf_log-config.cmake.in zf_log-config.cmake @ONLY)
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/zf_log-config.cmake
-	DESTINATION ${INSTALL_CMAKE_DIR})
+if(ZF_LOG_EXAMPLES)
+	add_subdirectory(examples)
+endif()
+if(ZF_LOG_TESTS)
+	enable_testing()
+	add_subdirectory(tests)
+endif()
 
-# tests and examples
-enable_testing()
-add_subdirectory(tests)
-add_subdirectory(examples)
+if(ZF_LOG_CONFIGURE_INSTALL)
+	export(EXPORT zf_log)
+	install(EXPORT zf_log
+		DESTINATION ${INSTALL_CMAKE_DIR})
+	configure_file(zf_log-config.cmake.in zf_log-config.cmake @ONLY)
+	install(FILES ${CMAKE_CURRENT_BINARY_DIR}/zf_log-config.cmake
+		DESTINATION ${INSTALL_CMAKE_DIR})
+endif()
