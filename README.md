@@ -6,9 +6,24 @@ zf_log
 This is just a thin wrapper around sprintf() function. It provides less than 20%
 of functionality found in more sophisticated libraries, but covers more than 80%
 of use cases in mobile/embedded applications, early stages of development or
-when prototyping. Focus is made on simplicity, ease of use, performance and
-small library size.
+when prototyping. Focus is made on simplicity, ease of use and performance.
 
+Performance comes with a caveat: it applies only to the case when the message
+was not logged. Log statements that are below *current log level* (compile time
+check) have no overhead - they are compiled out and arguments will not be
+evaluated. Log statements that are below *output log level* (run time check)
+have a small overhead of compare operaion and conditional jump. Arguments will
+not be evaluated and no function call will be performed. But it makes little
+sense to talk about performance when the log statement actually writes
+something to the log. In that case the library only tries to minimize the code
+size that will be generated for each log statement (compare operation,
+arguments evaluation and a function call).
+
+By default log messages are written to the stderr, but it's possible to set
+custom output function. Library also has an optional built-in support for the
+following platforms:
+* Android (android/log.h)
+* iOS/OS X (CFLog())
 
 Usage
 --------
