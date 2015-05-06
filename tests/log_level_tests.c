@@ -17,11 +17,11 @@ static void reset()
 	g_arg = 0;
 }
 
-static void output_callback(int lvl, char *s, unsigned len)
+static void output_callback(zf_log_output_ctx *ctx)
 {
-	g_lvl = lvl;
-	strcpy(g_msg, s);
-	g_len = len;
+	g_lvl = ctx->lvl;
+	g_len = ctx->p - ctx->buf;
+	strncpy(g_msg, ctx->buf, g_len);
 	++g_output;
 }
 

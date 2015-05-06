@@ -3,13 +3,6 @@
 #ifndef _ZF_LOG_H_
 #define _ZF_LOG_H_
 
-#include <sys/cdefs.h>
-
-#if !defined(_ZF_LOG_STRINGIFY) && !defined(_ZF_LOG__STRINGIFY)
-#define _ZF_LOG__STRINGIFY(x) #x
-#define _ZF_LOG_STRINGIFY(x) _ZF_LOG__STRINGIFY(x)
-#endif
-
 /* Log level guideline:
  * - ZF_LOG_FATAL - happened something impossible and absolutely unexpected.
  *   Process can't continue and must be terminated. In other words, semantic is
@@ -41,7 +34,7 @@
 
 /* Log level configuration:
  * - ZF_LOG_DEF_LEVEL - defines default log level. Only messages with that level
- *   and higher will be logged if ZF_LOG_LEVEL is undefined.
+ *   and higher will be logged (if ZF_LOG_LEVEL is undefined).
  * - ZF_LOG_LEVEL - overrides default log level. Only messages with that level
  *   and higher will be logged.
  *
@@ -108,7 +101,8 @@ extern "C" {
 #endif
 
 /* Set tag prefix. Prefix will be separated from the tag with dot ('.').
- * Use 0 or empty string to disable (default).
+ * Use 0 or empty string to disable (default). Common use is to set it to
+ * the process (or target) name.
  */
 void zf_log_set_tag_prefix(const char *const prefix);
 
@@ -118,40 +112,29 @@ void zf_log_set_tag_prefix(const char *const prefix);
  */
 void zf_log_set_output_level(const int lvl);
 
-/* Output callback function. Parameters:
- * - lvl - log message level
- * - s - zero terminated log message with line feed and/or carriage return.
- * - len - number of bytes in s before line feed and/or carriage return.
- * Callback is allowed to modify the buffer pointed by s.
+typedef struct zf_log_output_ctx
+{
+	int lvl;
+	const char *tag;
+	char *buf; /* Buffer start */
+	char *e; /* Buffer end (last position where EOL with 0 could be written) */
+	char *p; /* Buffer content end (append position) */
+	char *tag_b; /* Prefixed tag start */
+	char *tag_e; /* Prefixed tag end (if != tag_b, points to msg separator) */
+	char *msg_b; /* Message start (expanded format string) */
+}
+zf_log_output_ctx;
+
+/* Output callback function. Callback is allowed to modify the buffer pointed
+ * by ctx.
  */
-typedef void (*zf_log_output_cb)(int lvl, char *s, unsigned len);
+typedef void (*zf_log_output_cb)(zf_log_output_ctx *ctx);
 
 /* Set output callback function. It will be called for each log message allowed
  * by current log level and output log level.
  */
 void zf_log_set_output_callback(const zf_log_output_cb cb);
 
-#ifdef __cplusplus
-}
-#endif
-
-#ifdef __printflike
-	#define _ZF_LOG_PRINTFLIKE(a, b) __printflike(a, b)
-#else
-	#define _ZF_LOG_PRINTFLIKE(a, b)
-#endif
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-extern int _zf_log_output_lvl;
-
-void _zf_log_write_d(const char *const func, const char *const loc,
-					 const int lvl, const char *const tag,
-					 const char *const fmt, ...) _ZF_LOG_PRINTFLIKE(5, 6);
-void _zf_log_write(const int lvl, const char *const tag,
-				   const char *const fmt, ...) _ZF_LOG_PRINTFLIKE(3, 4);
 #ifdef __cplusplus
 }
 #endif
@@ -196,19 +179,72 @@ void _zf_log_write(const int lvl, const char *const tag,
 #define ZF_LOG_OUTPUT_ERROR ZF_LOG_OUTPUT(ZF_LOG_ERROR)
 #define ZF_LOG_OUTPUT_FATAL ZF_LOG_OUTPUT(ZF_LOG_FATAL)
 
+#ifdef __printflike
+	#define _ZF_LOG_PRINTFLIKE(a, b) __printflike(a, b)
+#else
+	#define _ZF_LOG_PRINTFLIKE(a, b)
+#endif
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+extern int _zf_log_output_lvl;
+
+void _zf_log_write_d(const char *const func,
+					 const char *const file, const unsigned line,
+					 const int lvl, const char *const tag,
+					 const char *const fmt, ...) _ZF_LOG_PRINTFLIKE(6, 7);
+void _zf_log_write(const int lvl, const char *const tag,
+				   const char *const fmt, ...) _ZF_LOG_PRINTFLIKE(3, 4);
+
+void _zf_log_write_mem_d(const char *const func,
+						 const char *const file, const unsigned line,
+						 const int lvl, const char *const tag,
+						 const void *const d, const unsigned d_sz,
+						 const char *const fmt, ...) _ZF_LOG_PRINTFLIKE(8, 9);
+void _zf_log_write_mem(const int lvl, const char *const tag,
+					   const void *const d, const unsigned d_sz,
+					   const char *const fmt, ...) _ZF_LOG_PRINTFLIKE(5, 6);
+#ifdef __cplusplus
+}
+#endif
+
+/* Logging macros:
+ * -ZF_LOGV("format string", args, ...)
+ * -ZF_LOGD("format string", args, ...)
+ * -ZF_LOGI("format string", args, ...)
+ * -ZF_LOGW("format string", args, ...)
+ * -ZF_LOGF("format string", args, ...)
+ * -ZF_LOGV_MEM(data_ptr, data_sz, "format string", args, ...)
+ * -ZF_LOGD_MEM(data_ptr, data_sz, "format string", args, ...)
+ * -ZF_LOGI_MEM(data_ptr, data_sz, "format string", args, ...)
+ * -ZF_LOGW_MEM(data_ptr, data_sz, "format string", args, ...)
+ * -ZF_LOGF_MEM(data_ptr, data_sz, "format string", args, ...)
+ */
 #ifdef NDEBUG
 	#define _ZF_LOG_IMP(lvl, tag, ...) \
 			do { \
 				if (ZF_LOG_OUTPUT(lvl)) \
 					_zf_log_write(lvl, tag, __VA_ARGS__); \
 			} while (0)
+	#define _ZF_LOG_MEM_IMP(lvl, tag, d, d_sz, ...) \
+			do { \
+				if (ZF_LOG_OUTPUT(lvl)) \
+					_zf_log_write_mem(lvl, tag, d, d_sz, __VA_ARGS__); \
+			} while (0)
 #else
 	#define _ZF_LOG_IMP(lvl, tag, ...) \
 			do { \
 				if (ZF_LOG_OUTPUT(lvl)) \
-					_zf_log_write_d(__FUNCTION__, \
-							__FILE__ ":" _ZF_LOG_STRINGIFY(__LINE__), \
+					_zf_log_write_d(__FUNCTION__, __FILE__, __LINE__, \
 							lvl, tag, __VA_ARGS__); \
+			} while (0)
+	#define _ZF_LOG_MEM_IMP(lvl, tag, d, d_sz, ...) \
+			do { \
+				if (ZF_LOG_OUTPUT(lvl)) \
+					_zf_log_write_mem_d(__FUNCTION__, __FILE__, __LINE__, \
+							lvl, tag, d, d_sz, __VA_ARGS__); \
 			} while (0)
 #endif
 
@@ -220,43 +256,61 @@ static inline void _zf_log_unused(const int dummy, ...) {(void)dummy;}
 #if ZF_LOG_ALLOW_VERBOSE
 	#define ZF_LOGV(...) \
 			_ZF_LOG_IMP(ZF_LOG_VERBOSE, _ZF_LOG_TAG, __VA_ARGS__)
+	#define ZF_LOGV_MEM(...) \
+			_ZF_LOG_MEM_IMP(ZF_LOG_VERBOSE, _ZF_LOG_TAG, __VA_ARGS__)
 #else
 	#define ZF_LOGV(...) _ZF_LOG_UNUSED(__VA_ARGS__)
+	#define ZF_LOGV_MEM(...) _ZF_LOG_UNUSED(__VA_ARGS__)
 #endif
 
 #if ZF_LOG_ALLOW_DEBUG
 	#define ZF_LOGD(...) \
 			_ZF_LOG_IMP(ZF_LOG_DEBUG, _ZF_LOG_TAG, __VA_ARGS__)
+	#define ZF_LOGD_MEM(...) \
+			_ZF_LOG_MEM_IMP(ZF_LOG_DEBUG, _ZF_LOG_TAG, __VA_ARGS__)
 #else
 	#define ZF_LOGD(...) _ZF_LOG_UNUSED(__VA_ARGS__)
+	#define ZF_LOGD_MEM(...) _ZF_LOG_UNUSED(__VA_ARGS__)
 #endif
 
 #if ZF_LOG_ALLOW_INFO
 	#define ZF_LOGI(...) \
 			_ZF_LOG_IMP(ZF_LOG_INFO, _ZF_LOG_TAG, __VA_ARGS__)
+	#define ZF_LOGI_MEM(...) \
+			_ZF_LOG_MEM_IMP(ZF_LOG_INFO, _ZF_LOG_TAG, __VA_ARGS__)
 #else
 	#define ZF_LOGI(...) _ZF_LOG_UNUSED(__VA_ARGS__)
+	#define ZF_LOGI_MEM(...) _ZF_LOG_UNUSED(__VA_ARGS__)
 #endif
 
 #if ZF_LOG_ALLOW_WARN
 	#define ZF_LOGW(...) \
 			_ZF_LOG_IMP(ZF_LOG_WARN, _ZF_LOG_TAG, __VA_ARGS__)
+	#define ZF_LOGW_MEM(...) \
+			_ZF_LOG_MEM_IMP(ZF_LOG_WARN, _ZF_LOG_TAG, __VA_ARGS__)
 #else
 	#define ZF_LOGW(...) _ZF_LOG_UNUSED(__VA_ARGS__)
+	#define ZF_LOGW_MEM(...) _ZF_LOG_UNUSED(__VA_ARGS__)
 #endif
 
 #if ZF_LOG_ALLOW_ERROR
 	#define ZF_LOGE(...) \
 			_ZF_LOG_IMP(ZF_LOG_ERROR, _ZF_LOG_TAG, __VA_ARGS__)
+	#define ZF_LOGE_MEM(...) \
+			_ZF_LOG_MEM_IMP(ZF_LOG_ERROR, _ZF_LOG_TAG, __VA_ARGS__)
 #else
 	#define ZF_LOGE(...) _ZF_LOG_UNUSED(__VA_ARGS__)
+	#define ZF_LOGE_MEM(...) _ZF_LOG_UNUSED(__VA_ARGS__)
 #endif
 
 #if ZF_LOG_ALLOW_FATAL
 	#define ZF_LOGF(...) \
 			_ZF_LOG_IMP(ZF_LOG_FATAL, _ZF_LOG_TAG, __VA_ARGS__)
+	#define ZF_LOGF_MEM(...) \
+			_ZF_LOG_MEM_IMP(ZF_LOG_FATAL, _ZF_LOG_TAG, __VA_ARGS__)
 #else
 	#define ZF_LOGF(...) _ZF_LOG_UNUSED(__VA_ARGS__)
+	#define ZF_LOGF_MEM(...) _ZF_LOG_UNUSED(__VA_ARGS__)
 #endif
 
 #endif
