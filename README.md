@@ -62,7 +62,7 @@ And if `NDEBUG` is NOT defined (debug build):
 
 It's also possible to log binary data. For example:
 
-```
+```c
 ZF_LOGW_MEM(data, sizeof(data), "Lorem ipsum at %p", data);
 ```
 
