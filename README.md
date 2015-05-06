@@ -60,6 +60,22 @@ And if `NDEBUG` is NOT defined (debug build):
                                             +- function name
 ```
 
+It's also possible to log binary data. For example:
+
+```
+ZF_LOGW_MEM(data, sizeof(data), "Lorem ipsum at %p", data);
+```
+
+Will produce following output:
+
+```
+05-06 00:54:33.825 35864  1299 W hello.MAIN Lorem ipsum at 0x10fbc0f20:
+05-06 00:54:33.825 35864  1299 W hello.MAIN 4c6f72656d20697073756d20646f6c6f  Lorem ipsum dolo
+05-06 00:54:33.825 35864  1299 W hello.MAIN 722073697420616d65742c20636f6e73  r sit amet, cons
+05-06 00:54:33.825 35864  1299 W hello.MAIN 65637465747572206164697069736369  ectetur adipisci
+05-06 00:54:33.825 35864  1299 W hello.MAIN 6e6720656c69742e00                ng elit.?
+```
+
 ### Building
 
 To build shared library:
