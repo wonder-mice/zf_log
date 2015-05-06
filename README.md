@@ -25,10 +25,8 @@ following output facilities:
 * Android log (not implemented)
 * Apple System Log (not implemented)
 
-Usage
+Examples
 --------
-
-### Example
 
 This code:
 
@@ -75,6 +73,9 @@ Will produce following output:
 05-06 00:54:33.825 35864  1299 W hello.MAIN 65637465747572206164697069736369  ectetur adipisci
 05-06 00:54:33.825 35864  1299 W hello.MAIN 6e6720656c69742e00                ng elit.?
 ```
+
+Usage
+--------
 
 ### Building
 
