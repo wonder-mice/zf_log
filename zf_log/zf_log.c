@@ -1,7 +1,6 @@
 /* Library configuration options:
  * - ZF_LOG_ANDROID_LOG - enable android/log.h support
  * - ZF_LOG_PUT_CTX - put timestamp, pid, tid, level, tag in the log line
- * - ZF_LOG_TAG_MAX - maximum tag length (including tag prefix)
  * - ZF_LOG_LINE_MAX - maximum log line length
  * - ZF_LOG_EOL - string to put in the end of each log line
  * - ZF_LOG_EOL_SZ - number of bytes to reserve for EOL
@@ -20,9 +19,6 @@
 	#else
 		#define ZF_LOG_PUT_CTX 1
 	#endif
-#endif
-#ifndef ZF_LOG_TAG_MAX
-	#define ZF_LOG_TAG_MAX 32
 #endif
 #ifndef ZF_LOG_LINE_MAX
 	#define ZF_LOG_LINE_MAX 256
