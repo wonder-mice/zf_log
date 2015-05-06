@@ -13,5 +13,10 @@ int main(int argc, char *argv[])
 	ZF_LOGW("You will see this WARNING message");
 	ZF_LOGI("You will NOT see this INFO message");
 
+	const char data[] =
+			"Lorem ipsum dolor sit amet, consectetur adipiscing elit. "
+			"Aliquam pharetra orci id velit porttitor tempus.";
+	ZF_LOGW_MEM(data, sizeof(data), "Lorem ipsum at %p:", data);
+
 	return 0;
 }
