@@ -42,7 +42,7 @@ Will produce following log line if `NDEBUG` is defined (release build):
 +- month           +- process id
 |  +- day          |      +- thread id      +- message
 |  |               |      |                 |
-04-29 22:43:20.244 40059  1299 D hello.MAIN Number of arguments: 1
+04-29 22:43:20.244 40059  1299 W hello.MAIN Number of arguments: 1
       |  |  |  |               | |     |
       |  |  |  +- millisecond  | |     +- tag (optional)
       |  |  +- second          | +- tag prefix (optional)
@@ -53,7 +53,7 @@ Will produce following log line if `NDEBUG` is defined (release build):
 And if `NDEBUG` is NOT defined (debug build):
 
 ```
-04-29 22:43:20.244 40059  1299 D hello.MAIN main@hello.c:9 Number of arguments: 1
+04-29 22:43:20.244 40059  1299 W hello.MAIN main@hello.c:9 Number of arguments: 1
                                             |    |       |
                                             |    |       +- line number
                                             |    +- source file name
