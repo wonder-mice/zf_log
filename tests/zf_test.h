@@ -43,6 +43,14 @@
 		exit(1); \
 	}
 
+#define TEST_VERIFY_GREATER_OR_EQUAL(a, b) \
+	if (!((a) >= (b))) { \
+		fprintf(stderr, "%s:%u: %s:\n", __FILE__, __LINE__, "not greater"); \
+		fprintf(stderr, "    left:   %s\n", _ZF_TEST_STRINGIFY(a)); \
+		fprintf(stderr, "    reight: %s\n", _ZF_TEST_STRINGIFY(b)); \
+		exit(1); \
+	}
+
 #define TEST_EXECUTE(f) \
 	f
 
