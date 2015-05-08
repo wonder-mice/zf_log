@@ -10,3 +10,9 @@ Things to do
   problems when the library is used with other code that also
   uses zf_log.
 * Add unit test for memory output (value + small buffer)
+* Output some memory even when buffer is too small
+* put_xxx() functions can change e, need to restore it
+  There are some flaws in that strategy. If output_mem will
+  do the same thing, then each next line will have smaller
+  size. Need either restor is or do not do it in the first
+  place.
