@@ -106,6 +106,10 @@ extern "C" {
  */
 void zf_log_set_tag_prefix(const char *const prefix);
 
+/* Set number of bytes per log line in memory output.
+ */
+void zf_log_set_mem_width(const unsigned w);
+
 /* Set output log level. When output log level is higher than the current log
  * level it overrides it. Otherwise output log level is ignored. This is because
  * messages below current log level are compiled out.
@@ -125,13 +129,11 @@ typedef struct zf_log_output_ctx
 }
 zf_log_output_ctx;
 
-/* Output callback function. Callback is allowed to modify the buffer pointed
- * by ctx.
- */
 typedef void (*zf_log_output_cb)(zf_log_output_ctx *ctx);
 
 /* Set output callback function. It will be called for each log message allowed
- * by current log level and output log level.
+ * by the current log level and output log level. Callback function is allowed
+ * to modify the buffer pointed by the ctx.
  */
 void zf_log_set_output_callback(const zf_log_output_cb cb);
 

@@ -1,10 +1,10 @@
 /* Library configuration options:
- * - ZF_LOG_ANDROID_LOG - enable android/log.h support
- * - ZF_LOG_PUT_CTX - put timestamp, pid, tid, level, tag in the log line
- * - ZF_LOG_LINE_MAX - maximum log line length
  * - ZF_LOG_EOL - string to put in the end of each log line
  * - ZF_LOG_EOL_SZ - number of bytes to reserve for EOL
- * - ZF_LOG_HEX_WIDTH - number of bytes in one line of hex output
+ * - ZF_LOG_MEM_WIDTH - default number of bytes in one line of memory output
+ */
+/* Controls android/log.h support. When defined, must be 1 (enable) or 0
+ * (disable). If not defined, default will be used.
  */
 #ifndef ZF_LOG_ANDROID_LOG
 	#if defined(ANDROID)
@@ -13,6 +13,10 @@
 		#define ZF_LOG_ANDROID_LOG 0
 	#endif
 #endif
+/* Controls whether to add timestamp, pid, tid and level in the log message.
+ * When defined, must be 1 (enable) or 0 (disable). If not defined, default
+ * will be used.
+ */
 #ifndef ZF_LOG_PUT_CTX
 	#if ZF_LOG_ANDROID_LOG
 		#define ZF_LOG_PUT_CTX 0
@@ -20,17 +24,27 @@
 		#define ZF_LOG_PUT_CTX 1
 	#endif
 #endif
-#ifndef ZF_LOG_LINE_MAX
-	#define ZF_LOG_LINE_MAX 256
+/* Size of the log line buffer. The buffer is allocated on the stack. It limits
+ * the maximum length of the log line.
+ */
+#ifndef ZF_LOG_BUF_SZ
+	#define ZF_LOG_BUF_SZ 256
 #endif
+/* String to put in the end of each log line (in stderr output).
+ */
 #ifndef ZF_LOG_EOL
 	#define ZF_LOG_EOL "\n"
 #endif
+/* Number of bytes to reserve for EOL in the log line buffer.
+ */
 #ifndef ZF_LOG_EOL_SZ
-	#define ZF_LOG_EOL_SZ 4
+	#define ZF_LOG_EOL_SZ sizeof(ZF_LOG_EOL)
 #endif
-#ifndef ZF_LOG_HEX_WIDTH
-	#define ZF_LOG_HEX_WIDTH 32
+/* Default number of bytes in one line of memory output. For large values
+ * ZF_LOG_BUF_SZ also must be increased.
+ */
+#ifndef ZF_LOG_MEM_WIDTH
+	#define ZF_LOG_MEM_WIDTH 32
 #endif
 
 #include <assert.h>
@@ -48,7 +62,7 @@
 	#include <sys/prctl.h>
 	#include <sys/types.h>
 #endif
-#if defined(__MACH__)
+#if defined(__MACH__) && ZF_LOG_PUT_CTX
 	#include <pthread.h>
 #endif
 
@@ -56,41 +70,21 @@
 	#include <android/log.h>
 #endif
 
-typedef char c_eol_sz_check[sizeof(ZF_LOG_EOL) < ZF_LOG_EOL_SZ? 1: -1];
-static const size_t c_eol_sz = ZF_LOG_EOL_SZ;
-static const char c_hex[] = "0123456789abcdef";
-static const ptrdiff_t c_hex_width = ZF_LOG_HEX_WIDTH;
-
+#if ZF_LOG_PUT_CTX
+static void time_callback(struct tm *const tm, unsigned *const usec);
+static void pid_callback(int *const pid, int *const tid);
+#endif
 static void output_callback(zf_log_output_ctx *const ctx);
 
-static zf_log_output_cb g_output_cb = output_callback;
+typedef char c_eol_sz_check[sizeof(ZF_LOG_EOL) <= ZF_LOG_EOL_SZ? 1: -1];
+static const char c_hex[] = "0123456789abcdef";
+
+static unsigned g_buf_sz = ZF_LOG_BUF_SZ - ZF_LOG_EOL_SZ;
+static unsigned g_mem_width = ZF_LOG_MEM_WIDTH;
 static const char *g_tag_prefix = 0;
+static zf_log_output_cb g_output_cb = output_callback;
 
 int _zf_log_output_lvl = 0;
-
-#if ZF_LOG_PUT_CTX
-static char lvl_char(const int lvl)
-{
-	switch (lvl)
-	{
-	case ZF_LOG_VERBOSE:
-		return 'V';
-	case ZF_LOG_DEBUG:
-		return 'D';
-	case ZF_LOG_INFO:
-		return 'I';
-	case ZF_LOG_WARN:
-		return 'W';
-	case ZF_LOG_ERROR:
-		return 'E';
-	case ZF_LOG_FATAL:
-		return 'F';
-	default:
-		assert(!"Bad log level");
-		return '?';
-	}
-}
-#endif
 
 #if ZF_LOG_ANDROID_LOG
 static int android_lvl(const int lvl)
@@ -117,17 +111,71 @@ static int android_lvl(const int lvl)
 #endif
 
 #if ZF_LOG_PUT_CTX
-static int thread_id()
+static char lvl_char(const int lvl)
 {
+	switch (lvl)
+	{
+	case ZF_LOG_VERBOSE:
+		return 'V';
+	case ZF_LOG_DEBUG:
+		return 'D';
+	case ZF_LOG_INFO:
+		return 'I';
+	case ZF_LOG_WARN:
+		return 'W';
+	case ZF_LOG_ERROR:
+		return 'E';
+	case ZF_LOG_FATAL:
+		return 'F';
+	default:
+		assert(!"Bad log level");
+		return '?';
+	}
+}
+
+static void time_callback(struct tm *const tm, unsigned *const usec)
+{
+	struct timeval tv;
+	gettimeofday(&tv, 0);
+	const time_t t = tv.tv_sec;
+	localtime_r(&t, tm);
+	*usec = tv.tv_usec;
+}
+
+static void pid_callback(int *const pid, int *const tid)
+{
+	*pid = getpid();
 #if defined(__linux__)
-	return gettid();
+	*tid = gettid();
 #elif defined(__MACH__)
-	return pthread_mach_thread_np(pthread_self());
+	*tid = pthread_mach_thread_np(pthread_self());
 #else
-	#define Unsupported platform
+	#define Platform not supported
 #endif
 }
+#endif // ZF_LOG_PUT_CTX
+
+static void output_callback(zf_log_output_ctx *const ctx)
+{
+#if ZF_LOG_ANDROID_LOG
+	*ctx->p = 0;
+	const char *tag = ctx->p;
+	if (ctx->tag_e != ctx->tag_b)
+	{
+		tag = ctx->tag_b;
+		*ctx->tag_e = 0;
+	}
+	__android_log_print(android_lvl(ctx->lvl), tag, "%s", ctx->msg_b);
+#else
+	strcpy(ctx->p, ZF_LOG_EOL);
+	fputs(ctx->buf, stderr);
 #endif
+	if (ZF_LOG_FATAL == ctx->lvl)
+	{
+		fflush(stderr);
+		abort();
+	}
+}
 
 static const char *filename(const char *file)
 {
@@ -146,24 +194,17 @@ static void put_ctx(zf_log_output_ctx *const ctx)
 {
 #if ZF_LOG_PUT_CTX
 	int n;
-	struct timeval tv;
-	if (0 == gettimeofday(&tv, 0))
-	{
-		const time_t t = tv.tv_sec;
-		struct tm *const tm = localtime(&t);
-		if (0 < (n = strftime(ctx->p, ctx->e - ctx->p, "%m-%d %T", tm)))
-		{
-			ctx->p += n;
-		}
-		n = snprintf(ctx->p, ctx->e - ctx->p, ".%03u ",
-					 (unsigned)(tv.tv_usec / 1000));
-		if (0 < n && ctx->e < (ctx->p += n))
-		{
-			ctx->p = ctx->e;
-		}
-	}
-	n = snprintf(ctx->p, ctx->e - ctx->p, "%5i %5i %c ",
-				 (int)getpid(), (int)thread_id(), (char)lvl_char(ctx->lvl));
+	struct tm tm;
+	unsigned usec;
+	int pid, tid;
+	time_callback(&tm, &usec);
+	pid_callback(&pid, &tid);
+	n = snprintf(ctx->p, ctx->e - ctx->p,
+				 "%02u-%02u %02u:%02u:%02u.%03u %5i %5i %c ",
+				 (unsigned)tm.tm_mon, (unsigned)tm.tm_mday,
+				 (unsigned)tm.tm_hour, (unsigned)tm.tm_min, (unsigned)tm.tm_sec,
+				 (unsigned)(usec / 1000),
+				 pid, tid, (char)lvl_char(ctx->lvl));
 	if (0 < n && ctx->e < (ctx->p += n))
 	{
 		ctx->p = ctx->e;
@@ -175,22 +216,21 @@ static void put_ctx(zf_log_output_ctx *const ctx)
 
 static void put_tag(zf_log_output_ctx *const ctx, const char *const tag)
 {
+	const char *ch;
 	ctx->tag_b = ctx->p;
-	if (0 != g_tag_prefix)
+	if (0 != (ch = g_tag_prefix))
 	{
-		for (const char *ch = g_tag_prefix;
-			 ctx->e != ctx->p && 0 != (*ctx->p = *ch); ++ctx->p, ++ch)
+		for (;ctx->e != ctx->p && 0 != (*ctx->p = *ch); ++ctx->p, ++ch)
 		{
 		}
 	}
-	if (0 != tag && 0 != tag[0])
+	if (0 != (ch = tag) && 0 != tag[0])
 	{
 		if (ctx->tag_b != ctx->p && ctx->e != ctx->p)
 		{
 			*ctx->p++ = '.';
 		}
-		for (const char *ch = tag;
-			 ctx->e != ctx->p && 0 != (*ctx->p = *ch); ++ctx->p, ++ch)
+		for (;ctx->e != ctx->p && 0 != (*ctx->p = *ch); ++ctx->p, ++ch)
 		{
 		}
 	}
@@ -229,37 +269,16 @@ static void put_msg(zf_log_output_ctx *const ctx,
 	}
 }
 
-static void output_callback(zf_log_output_ctx *const ctx)
-{
-#if ZF_LOG_ANDROID_LOG
-	*ctx->p = 0;
-	const char *tag = ctx->p;
-	if (ctx->tag_e != ctx->tag_b)
-	{
-		tag = ctx->tag_b;
-		*ctx->tag_e = 0;
-	}
-	__android_log_print(android_lvl(ctx->lvl), tag, "%s", ctx->msg_b);
-#else
-	strcpy(ctx->p, ZF_LOG_EOL);
-	fputs(ctx->buf, stderr);
-#endif
-	if (ZF_LOG_FATAL == ctx->lvl)
-	{
-		fflush(stderr);
-		abort();
-	}
-}
-
 static void output_mem(zf_log_output_ctx *const ctx,
 					   const void *const d, const unsigned d_sz)
 {
 	const unsigned char *mem_p = (const unsigned char *)d;
 	const unsigned char *const mem_e = mem_p + d_sz;
 	const unsigned char *mem_cut;
+	const unsigned mem_width = g_mem_width;
 	char *const hex_b = ctx->msg_b;
-	char *const ascii_b = hex_b + 2 * c_hex_width + 2;
-	char *const ascii_e = ascii_b + c_hex_width;
+	char *const ascii_b = hex_b + 2 * mem_width + 2;
+	char *const ascii_e = ascii_b + mem_width;
 	if (ctx->e < ascii_e)
 	{
 		return;
@@ -268,12 +287,13 @@ static void output_mem(zf_log_output_ctx *const ctx,
 	{
 		char *hex = hex_b;
 		char *ascii = ascii_b;
-		for (mem_cut = c_hex_width < mem_e - mem_p? mem_p + c_hex_width: mem_e;
+		for (mem_cut = mem_width < mem_e - mem_p? mem_p + mem_width: mem_e;
 			 mem_cut != mem_p; ++mem_p)
 		{
-			*hex++ = c_hex[(0xf0 & *mem_p) >> 4];
-			*hex++ = c_hex[(0x0f & *mem_p)];
-			*ascii++ = isprint(*mem_p)? *mem_p: '?';
+			const char ch = *mem_p;
+			*hex++ = c_hex[(0xf0 & ch) >> 4];
+			*hex++ = c_hex[(0x0f & ch)];
+			*ascii++ = isprint(ch)? ch: '?';
 		}
 		while (hex != ascii_b)
 		{
@@ -284,14 +304,19 @@ static void output_mem(zf_log_output_ctx *const ctx,
 	}
 }
 
-void zf_log_set_output_level(const int lvl)
-{
-	_zf_log_output_lvl = lvl;
-}
-
 void zf_log_set_tag_prefix(const char *const prefix)
 {
 	g_tag_prefix = prefix;
+}
+
+void zf_log_set_mem_width(const unsigned w)
+{
+	g_mem_width = w;
+}
+
+void zf_log_set_output_level(const int lvl)
+{
+	_zf_log_output_lvl = lvl;
 }
 
 void zf_log_set_output_callback(const zf_log_output_cb cb)
@@ -301,12 +326,11 @@ void zf_log_set_output_callback(const zf_log_output_cb cb)
 
 #define CTX(lvl_, tag_) \
 	zf_log_output_ctx ctx; \
-	char buf[ZF_LOG_LINE_MAX]; \
+	char buf[ZF_LOG_BUF_SZ]; \
 	ctx.lvl = (lvl_); \
 	ctx.tag = (tag_); \
-	ctx.buf = buf; \
-	ctx.p = buf; \
-	ctx.e = buf + sizeof(buf) - c_eol_sz; \
+	ctx.p = ctx.buf = buf; \
+	ctx.e = buf + g_buf_sz; \
 	(void)0
 
 void _zf_log_write_d(const char *const func,
