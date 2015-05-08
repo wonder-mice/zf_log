@@ -46,10 +46,14 @@
 #ifndef ZF_LOG_MEM_WIDTH
 	#define ZF_LOG_MEM_WIDTH 32
 #endif
+/* Compile instrumented version of the library to facilitate unit testing.
+ */
+#ifndef ZF_LOG_INSTRUMENTED
+	#define ZF_LOG_INSTRUMENTED 0
+#endif
 
 #include <assert.h>
 #include <string.h>
-#include <stddef.h>
 #include <stdarg.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -70,8 +74,16 @@
 	#include <android/log.h>
 #endif
 
+#if ZF_LOG_INSTRUMENTED
+	#define INSTRUMENTED_CONST
+#else
+	#define INSTRUMENTED_CONST const
+#endif
+
 #if ZF_LOG_PUT_CTX
+typedef void (*time_cb)(struct tm *const tm, unsigned *const usec);
 static void time_callback(struct tm *const tm, unsigned *const usec);
+typedef void (*pid_cb)(int *const pid, int *const tid);
 static void pid_callback(int *const pid, int *const tid);
 #endif
 static void output_callback(zf_log_output_ctx *const ctx);
@@ -79,9 +91,13 @@ static void output_callback(zf_log_output_ctx *const ctx);
 typedef char c_eol_sz_check[sizeof(ZF_LOG_EOL) <= ZF_LOG_EOL_SZ? 1: -1];
 static const char c_hex[] = "0123456789abcdef";
 
-static unsigned g_buf_sz = ZF_LOG_BUF_SZ - ZF_LOG_EOL_SZ;
-static unsigned g_mem_width = ZF_LOG_MEM_WIDTH;
 static const char *g_tag_prefix = 0;
+static unsigned g_mem_width = ZF_LOG_MEM_WIDTH;
+static INSTRUMENTED_CONST unsigned g_buf_sz = ZF_LOG_BUF_SZ - ZF_LOG_EOL_SZ;
+#if ZF_LOG_PUT_CTX
+static INSTRUMENTED_CONST time_cb g_time_cb = time_callback;
+static INSTRUMENTED_CONST pid_cb g_pid_cb = pid_callback;
+#endif
 static zf_log_output_cb g_output_cb = output_callback;
 
 int _zf_log_output_lvl = 0;
@@ -190,6 +206,16 @@ static const char *filename(const char *file)
 	return f;
 }
 
+static void put_nprintf(zf_log_output_ctx *const ctx, const int n)
+{
+	const char *const p = ctx->p;
+	if (0 < n && ctx->e < (ctx->p += n))
+	{
+		/* nprintf always puts 0 in the end when input buffer is not empty */
+		ctx->p = p < ctx->e? ctx->e - 1: ctx->e;
+	}
+}
+
 static void put_ctx(zf_log_output_ctx *const ctx)
 {
 #if ZF_LOG_PUT_CTX
@@ -197,18 +223,15 @@ static void put_ctx(zf_log_output_ctx *const ctx)
 	struct tm tm;
 	unsigned usec;
 	int pid, tid;
-	time_callback(&tm, &usec);
-	pid_callback(&pid, &tid);
+	g_time_cb(&tm, &usec);
+	g_pid_cb(&pid, &tid);
 	n = snprintf(ctx->p, ctx->e - ctx->p,
 				 "%02u-%02u %02u:%02u:%02u.%03u %5i %5i %c ",
 				 (unsigned)tm.tm_mon, (unsigned)tm.tm_mday,
 				 (unsigned)tm.tm_hour, (unsigned)tm.tm_min, (unsigned)tm.tm_sec,
 				 (unsigned)(usec / 1000),
 				 pid, tid, (char)lvl_char(ctx->lvl));
-	if (0 < n && ctx->e < (ctx->p += n))
-	{
-		ctx->p = ctx->e;
-	}
+	put_nprintf(ctx, n);
 #else
 	(void)ctx;
 #endif
@@ -247,10 +270,7 @@ static void put_src(zf_log_output_ctx *const ctx, const char *const func,
 	int n;
 	n = snprintf(ctx->p, ctx->e - ctx->p, "%s@%s:%u ",
 				 func, filename(file), line);
-	if (0 < n && ctx->e < (ctx->p += n))
-	{
-		ctx->p = ctx->e;
-	}
+	put_nprintf(ctx, n);
 }
 
 static void put_msg(zf_log_output_ctx *const ctx,
@@ -259,14 +279,7 @@ static void put_msg(zf_log_output_ctx *const ctx,
 	int n;
 	ctx->msg_b = ctx->p;
 	n = vsnprintf(ctx->p, ctx->e - ctx->p, fmt, va);
-	if (0 < n && ctx->e < (ctx->p += n))
-	{
-		ctx->p = ctx->e;
-	}
-	if (ctx->e == ctx->p && 0 == *(ctx->p - 1))
-	{
-		--ctx->p;
-	}
+	put_nprintf(ctx, n);
 }
 
 static void output_mem(zf_log_output_ctx *const ctx,
