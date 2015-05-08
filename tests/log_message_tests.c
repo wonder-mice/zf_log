@@ -18,6 +18,7 @@ static const char c_mock_msg[] =
 
 static char g_msg[ZF_LOG_BUF_SZ + 1];
 static ptrdiff_t g_len;
+static ptrdiff_t g_null_pos;
 
 static unsigned common_prefix(const char *const s1, const unsigned s1_len,
 							  const char *const s2, const unsigned s2_len)
@@ -66,6 +67,10 @@ static void mock_output_callback(zf_log_output_ctx *ctx)
 {
 	g_len = (int)(ctx->p - ctx->buf);
 	memcpy(g_msg, ctx->buf, ZF_LOG_BUF_SZ);
+	for	(g_null_pos = 0; g_len > g_null_pos && 0 != *(g_msg + g_null_pos);
+		 ++g_null_pos)
+	{
+	}
 }
 
 static void test_buffer_size()
@@ -75,15 +80,13 @@ static void test_buffer_size()
 	{
 		reset();
 		g_buf_sz = buf_sz;
-		_zf_log_write_d("function", "file", 42,
-						ZF_LOG_INFO, ZF_LOG_TAG, c_mock_fmt);
+		_zf_log_write_d("function", "file", 42, ZF_LOG_INFO, ZF_LOG_TAG,
+						c_mock_fmt);
 		const unsigned match = common_prefix(c_mock_msg, sizeof(c_mock_msg),
 											 g_msg, g_len);
-		// *nprintf() family always puts 0 in the end, while put_tag() don't.
-		// when put_tag() goes after any *nprintf() it will overwrite 0 in the
-		// end with the tag or tag prefix first character. +1 here is to
-		// workaround that inconsistency.
-		TEST_VERIFY_GREATER_OR_EQUAL(match + 1, g_len);
+		// must be no '\0' within g_len
+		TEST_VERIFY_EQUAL(g_len, g_null_pos);
+		TEST_VERIFY_GREATER_OR_EQUAL(match, g_len);
 	}
 }
 
@@ -94,6 +97,7 @@ int main(int argc, char *argv[])
 	g_time_cb = mock_time_callback;
 	g_pid_cb = mock_pid_callback;
 	TEST_RUNNER_CREATE(argc, argv);
+
 	TEST_EXECUTE(test_buffer_size());
 
 	return TEST_RUNNER_EXIT_CODE();
