@@ -17,7 +17,7 @@ static void reset()
 	g_arg = 0;
 }
 
-static void output_callback(zf_log_output_ctx *ctx)
+static void mock_output_callback(zf_log_output_ctx *ctx)
 {
 	g_lvl = ctx->lvl;
 	g_len = ctx->p - ctx->buf;
@@ -113,7 +113,7 @@ static void test_level_checks()
 
 int main(int argc, char *argv[])
 {
-	zf_log_set_output_callback(output_callback);
+	zf_log_set_output_callback(mock_output_callback);
 	TEST_RUNNER_CREATE(argc, argv);
 
 	TEST_EXECUTE(test_current_level());

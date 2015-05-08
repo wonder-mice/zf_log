@@ -13,22 +13,32 @@ set(HEADERS zf_test.h zf_test.hpp)
 add_custom_target(zf_test_headers SOURCES ${HEADERS})
 
 function(add_zf_log_test target)
-    cmake_parse_arguments(arg
-        ""
-        ""
-        "SOURCES;FLAGS"
-        ${ARGN})
-    add_executable(${target} ${arg_SOURCES})
-    set_target_properties(${target} PROPERTIES COMPILE_FLAGS "${arg_FLAGS}")
-    target_link_libraries(${target} zf_log zf_test)
-    add_test(NAME ${target} COMMAND ${target})
+	cmake_parse_arguments(arg
+		""
+		""
+		"SOURCES;LIBS;FLAGS"
+		${ARGN})
+	add_executable(${target} ${arg_SOURCES})
+	set_target_properties(${target} PROPERTIES COMPILE_FLAGS "${arg_FLAGS}")
+	target_include_directories(${target} PRIVATE "${PROJECT_SOURCE_DIR}/zf_log")
+	target_link_libraries(${target}  zf_test ${arg_LIBS})
+	add_test(NAME ${target} COMMAND ${target})
 endfunction()
 
 add_zf_log_test(log_level_tests_c99
 	SOURCES log_level_tests.c
+	LIBS zf_log
 	FLAGS -std=c99)
 add_zf_log_test(log_level_tests_c11
 	SOURCES log_level_tests.c
+	LIBS zf_log
+	FLAGS -std=c11)
+
+add_zf_log_test(log_message_tests_c99
+	SOURCES log_message_tests.c
+	FLAGS -std=c99)
+add_zf_log_test(log_message_tests_c11
+	SOURCES log_message_tests.c
 	FLAGS -std=c11)
 
 # generated code size tests
@@ -44,6 +54,12 @@ add_custom_command(OUTPUT "${CODE_SIZE_SOURCE_DIR}/zf_log.h"
 		"${CMAKE_CURRENT_SOURCE_DIR}/zf_log.h.master")
 
 function(add_code_size_test name)
+	# "-save-temps" will put all ".s" files directly in the "tests" build
+	# directory which is not specific for the target. Since it's useful to
+	# examine those files, test source file will copied with different
+	# names for *-prev and *-curr targets. That way generated "*.s" files
+	# will have different names too.
+
 	# copy source for prev
 	add_custom_command(OUTPUT "${CODE_SIZE_SOURCE_DIR}/${name}-prev.c"
 		COMMAND "${CMAKE_COMMAND}" -E copy_if_different
