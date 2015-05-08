@@ -9,3 +9,4 @@ Things to do
   way zf_log can be embeded inside the library without linking
   problems when the library is used with other code that also
   uses zf_log.
+* Add unit test for memory output (value + small buffer)
