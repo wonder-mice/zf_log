@@ -209,10 +209,13 @@ static const char *filename(const char *file)
 static void put_nprintf(zf_log_output_ctx *const ctx, const int n)
 {
 	const char *const p = ctx->p;
-	if (0 < n && ctx->e < (ctx->p += n))
+	if (0 < n && ctx->e <= (ctx->p += n))
 	{
-		/* nprintf always puts 0 in the end when input buffer is not empty */
-		ctx->p = p < ctx->e? ctx->e - 1: ctx->e;
+		// *nprintf() always puts 0 in the end when input buffer is not empty
+		// which leaves 1 byte that can be used by other put_*() function. That
+		// creates inconsistency, since log line will contain multiple half-
+		// written parts. To workaround that, we decrement buffer end (e).
+		ctx->p = p < ctx->e? --ctx->e: ctx->e;
 	}
 }
 
@@ -342,8 +345,7 @@ void zf_log_set_output_callback(const zf_log_output_cb cb)
 	char buf[ZF_LOG_BUF_SZ]; \
 	ctx.lvl = (lvl_); \
 	ctx.tag = (tag_); \
-	ctx.p = ctx.buf = buf; \
-	ctx.e = buf + g_buf_sz; \
+	ctx.e = (ctx.p = ctx.buf = buf) + g_buf_sz; \
 	(void)0
 
 void _zf_log_write_d(const char *const func,
