@@ -55,10 +55,12 @@
 #include <assert.h>
 #include <string.h>
 #include <stdarg.h>
+#include <stddef.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <ctype.h>
 #include <unistd.h>
+#include <time.h>
 #include <sys/time.h>
 #include "zf_log.h"
 
@@ -83,12 +85,15 @@
 #define STATIC_ASSERT(name, cond) \
 	typedef char assert_##name[(cond)? 1: -1]
 
-#if ZF_LOG_PUT_CTX
 typedef void (*time_cb)(struct tm *const tm, unsigned *const usec);
-static void time_callback(struct tm *const tm, unsigned *const usec);
 typedef void (*pid_cb)(int *const pid, int *const tid);
+typedef void (*buffer_cb)(zf_log_output_ctx *ctx, char *buf);
+
+#if ZF_LOG_PUT_CTX
+static void time_callback(struct tm *const tm, unsigned *const usec);
 static void pid_callback(int *const pid, int *const tid);
 #endif
+static void buffer_callback(zf_log_output_ctx *ctx, char *buf);
 static void output_callback(zf_log_output_ctx *const ctx);
 
 STATIC_ASSERT(eol_fits_eol_sz, sizeof(ZF_LOG_EOL) <= ZF_LOG_EOL_SZ);
@@ -96,12 +101,13 @@ STATIC_ASSERT(eol_sz_greater_than_zero, 0 < ZF_LOG_EOL_SZ);
 static const char c_hex[] = "0123456789abcdef";
 
 static const char *g_tag_prefix = 0;
-static unsigned g_mem_width = ZF_LOG_MEM_WIDTH;
+static size_t g_mem_width = ZF_LOG_MEM_WIDTH;
 static INSTRUMENTED_CONST unsigned g_buf_sz = ZF_LOG_BUF_SZ - ZF_LOG_EOL_SZ;
 #if ZF_LOG_PUT_CTX
 static INSTRUMENTED_CONST time_cb g_time_cb = time_callback;
 static INSTRUMENTED_CONST pid_cb g_pid_cb = pid_callback;
 #endif
+static INSTRUMENTED_CONST buffer_cb g_buffer_cb = buffer_callback;
 static zf_log_output_cb g_output_cb = output_callback;
 
 int _zf_log_output_lvl = 0;
@@ -174,6 +180,11 @@ static void pid_callback(int *const pid, int *const tid)
 #endif
 }
 #endif // ZF_LOG_PUT_CTX
+
+static void buffer_callback(zf_log_output_ctx *ctx, char *buf)
+{
+	ctx->e = (ctx->p = ctx->buf = buf) + g_buf_sz;
+}
 
 static void output_callback(zf_log_output_ctx *const ctx)
 {
@@ -302,7 +313,7 @@ static void output_mem(zf_log_output_ctx *const ctx,
 	const unsigned char *mem_p = (const unsigned char *)d;
 	const unsigned char *const mem_e = mem_p + d_sz;
 	const unsigned char *mem_cut;
-	const unsigned mem_width = g_mem_width;
+	const ptrdiff_t mem_width = g_mem_width;
 	char *const hex_b = ctx->msg_b;
 	char *const ascii_b = hex_b + 2 * mem_width + 2;
 	char *const ascii_e = ascii_b + mem_width;
@@ -356,8 +367,9 @@ void zf_log_set_output_callback(const zf_log_output_cb cb)
 	char buf[ZF_LOG_BUF_SZ]; \
 	ctx.lvl = (lvl_); \
 	ctx.tag = (tag_); \
-	ctx.e = (ctx.p = ctx.buf = buf) + g_buf_sz; \
+	g_buffer_cb(&ctx, buf); \
 	(void)0
+
 
 void _zf_log_write_d(const char *const func,
 					 const char *const file, const unsigned line,
