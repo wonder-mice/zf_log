@@ -11,5 +11,3 @@ Things to do
   uses zf_log.
 * Add unit test for memory output (value + small buffer)
 * Output some memory even when buffer is too small
-* Have custom buffer initialization proc to detect
-  buffer overruns

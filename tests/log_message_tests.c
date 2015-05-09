@@ -15,13 +15,24 @@ static const char c_mock_fmt[] =
 static const char c_mock_msg[] =
 	"12-23 12:34:56.789  9876  5432 I prefix.TAG function@file:42 "
 	"Lorem ipsum dolor sit amet.";
+STATIC_ASSERT(mock_msg_fits_buff, sizeof(c_mock_msg) < ZF_LOG_BUF_SZ);
 
 static char g_msg[ZF_LOG_BUF_SZ + 1];
-static ptrdiff_t g_len;
-static ptrdiff_t g_null_pos;
+static size_t g_len;
+static size_t g_null_pos;
 
-static unsigned common_prefix(const char *const s1, const unsigned s1_len,
-							  const char *const s2, const unsigned s2_len)
+static size_t memchk(const void *const b, const int c, const size_t sz)
+{
+	const unsigned char v = c;
+	const unsigned char *const s = (const unsigned char *)b;
+	const unsigned char *const e = s + sz;
+	const unsigned char *p = s;
+	for (;p != e && v == *p; ++p) {}
+	return (size_t)(p - s);
+}
+
+static size_t common_prefix(const char *const s1, const size_t s1_len,
+							const char *const s2, const size_t s2_len)
 {
 	const char *const e1 = s1 + s1_len;
 	const char *const e2 = s2 + s2_len;
@@ -31,7 +42,7 @@ static unsigned common_prefix(const char *const s1, const unsigned s1_len,
 		++c1;
 		++c2;
 	}
-	return (unsigned)(c1 - s1);
+	return (size_t)(c1 - s1);
 }
 
 static void reset()
@@ -63,6 +74,12 @@ static void mock_pid_callback(int *const pid, int *const tid)
 	*tid = 5432;
 }
 
+static void mock_buffer_callback(zf_log_output_ctx *ctx, char *buf)
+{
+	memset(buf, -1, ZF_LOG_BUF_SZ);
+	buffer_callback(ctx, buf);
+}
+
 static void mock_output_callback(zf_log_output_ctx *ctx)
 {
 	g_len = (int)(ctx->p - ctx->buf);
@@ -75,17 +92,19 @@ static void mock_output_callback(zf_log_output_ctx *ctx)
 
 static void test_buffer_size()
 {
-	for (unsigned buf_sz = 0;
-		 ZF_LOG_BUF_SZ >= buf_sz && sizeof(c_mock_msg) >= buf_sz; ++buf_sz)
+	for (size_t buf_sz = 0; sizeof(c_mock_msg) >= buf_sz; ++buf_sz)
 	{
 		reset();
+		const size_t modifiable = buf_sz + 1;
+		const size_t unmodifiable = ZF_LOG_BUF_SZ - modifiable;
 		g_buf_sz = buf_sz;
 		_zf_log_write_d("function", "file", 42, ZF_LOG_INFO, ZF_LOG_TAG,
 						c_mock_fmt);
-		const unsigned match = common_prefix(c_mock_msg, sizeof(c_mock_msg),
-											 g_msg, g_len);
-		// must be no '\0' within g_len
-		TEST_VERIFY_EQUAL(g_len, g_null_pos);
+		const size_t untouched = memchk(g_msg + modifiable, -1, unmodifiable);
+		const size_t match = common_prefix(c_mock_msg, sizeof(c_mock_msg),
+										   g_msg, g_len);
+		TEST_VERIFY_EQUAL(untouched, unmodifiable);
+		TEST_VERIFY_EQUAL(g_null_pos, g_len);
 		TEST_VERIFY_GREATER_OR_EQUAL(match, g_len);
 	}
 }
@@ -96,6 +115,7 @@ int main(int argc, char *argv[])
 	zf_log_set_output_callback(mock_output_callback);
 	g_time_cb = mock_time_callback;
 	g_pid_cb = mock_pid_callback;
+	g_buffer_cb = mock_buffer_callback;
 	TEST_RUNNER_CREATE(argc, argv);
 
 	TEST_EXECUTE(test_buffer_size());

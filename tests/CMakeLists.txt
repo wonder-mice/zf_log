@@ -9,7 +9,7 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra -Werror -pedantic-errors")
 set(HEADERS_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 add_library(zf_test INTERFACE)
 target_include_directories(zf_test INTERFACE $<BUILD_INTERFACE:${HEADERS_DIR}>)
-set(HEADERS zf_test.h zf_test.hpp)
+set(HEADERS zf_test.h)
 add_custom_target(zf_test_headers SOURCES ${HEADERS})
 
 function(add_zf_log_test target)
