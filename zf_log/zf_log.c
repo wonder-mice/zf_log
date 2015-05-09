@@ -80,6 +80,9 @@
 	#define INSTRUMENTED_CONST const
 #endif
 
+#define STATIC_ASSERT(name, cond) \
+	typedef char assert_##name[(cond)? 1: -1]
+
 #if ZF_LOG_PUT_CTX
 typedef void (*time_cb)(struct tm *const tm, unsigned *const usec);
 static void time_callback(struct tm *const tm, unsigned *const usec);
@@ -88,7 +91,8 @@ static void pid_callback(int *const pid, int *const tid);
 #endif
 static void output_callback(zf_log_output_ctx *const ctx);
 
-typedef char c_eol_sz_check[sizeof(ZF_LOG_EOL) <= ZF_LOG_EOL_SZ? 1: -1];
+STATIC_ASSERT(eol_fits_eol_sz, sizeof(ZF_LOG_EOL) <= ZF_LOG_EOL_SZ);
+STATIC_ASSERT(eol_sz_greater_than_zero, 0 < ZF_LOG_EOL_SZ);
 static const char c_hex[] = "0123456789abcdef";
 
 static const char *g_tag_prefix = 0;
@@ -206,16 +210,23 @@ static const char *filename(const char *file)
 	return f;
 }
 
-static void put_nprintf(zf_log_output_ctx *const ctx, const int n)
+static inline size_t nprintf_size(zf_log_output_ctx *const ctx)
 {
-	const char *const p = ctx->p;
-	if (0 < n && ctx->e <= (ctx->p += n))
+	// *nprintf() always puts 0 in the end when input buffer is not empty. This
+	// 0 is not desired because its presence sets (ctx->p) to (ctx->e - 1) which
+	// leaves space for one more character. Some put_xxx() functions don't use
+	// *nprintf() and could use that last character. In that case log line will
+	// have multiple (two) half-written parts which is confusing. To workaround
+	// that we allow *nprintf() to write its 0 in the eol area (which is always
+	// not empty).
+	return ctx->e - ctx->p + 1;
+}
+
+static inline void put_nprintf(zf_log_output_ctx *const ctx, const int n)
+{
+	if (0 < n && ctx->e < (ctx->p += n))
 	{
-		// *nprintf() always puts 0 in the end when input buffer is not empty
-		// which leaves 1 byte that can be used by other put_*() function. That
-		// creates inconsistency, since log line will contain multiple half-
-		// written parts. To workaround that, we decrement buffer end (e).
-		ctx->p = p < ctx->e? --ctx->e: ctx->e;
+		ctx->p = ctx->e;
 	}
 }
 
@@ -228,7 +239,7 @@ static void put_ctx(zf_log_output_ctx *const ctx)
 	int pid, tid;
 	g_time_cb(&tm, &usec);
 	g_pid_cb(&pid, &tid);
-	n = snprintf(ctx->p, ctx->e - ctx->p,
+	n = snprintf(ctx->p, nprintf_size(ctx),
 				 "%02u-%02u %02u:%02u:%02u.%03u %5i %5i %c ",
 				 (unsigned)tm.tm_mon, (unsigned)tm.tm_mday,
 				 (unsigned)tm.tm_hour, (unsigned)tm.tm_min, (unsigned)tm.tm_sec,
@@ -271,7 +282,7 @@ static void put_src(zf_log_output_ctx *const ctx, const char *const func,
 					const char *const file, const unsigned line)
 {
 	int n;
-	n = snprintf(ctx->p, ctx->e - ctx->p, "%s@%s:%u ",
+	n = snprintf(ctx->p, nprintf_size(ctx), "%s@%s:%u ",
 				 func, filename(file), line);
 	put_nprintf(ctx, n);
 }
@@ -281,7 +292,7 @@ static void put_msg(zf_log_output_ctx *const ctx,
 {
 	int n;
 	ctx->msg_b = ctx->p;
-	n = vsnprintf(ctx->p, ctx->e - ctx->p, fmt, va);
+	n = vsnprintf(ctx->p, nprintf_size(ctx), fmt, va);
 	put_nprintf(ctx, n);
 }
 
