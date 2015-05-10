@@ -132,8 +132,8 @@ zf_log_output_ctx;
 typedef void (*zf_log_output_cb)(zf_log_output_ctx *ctx);
 
 /* Set output callback function. It will be called for each log message allowed
- * by the current log level and output log level. Callback function is allowed
- * to modify the buffer pointed by the ctx.
+ * by both current log level and output log level. Callback function is allowed
+ * to modify contents of the buffer pointed by the ctx.
  */
 void zf_log_set_output_callback(const zf_log_output_cb cb);
 
@@ -212,17 +212,18 @@ void _zf_log_write_mem(const int lvl, const char *const tag,
 }
 #endif
 
-/* Logging macros:
- * -ZF_LOGV("format string", args, ...)
- * -ZF_LOGD("format string", args, ...)
- * -ZF_LOGI("format string", args, ...)
- * -ZF_LOGW("format string", args, ...)
- * -ZF_LOGF("format string", args, ...)
- * -ZF_LOGV_MEM(data_ptr, data_sz, "format string", args, ...)
- * -ZF_LOGD_MEM(data_ptr, data_sz, "format string", args, ...)
- * -ZF_LOGI_MEM(data_ptr, data_sz, "format string", args, ...)
- * -ZF_LOGW_MEM(data_ptr, data_sz, "format string", args, ...)
- * -ZF_LOGF_MEM(data_ptr, data_sz, "format string", args, ...)
+/* Message logging macros:
+ * - ZF_LOGV("format string", args, ...)
+ * - ZF_LOGD("format string", args, ...)
+ * - ZF_LOGI("format string", args, ...)
+ * - ZF_LOGW("format string", args, ...)
+ * - ZF_LOGF("format string", args, ...)
+ * Memory logging macros:
+ * - ZF_LOGV_MEM(data_ptr, data_sz, "format string", args, ...)
+ * - ZF_LOGD_MEM(data_ptr, data_sz, "format string", args, ...)
+ * - ZF_LOGI_MEM(data_ptr, data_sz, "format string", args, ...)
+ * - ZF_LOGW_MEM(data_ptr, data_sz, "format string", args, ...)
+ * - ZF_LOGF_MEM(data_ptr, data_sz, "format string", args, ...)
  */
 #ifdef NDEBUG
 	#define _ZF_LOG_IMP(lvl, tag, ...) \
