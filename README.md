@@ -23,7 +23,7 @@ By default log messages are written to the stderr, but it's possible to set
 custom output function. Library also has an optional built-in support for the
 following output facilities:
 * Android log
-* Apple System Log (not implemented)
+* Apple System Log
 
 Examples
 --------

@@ -10,8 +10,12 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -Wall -Wextra -Werror -pedantic-err
 add_library(zf_log ${HEADERS} ${SOURCES})
 target_include_directories(zf_log PUBLIC $<BUILD_INTERFACE:${HEADERS_DIR}>)
 if(ZF_LOG_ANDROID_LOG)
-	target_compile_definitions(zf_log PRIVATE "ZF_LOG_ANDROID_LOG") 
+	target_compile_definitions(zf_log PRIVATE "ZF_LOG_ANDROID_LOG=1") 
 	target_link_libraries(zf_log log)
+endif()
+if(ZF_LOG_APPLE_LOG)
+	target_compile_definitions(zf_log PRIVATE "ZF_LOG_APPLE_LOG=1") 
+	target_link_libraries(zf_log "-framework CoreFoundation")
 endif()
 
 # install (optional)

@@ -1,15 +1,22 @@
-/* Controls android/log.h support. When defined, must be 1 (enable) or 0
- * (disable). Disabled by default.
+/* Controls Android log (android/log.h) support. When defined, must be 1
+ * (enable) or 0 (disable). Disabled by default.
  */
 #ifndef ZF_LOG_ANDROID_LOG
 	#define ZF_LOG_ANDROID_LOG 0
+#endif
+/* Controls Apple log (asl.h) support. When defined, must be 1 (enable) or 0
+ * (disable). Disabled by default. Doesn't use asl directly, but piggybacks on
+ * non-public CFLog() function.
+ */
+#ifndef ZF_LOG_APPLE_LOG
+	#define ZF_LOG_APPLE_LOG 0
 #endif
 /* Controls whether to add timestamp, pid, tid and level in the log message.
  * When defined, must be 1 (enable) or 0 (disable). If not defined, default
  * will be used.
  */
 #ifndef ZF_LOG_PUT_CTX
-	#if ZF_LOG_ANDROID_LOG
+	#if ZF_LOG_ANDROID_LOG || ZF_LOG_APPLE_LOG
 		#define ZF_LOG_PUT_CTX 0
 	#else
 		#define ZF_LOG_PUT_CTX 1
@@ -65,6 +72,10 @@
 
 #if ZF_LOG_ANDROID_LOG
 	#include <android/log.h>
+#endif
+#if ZF_LOG_APPLE_LOG
+	#include <CoreFoundation/CoreFoundation.h>
+	CF_EXPORT void CFLog(int32_t level, CFStringRef format, ...);
 #endif
 
 #if ZF_LOG_INSTRUMENTED
@@ -123,6 +134,30 @@ static int android_lvl(const int lvl)
 	default:
 		assert(!"Bad log level");
 		return ANDROID_LOG_UNKNOWN;
+	}
+}
+#endif
+
+#if ZF_LOG_APPLE_LOG
+static int apple_lvl(const int lvl)
+{
+	switch (lvl)
+	{
+	case ZF_LOG_VERBOSE:
+		return 7; /* ASL_LEVEL_DEBUG / kCFLogLevelDebug */;
+	case ZF_LOG_DEBUG:
+		return 7; /* ASL_LEVEL_DEBUG / kCFLogLevelDebug */;
+	case ZF_LOG_INFO:
+		return 6; /* ASL_LEVEL_INFO / kCFLogLevelInfo */;
+	case ZF_LOG_WARN:
+		return 4; /* ASL_LEVEL_WARNING / kCFLogLevelWarning */;
+	case ZF_LOG_ERROR:
+		return 3; /* ASL_LEVEL_ERR / kCFLogLevelError */;
+	case ZF_LOG_FATAL:
+		return 0; /* ASL_LEVEL_EMERG / kCFLogLevelEmergency */;
+	default:
+		assert(!"Bad log level");
+		return 0; /* ASL_LEVEL_EMERG / kCFLogLevelEmergency */;
 	}
 }
 #endif
@@ -188,6 +223,9 @@ static void output_callback(zf_log_output_ctx *const ctx)
 		*ctx->tag_e = 0;
 	}
 	__android_log_print(android_lvl(ctx->lvl), tag, "%s", ctx->msg_b);
+#elif ZF_LOG_APPLE_LOG
+	*ctx->p = 0;
+	CFLog(apple_lvl(ctx->lvl), CFSTR("%s"), ctx->tag_b);
 #else
 	strcpy(ctx->p, ZF_LOG_EOL);
 	fputs(ctx->buf, stderr);
