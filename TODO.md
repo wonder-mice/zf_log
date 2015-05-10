@@ -10,3 +10,4 @@ Things to do
   problems when the library is used with other code that also
   uses zf_log.
 * Output some memory even when buffer is too small
+* Add CFLog support
