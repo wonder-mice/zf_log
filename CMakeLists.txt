@@ -14,8 +14,8 @@ set(INSTALL_LIB_DIR lib CACHE PATH
 set(INSTALL_CMAKE_DIR lib/cmake/zf_queue CACHE PATH
 	"Installation directory for CMake files")
 option(ZF_LOG_CONFIGURE_INSTALL "Generate install target" YES)
-option(ZF_LOG_EXAMPLES "Build examples" YES)
-option(ZF_LOG_TESTS "Build tests" YES)
+option(ZF_LOG_EXAMPLES "Build examples" NO)
+option(ZF_LOG_TESTS "Build tests" NO)
 option(ZF_LOG_ANDROID_LOG "Output to android log" NO)
 
 add_subdirectory(zf_log)
