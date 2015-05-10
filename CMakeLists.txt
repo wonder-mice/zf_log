@@ -16,9 +16,7 @@ set(INSTALL_CMAKE_DIR lib/cmake/zf_queue CACHE PATH
 option(ZF_LOG_CONFIGURE_INSTALL "Generate install target" YES)
 option(ZF_LOG_EXAMPLES "Build examples" YES)
 option(ZF_LOG_TESTS "Build tests" YES)
-
-# Don't add "-save-temps" to FLAGS - this will break Qt Creator debugger
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c11 -Wall -Wextra -Werror -pedantic-errors")
+option(ZF_LOG_ANDROID_LOG "Output to android log" NO)
 
 add_subdirectory(zf_log)
 

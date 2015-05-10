@@ -5,9 +5,12 @@ set(HEADERS_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 set(HEADERS zf_log.h)
 set(SOURCES zf_log.c)
 
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -Wall -Wextra -Werror -pedantic-errors")
+
 add_library(zf_log ${HEADERS} ${SOURCES})
 target_include_directories(zf_log PUBLIC $<BUILD_INTERFACE:${HEADERS_DIR}>)
-if(ANDROID)
+if(ZF_LOG_ANDROID_LOG)
+	target_compile_definitions(zf_log PRIVATE "ZF_LOG_ANDROID_LOG") 
 	target_link_libraries(zf_log log)
 endif()
 

@@ -1,17 +1,8 @@
-/* Library configuration options:
- * - ZF_LOG_EOL - string to put in the end of each log line
- * - ZF_LOG_EOL_SZ - number of bytes to reserve for EOL
- * - ZF_LOG_MEM_WIDTH - default number of bytes in one line of memory output
- */
 /* Controls android/log.h support. When defined, must be 1 (enable) or 0
- * (disable). If not defined, default will be used.
+ * (disable). Disabled by default.
  */
 #ifndef ZF_LOG_ANDROID_LOG
-	#if defined(ANDROID)
-		#define ZF_LOG_ANDROID_LOG 1
-	#else
-		#define ZF_LOG_ANDROID_LOG 0
-	#endif
+	#define ZF_LOG_ANDROID_LOG 0
 #endif
 /* Controls whether to add timestamp, pid, tid and level in the log message.
  * When defined, must be 1 (enable) or 0 (disable). If not defined, default
@@ -30,12 +21,12 @@
 #ifndef ZF_LOG_BUF_SZ
 	#define ZF_LOG_BUF_SZ 256
 #endif
-/* String to put in the end of each log line (in stderr output).
+/* String to put in the end of each log line when necessary (can be empty).
  */
 #ifndef ZF_LOG_EOL
 	#define ZF_LOG_EOL "\n"
 #endif
-/* Number of bytes to reserve for EOL in the log line buffer.
+/* Number of bytes to reserve for EOL in the log line buffer (must be >0).
  */
 #ifndef ZF_LOG_EOL_SZ
 	#define ZF_LOG_EOL_SZ sizeof(ZF_LOG_EOL)

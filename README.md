@@ -22,7 +22,7 @@ arguments evaluation and a function call).
 By default log messages are written to the stderr, but it's possible to set
 custom output function. Library also has an optional built-in support for the
 following output facilities:
-* Android log (not implemented)
+* Android log
 * Apple System Log (not implemented)
 
 Examples
