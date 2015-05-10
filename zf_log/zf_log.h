@@ -3,6 +3,23 @@
 #ifndef _ZF_LOG_H_
 #define _ZF_LOG_H_
 
+/* To detect incompatible changes you can define ZF_LOG_VERSION_REQUIRED to
+ * the current value of ZF_LOG_VERSION before including this file (or via
+ * compiler command line):
+ *
+ *   #define ZF_LOG_VERSION_REQUIRED 1
+ *   #include <zf_log.h>
+ *
+ * In that case compilation will fail when included file has incompatible
+ * version.
+ */
+#define ZF_LOG_VERSION 1
+#if defined(ZF_LOG_VERSION_REQUIRED)
+	#if ZF_LOG_VERSION_REQUIRED != ZF_LOG_VERSION
+		#error different zf_log version required
+	#endif
+#endif
+
 /* Log level guideline:
  * - ZF_LOG_FATAL - happened something impossible and absolutely unexpected.
  *   Process can't continue and must be terminated. In other words, semantic is
