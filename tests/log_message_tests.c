@@ -1,6 +1,5 @@
 #include <stddef.h>
 #include <string.h>
-#include <zf_test.h>
 #define ZF_LOG_ANDROID_LOG 0
 #define ZF_LOG_PUT_CTX 1
 #define ZF_LOG_BUF_SZ 128
@@ -14,22 +13,26 @@
 	#define _countof(a) (sizeof(a) / sizeof(*a))
 #endif
 
-static const char c_mock_fmt[] =
+#define ASSERT_FITS(s) \
+	((sizeof((s)) < ZF_LOG_BUF_SZ)? (s): ((char **)0)[0])
+
+static const char c_test_fmt[] =
 	"Lorem ipsum dolor sit amet.";
-static const char c_mock_mem[] =
+static const char c_test_mem[] =
 	"Here's to the crazy ones.";
-static const char c_mock_msg[] =
-	"12-23 12:34:56.789  9876  5432 I prefix.TAG function@file:42 "
-	"Lorem ipsum dolor sit amet.";
-static const char *const c_mock_mem_msg[] = {
-	"12-23 12:34:56.789  9876  5432 I prefix.TAG function@file:42 "
-	"Lorem ipsum dolor sit amet.",
-	"12-23 12:34:56.789  9876  5432 I prefix.TAG function@file:42 "
-	"48657265277320746f20746865206372  Here's to the cr",
-	"12-23 12:34:56.789  9876  5432 I prefix.TAG function@file:42 "
-	"617a79206f6e65732e00              azy ones.?"
+
+static const char *const c_msg_expected_lines[] = {
+	ASSERT_FITS("12-23 12:34:56.789  9876  5432 I prefix.TAG function@file:42 "
+				"Lorem ipsum dolor sit amet.")
 };
-STATIC_ASSERT(mock_msg_fits_buff, sizeof(c_mock_msg) < ZF_LOG_BUF_SZ);
+static const char *const c_mem_expected_lines[] = {
+	ASSERT_FITS("12-23 12:34:56.789  9876  5432 I prefix.TAG function@file:42 "
+				"Lorem ipsum dolor sit amet."),
+	ASSERT_FITS("12-23 12:34:56.789  9876  5432 I prefix.TAG function@file:42 "
+				"48657265277320746f20746865206372  Here's to the cr"),
+	ASSERT_FITS("12-23 12:34:56.789  9876  5432 I prefix.TAG function@file:42 "
+				"617a79206f6e65732e00              azy ones.?")
+};
 
 #define MAX_LINES 4
 static char g_lines[MAX_LINES][ZF_LOG_BUF_SZ];
@@ -53,18 +56,14 @@ static size_t common_prefix(const char *const s1, const size_t s1_len,
 	const char *const e1 = s1 + s1_len;
 	const char *const e2 = s2 + s2_len;
 	const char *c1 = s1, *c2 = s2;
-	while (e1 != c1 && e2 != c2 && *c1 == *c2)
-	{
-		++c1;
-		++c2;
-	}
+	for (;e1 != c1 && e2 != c2 && *c1 == *c2; ++c1, ++c2) {}
 	return (size_t)(c1 - s1);
 }
 
 static void reset()
 {
 	g_buf_sz = ZF_LOG_BUF_SZ;
-	for (size_t i = MAX_LINES; 0 < i--;)
+	for (size_t i = 0; MAX_LINES > i; ++i)
 	{
 		memset(g_lines[i], -1, ZF_LOG_BUF_SZ);
 		g_len[i] = 0;
@@ -104,99 +103,115 @@ static void mock_buffer_callback(zf_log_output_ctx *ctx, char *buf)
 static void mock_output_callback(zf_log_output_ctx *ctx)
 {
 	const int i = g_line++;
+	if (MAX_LINES <= i)
+	{
+		fprintf(stderr, "too many lines produced\n");
+		exit(1);
+	}
 	char *const line = g_lines[i];
-	const size_t len = (size_t)(ctx->p - ctx->buf);
 	memcpy(line, ctx->buf, ZF_LOG_BUF_SZ);
+	const size_t len = (size_t)(ctx->p - ctx->buf);
 	size_t null_pos;
 	for	(null_pos = 0; len > null_pos && 0 != line[null_pos]; ++null_pos) {}
 	g_len[i] = len;
 	g_null_pos[i] = null_pos;
-
-	//line[len] = 0;
-	//fprintf(stderr, "msg=\"%s\"\n", line);
 }
 
 static void verify_log_output(const size_t buf_sz,
 							  const char *const expected[],
 							  const size_t expected_n)
 {
-	g_buf_sz = buf_sz;
 	const size_t modifiable = buf_sz + 1;
 	const size_t unmodifiable = ZF_LOG_BUF_SZ - modifiable;
-	_zf_log_write_mem_d("function", "file", 42, ZF_LOG_INFO, ZF_LOG_TAG,
-						c_mock_mem, sizeof(c_mock_mem),
-						c_mock_fmt);
-	for (size_t i = 0; _countof(c_mock_mem_msg) > i; ++i)
+	if (g_line > expected_n)
+	{
+		fprintf(stderr, "Lines produced: actual=%u, expected=<%u\n",
+				(unsigned)g_line, (unsigned)expected_n);
+		exit(1);
+	}
+	size_t complete_lines = 0;
+	for (size_t i = 0; g_line > i; ++i)
 	{
 		const char *const line = g_lines[i];
+		const size_t line_len = strlen(expected[i]);
 		const size_t untouched = memchk(line + modifiable, -1, unmodifiable);
-		const size_t match = common_prefix(c_mock_mem_msg[i], strlen(c_mock_mem_msg[i]),
+		const size_t match = common_prefix(expected[i], line_len,
 										   line, g_len[i]);
-		fprintf(stderr, "i=%i, match=%i, g_len[i]=%i\n",
-				(int)i, (int)match, (int)g_len[i]);
-		TEST_VERIFY_EQUAL(untouched, unmodifiable);
-		TEST_VERIFY_EQUAL(g_null_pos[i], g_len[i]);
-		TEST_VERIFY_GREATER_OR_EQUAL(match, g_len[i]);
+		if (untouched != unmodifiable)
+		{
+			fprintf(stderr, "Untouched bytes: actual=%u, expected=%u\n",
+					(unsigned)untouched, (unsigned)unmodifiable);
+			exit(1);
+		}
+		if (g_null_pos[i] != g_len[i])
+		{
+			fprintf(stderr, "Null position: actual=%u, expected=%u\n",
+					(unsigned)g_null_pos[i], (unsigned)g_len[i]);
+			exit(1);
+		}
+		if (match < g_len[i])
+		{
+			fprintf(stderr, "Line partial match: actual=%u, expected=>%u\n",
+					(unsigned)match, (unsigned)g_len[i]);
+			exit(1);
+		}
+		if (line_len <= buf_sz)
+		{
+			++complete_lines;
+			if (line_len <= buf_sz && match != g_len[i])
+			{
+				fprintf(stderr, "Line complete match: actual=%u, expected=%u\n",
+						(unsigned)match, (unsigned)g_len[i]);
+				exit(1);
+			}
+		}
 	}
-}
-
-static void test_buffer_size()
-{
-	for (size_t buf_sz = 0; sizeof(c_mock_msg) >= buf_sz; ++buf_sz)
+	if (expected_n == complete_lines && g_line != expected_n)
 	{
-		reset();
-		g_buf_sz = buf_sz;
-		const size_t modifiable = buf_sz + 1;
-		const size_t unmodifiable = ZF_LOG_BUF_SZ - modifiable;
-		_zf_log_write_d("function", "file", 42, ZF_LOG_INFO, ZF_LOG_TAG,
-						c_mock_fmt);
-		const size_t untouched = memchk(g_msg[0] + modifiable, -1, unmodifiable);
-		const size_t match = common_prefix(c_mock_msg, sizeof(c_mock_msg),
-										   g_msg[0], g_len[0]);
-		TEST_VERIFY_EQUAL(untouched, unmodifiable);
-		TEST_VERIFY_EQUAL(g_null_pos[0], g_len[0]);
-		TEST_VERIFY_GREATER_OR_EQUAL(match, g_len[0]);
+		fprintf(stderr, "Complete lines produced: actual=%u, expected=<%u\n",
+				(unsigned)g_line, (unsigned)expected_n);
+		exit(1);
 	}
 }
 
-static void test_buffer_overflow_mem()
+static void test_msg_output()
 {
 	for (size_t buf_sz = 0; ZF_LOG_BUF_SZ - ZF_LOG_EOL_SZ >= buf_sz; ++buf_sz)
 	{
 		reset();
-		verify_log_output(buf_sz, c_mock_mem_msg, _countof(c_mock_mem_msg));
 		g_buf_sz = buf_sz;
-		const size_t modifiable = buf_sz + 1;
-		const size_t unmodifiable = ZF_LOG_BUF_SZ - modifiable;
+		_zf_log_write_d("function", "file", 42, ZF_LOG_INFO, ZF_LOG_TAG,
+						c_test_fmt);
+		verify_log_output(buf_sz,
+						  c_msg_expected_lines, _countof(c_msg_expected_lines));
+	}
+}
+
+static void test_mem_output()
+{
+	for (size_t buf_sz = 0; ZF_LOG_BUF_SZ - ZF_LOG_EOL_SZ >= buf_sz; ++buf_sz)
+	{
+		reset();
+		g_buf_sz = buf_sz;
 		_zf_log_write_mem_d("function", "file", 42, ZF_LOG_INFO, ZF_LOG_TAG,
-							c_mock_mem, sizeof(c_mock_mem),
-							c_mock_fmt);
-		for (size_t i = 0; _countof(c_mock_mem_msg) > i; ++i)
-		{
-			const char *const line = g_msg[i];
-			const size_t untouched = memchk(line + modifiable, -1, unmodifiable);
-			const size_t match = common_prefix(c_mock_mem_msg[i], strlen(c_mock_mem_msg[i]),
-											   line, g_len[i]);
-			fprintf(stderr, "i=%i, match=%i, g_len[i]=%i\n",
-					(int)i, (int)match, (int)g_len[i]);
-			TEST_VERIFY_EQUAL(untouched, unmodifiable);
-			TEST_VERIFY_EQUAL(g_null_pos[i], g_len[i]);
-			TEST_VERIFY_GREATER_OR_EQUAL(match, g_len[i]);
-		}
+							c_test_mem, sizeof(c_test_mem),
+							c_test_fmt);
+		verify_log_output(buf_sz,
+						  c_mem_expected_lines, _countof(c_mem_expected_lines));
 	}
 }
 
 int main(int argc, char *argv[])
 {
-	zf_log_set_tag_prefix("prefix");
-	zf_log_set_output_callback(mock_output_callback);
+	(void)argc; (void)argv;
 	g_time_cb = mock_time_callback;
 	g_pid_cb = mock_pid_callback;
 	g_buffer_cb = mock_buffer_callback;
-	TEST_RUNNER_CREATE(argc, argv);
+	zf_log_set_output_callback(mock_output_callback);
+	zf_log_set_tag_prefix("prefix");
 
-	TEST_EXECUTE(test_buffer_size());
-	TEST_EXECUTE(test_buffer_overflow_mem());
+	test_msg_output();
+	test_mem_output();
 
-	return TEST_RUNNER_EXIT_CODE();
+	return 0;
 }
