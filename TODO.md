@@ -11,3 +11,6 @@ Things to do
   uses zf_log.
 * Output some memory even when buffer is too small
 * Add CFLog support
+* Add library usage to REAMDE (embeding, cmake, ...)
+* Update README that log messages are compiled out and args
+  marked as unused (so no warning).
