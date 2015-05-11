@@ -15,22 +15,20 @@ function(add_zf_log_test target)
 	cmake_parse_arguments(arg
 		""
 		""
-		"SOURCES;LIBS;FLAGS"
+		"SOURCES;FLAGS"
 		${ARGN})
 	add_executable(${target} ${arg_SOURCES})
 	set_target_properties(${target} PROPERTIES COMPILE_FLAGS "${arg_FLAGS}")
 	target_include_directories(${target} PRIVATE "${PROJECT_SOURCE_DIR}/zf_log")
-	target_link_libraries(${target}  zf_test ${arg_LIBS})
+	target_link_libraries(${target}  zf_test)
 	add_test(NAME ${target} COMMAND ${target})
 endfunction()
 
 add_zf_log_test(log_level_tests_c99
 	SOURCES log_level_tests.c
-	LIBS zf_log
 	FLAGS -std=c99)
 add_zf_log_test(log_level_tests_c11
 	SOURCES log_level_tests.c
-	LIBS zf_log
 	FLAGS -std=c11)
 
 add_zf_log_test(log_message_tests_c99
@@ -38,6 +36,13 @@ add_zf_log_test(log_message_tests_c99
 	FLAGS -std=c99)
 add_zf_log_test(log_message_tests_c11
 	SOURCES log_message_tests.c
+	FLAGS -std=c11)
+
+add_zf_log_test(decoration_test_c99
+	SOURCES decoration_module.c decoration_main.c
+	FLAGS -std=c99)
+add_zf_log_test(decoration_test_c11
+	SOURCES decoration_module.c decoration_main.c
 	FLAGS -std=c11)
 
 # generated code size tests

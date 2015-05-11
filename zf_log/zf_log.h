@@ -112,6 +112,29 @@
 	#define _ZF_LOG_TAG 0
 #endif
 
+/* When defined, all produced linker symbols will be prefixed with the specified
+ * value. That allows to use zf_log privately in another library without
+ * exposing zf_log symbols in their original form (so library will not have
+ * externaly visible dependency on zf_log). Value must be without quotes:
+ *
+ *   CC_ARGS := -DZF_LOG_LIBRARY_PREFIX=my_lib
+ */
+#ifdef ZF_LOG_LIBRARY_PREFIX
+	#define _ZF_LOG_DECOR__(prefix, name) prefix ## name
+	#define _ZF_LOG_DECOR_(prefix, name) _ZF_LOG_DECOR__(prefix, name)
+	#define _ZF_LOG_DECOR(name) _ZF_LOG_DECOR_(ZF_LOG_LIBRARY_PREFIX, name)
+
+	#define zf_log_set_tag_prefix _ZF_LOG_DECOR(zf_log_set_tag_prefix)
+	#define zf_log_set_mem_width _ZF_LOG_DECOR(zf_log_set_mem_width)
+	#define zf_log_set_output_level _ZF_LOG_DECOR(zf_log_set_output_level)
+	#define zf_log_set_output_callback _ZF_LOG_DECOR(zf_log_set_output_callback)
+	#define _zf_log_output_lvl _ZF_LOG_DECOR(_zf_log_output_lvl)
+	#define _zf_log_write_d _ZF_LOG_DECOR(_zf_log_write_d)
+	#define _zf_log_write _ZF_LOG_DECOR(_zf_log_write)
+	#define _zf_log_write_mem_d _ZF_LOG_DECOR(_zf_log_write_mem_d)
+	#define _zf_log_write_mem _ZF_LOG_DECOR(_zf_log_write_mem)
+#endif
+
 /* Runtime configuration */
 #ifdef __cplusplus
 extern "C" {

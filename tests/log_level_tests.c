@@ -2,7 +2,7 @@
 #include <stdbool.h>
 #include <zf_test.h>
 #define ZF_LOG_LEVEL ZF_LOG_INFO
-#include <zf_log.h>
+#include <zf_log.c>
 
 static unsigned g_output;
 static int g_lvl;
