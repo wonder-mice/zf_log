@@ -1,18 +1,26 @@
 Things to do
-============
+------------
 
-* Save one push by having different functions for each level
-  Macro can dispatch based on the level argument and directly
-  call the function for requested log level.
-  But that will require level argument to be a compile time constant,
-  but right now there is now public way to specify level as argument
-  anyway.
-  Probably will need to have an array of functions and dispatch using
-  level as array index.
 * Embeding into the library use case
   Add this to README
 * Add library usage to REAMDE (embeding, cmake, ...)
 * Update README that log messages are compiled out and args
   marked as unused (so no warning).
-* Output some memory even when buffer is too small
-  Probably not important, but will increase complexity.
+
+Things probably not to do
+-------------------------
+
+* Number of parameters in _zf_log_write_xxx() functions could be reduced
+  by having a separate function for each log level. One way to implement
+  that is to have a static array of logging functions. Log level will be
+  an index in that array. This technique reduces the size of code
+  generated per log statement (e.g. 5 bytes less on x64). But it also
+  increases the size of the library itself, because all those new
+  28 functions (7 levels x 2 mem/msg x 2 debug/ndebug) must be defined.
+  And it also makes implementation more complex. Currently considered
+  not worth the effort.
+
+* Output some memory even when buffer is too small. Will significantly
+  increase complexity of output_mem() function, while providing not
+  much benifits. Memory output line is pretty much limited in length,
+  so problem could be solved easily by choosing right ZF_LOG_BUF_SZ.
