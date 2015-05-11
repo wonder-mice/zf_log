@@ -15,15 +15,15 @@ evaluated. Log statements that are below *output log level* (run time check)
 have a small overhead of compare operaion and conditional jump. Arguments will
 not be evaluated and no function call will be performed. But it makes little
 sense to talk about performance when the log statement actually writes
-something to the log. In that case the library only tries to minimize the code
-size that will be generated for each log statement (compare operation,
+something to the log. In that case the library only tries to minimize the size
+of code that will be generated for each log statement (compare operation,
 arguments evaluation and a function call).
 
-By default log messages are written to the stderr, but it's possible to set
-custom output function. Library also has an optional built-in support for the
+By default log messages are written to the stderr, but it is also possible to
+set custom output function. Library has an optional built-in support for the
 following output facilities:
-* Android log
-* Apple System Log
+* Android Log (android/log.h)
+* Apple System Log (asl.h)
 
 Examples
 --------
