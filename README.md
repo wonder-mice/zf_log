@@ -5,14 +5,9 @@ zf_log
 
 This is just a thin wrapper around sprintf() function. It provides less than 20%
 of functionality found in more sophisticated libraries, but covers more than 80%
-of use cases in mobile/embedded applications, early stages of development or
-when prototyping. Focus is made on simplicity, ease of use and performance.
-
-By default log messages are written to the stderr, but it is also possible to
-set custom output function. Library has an optional built-in support for the
-following output facilities:
-* Android Log (android/log.h)
-* Apple System Log (asl.h)
+of common use cases. It could be particularly useful in mobile/embedded
+applications, early stages of development or when prototyping. Focus is made on
+simplicity, ease of use and performance (to be more precise - low overhead).
 
 Examples
 --------
@@ -23,7 +18,7 @@ This code:
 ZF_LOGD("Number of arguments: %i", argc);
 ```
 
-Will produce following log line if `NDEBUG` is defined (release build):
+Will produce following log line if `NDEBUG` is defined (aka release build):
 
 ```
 +- month           +- process id
@@ -37,7 +32,7 @@ Will produce following log line if `NDEBUG` is defined (release build):
       +- hour
 ```
 
-And if `NDEBUG` is NOT defined (debug build):
+And if `NDEBUG` is NOT defined (aka debug build):
 
 ```
 04-29 22:43:20.244 40059  1299 W hello.MAIN main@hello.c:9 Number of arguments: 1
@@ -86,6 +81,16 @@ sense to talk about performance when the log statement actually writes
 something to the log. In that case the library only tries to minimize the size
 of code that will be generated for each log statement (compare operation,
 arguments evaluation and a function call).
+
+Output
+--------
+
+By default log messages are written to the stderr, but it is also possible to
+set custom output function. Library has an optional built-in support for the
+following output facilities:
+* Android Log (android/log.h)
+* Apple System Log (asl.h)
+
 
 
 Why zf?
