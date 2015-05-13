@@ -22,5 +22,5 @@ Things probably not to do
 
 * Output some memory even when buffer is too small. Will significantly
   increase complexity of output_mem() function, while providing not
-  much benifits. Memory output line is pretty much limited in length,
+  much benefits. Memory output line is pretty much limited in length,
   so problem could be solved easily by choosing right ZF_LOG_BUF_SZ.
