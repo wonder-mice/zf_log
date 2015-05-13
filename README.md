@@ -9,13 +9,24 @@ of common use cases. It could be particularly useful in mobile/embedded
 applications, early stages of development or when prototyping. Focus is made on
 simplicity, ease of use and performance (to be more precise - low overhead).
 
+Features:
+
+* Debug logging is reduced to no-op in release builds
+* No "unused" warning for variables used in log statements only
+* Arguments are not evaluated when the message is not logged
+* Dump memory region as HEX and ASCII
+* Optional built-in support for Android log and Apple log (iOS, OSX)
+* Supports custom output functions
+* Fixed memory profile
+
 Examples
 --------
 
-This code:
+Library provides a set of `ZF_LOGX` macros where `X` is an abbreviated log
+level (e.g. `I` for `INFO`). This code:
 
 ```c
-ZF_LOGD("Number of arguments: %i", argc);
+ZF_LOGI("Number of arguments: %i", argc);
 ```
 
 Will produce following log line if `NDEBUG` is defined (aka release build):
@@ -24,7 +35,7 @@ Will produce following log line if `NDEBUG` is defined (aka release build):
 +- month           +- process id
 |  +- day          |      +- thread id      +- message
 |  |               |      |                 |
-04-29 22:43:20.244 40059  1299 W hello.MAIN Number of arguments: 1
+04-29 22:43:20.244 40059  1299 I hello.MAIN Number of arguments: 1
       |  |  |  |               | |     |
       |  |  |  +- millisecond  | |     +- tag (optional)
       |  |  +- second          | +- tag prefix (optional)
@@ -35,7 +46,7 @@ Will produce following log line if `NDEBUG` is defined (aka release build):
 And if `NDEBUG` is NOT defined (aka debug build):
 
 ```
-04-29 22:43:20.244 40059  1299 W hello.MAIN main@hello.c:9 Number of arguments: 1
+04-29 22:43:20.244 40059  1299 I hello.MAIN main@hello.c:9 Number of arguments: 1
                                             |    |       |
                                             |    |       +- line number
                                             |    +- source file name
