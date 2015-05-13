@@ -12,13 +12,13 @@ simplicity, ease of use and performance (to be more precise - low overhead).
 Features:
 
 * Debug logging is reduced to no-op in release builds
-* No "unused" warning for variables used in log statements only
 * Arguments are not evaluated when the message is not logged
+* No "unused" warning for variables used in log statements only
 * Dump a memory region as HEX and ASCII
 * Optional built-in support for Android log and Apple log (iOS, OSX)
 * Custom output functions
 * All externally visible symbols can be prefixed with provided string (useful in
-  libraries that don't want to expose zf_log dependency)
+  libraries that don't want to expose dependency on zf_log)
 
 Examples
 --------
