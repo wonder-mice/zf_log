@@ -102,9 +102,8 @@ Output
 By default log messages are written to the stderr, but it is also possible to
 set custom output function. Library has an optional built-in support for the
 following output facilities:
-* Android Log (android/log.h)
-* Apple System Log (asl.h)
-
+* Android Log (via android/log.h)
+* Apple System Log (iOS, OSX via asl.h)
 
 
 Why zf?
