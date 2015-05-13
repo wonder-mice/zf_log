@@ -14,22 +14,24 @@ Features:
 * Debug logging is reduced to no-op in release builds
 * No "unused" warning for variables used in log statements only
 * Arguments are not evaluated when the message is not logged
-* Dump memory region as HEX and ASCII
+* Dump a memory region as HEX and ASCII
 * Optional built-in support for Android log and Apple log (iOS, OSX)
-* Supports custom output functions
-* Fixed memory profile
+* Custom output functions
+* All externally visible symbols can be prefixed with provided string (useful in
+  libraries that don't want to expose zf_log dependency)
 
 Examples
 --------
 
 Library provides a set of `ZF_LOGX` macros where `X` is an abbreviated log
-level (e.g. `I` for `INFO`). This code:
+level (e.g. `I` for `INFO`). This code will log an `INFO` message:
 
 ```c
 ZF_LOGI("Number of arguments: %i", argc);
 ```
 
-Will produce following log line if `NDEBUG` is defined (aka release build):
+And will produce the following log line if `NDEBUG` is defined (aka release
+build):
 
 ```
 +- month           +- process id
@@ -53,20 +55,21 @@ And if `NDEBUG` is NOT defined (aka debug build):
                                             +- function name
 ```
 
-It's also possible to log binary data. For example:
+It's also possible to dump a memory region. For example:
 
 ```c
-ZF_LOGW_MEM(data, sizeof(data), "Lorem ipsum at %p", data);
+const char data[] = "Lorem ipsum dolor sit amet, consectetur adipiscing elit.";
+ZF_LOGI_MEM(data, sizeof(data), "Lorem ipsum at %p", data);
 ```
 
 Will produce following output:
 
 ```
-05-06 00:54:33.825 35864  1299 W hello.MAIN Lorem ipsum at 0x10fbc0f20:
-05-06 00:54:33.825 35864  1299 W hello.MAIN 4c6f72656d20697073756d20646f6c6f  Lorem ipsum dolo
-05-06 00:54:33.825 35864  1299 W hello.MAIN 722073697420616d65742c20636f6e73  r sit amet, cons
-05-06 00:54:33.825 35864  1299 W hello.MAIN 65637465747572206164697069736369  ectetur adipisci
-05-06 00:54:33.825 35864  1299 W hello.MAIN 6e6720656c69742e00                ng elit.?
+05-06 00:54:33.825 35864  1299 I hello.MAIN Lorem ipsum at 0x10fbc0f20:
+05-06 00:54:33.825 35864  1299 I hello.MAIN 4c6f72656d20697073756d20646f6c6f  Lorem ipsum dolo
+05-06 00:54:33.825 35864  1299 I hello.MAIN 722073697420616d65742c20636f6e73  r sit amet, cons
+05-06 00:54:33.825 35864  1299 I hello.MAIN 65637465747572206164697069736369  ectetur adipisci
+05-06 00:54:33.825 35864  1299 I hello.MAIN 6e6720656c69742e00                ng elit.?
 ```
 
 Usage
