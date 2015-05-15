@@ -227,8 +227,8 @@ following output facilities (see [zf_log/zf_log.c] for details):
 
 See [examples/custom_output.c] for an example of custom output function.
 
-[zf_log/zf_log.c]: (zf_log/zf_log.c)
-[examples/custom_output.c]: (examples/custom_output.c)
+[zf_log/zf_log.c]: zf_log/zf_log.c
+[examples/custom_output.c]: examples/custom_output.c
 
 Why zf?
 --------
