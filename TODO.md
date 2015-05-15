@@ -1,9 +1,7 @@
 Things to do
 ------------
 
-* Embeding into the library use case
-  Add this to README
-* Add library usage to REAMDE (embeding, cmake, ...)
+* Print start address for each line of memory output?
 
 Things probably not to do
 -------------------------
