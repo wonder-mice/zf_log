@@ -65,6 +65,8 @@
 #if defined(__linux__)
 	#include <sys/prctl.h>
 	#include <sys/types.h>
+#endif
+#if defined(__linux__) && !defined(__ANDROID__)
 	#include <sys/syscall.h>
 	/* avoid defining _GNU_SOURCE */
 	int syscall(int number, ...);
@@ -200,7 +202,9 @@ static void time_callback(struct tm *const tm, unsigned *const usec)
 static void pid_callback(int *const pid, int *const tid)
 {
 	*pid = getpid();
-#if defined(__linux__)
+#if defined(__ANDROID__)
+	*tid = gettid();
+#elif defined(__linux__)
 	*tid = syscall(SYS_gettid);
 #elif defined(__MACH__)
 	*tid = pthread_mach_thread_np(pthread_self());
