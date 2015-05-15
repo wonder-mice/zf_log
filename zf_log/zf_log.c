@@ -50,7 +50,6 @@
 	#define ZF_LOG_INSTRUMENTED 0
 #endif
 
-//#define _POSIX_C_SOURCE 1
 #include <assert.h>
 #include <string.h>
 #include <stdarg.h>
@@ -66,6 +65,9 @@
 #if defined(__linux__)
 	#include <sys/prctl.h>
 	#include <sys/types.h>
+	#include <sys/syscall.h>
+	/* avoid defining _GNU_SOURCE */
+	int syscall(int number, ...);
 #endif
 #if defined(__MACH__) && ZF_LOG_PUT_CTX
 	#include <pthread.h>
@@ -199,7 +201,7 @@ static void pid_callback(int *const pid, int *const tid)
 {
 	*pid = getpid();
 #if defined(__linux__)
-	*tid = gettid();
+	*tid = syscall(SYS_gettid);
 #elif defined(__MACH__)
 	*tid = pthread_mach_thread_np(pthread_self());
 #else

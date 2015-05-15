@@ -4,6 +4,12 @@
 #define ZF_LOG_LEVEL ZF_LOG_INFO
 #include <zf_log.h>
 
+static int call_exit()
+{
+	exit(1);
+	return 0;
+}
+
 int main(int argc, char *argv[])
 {
 	(void)argc; (void)argv;
@@ -13,7 +19,7 @@ int main(int argc, char *argv[])
 	 * compiled out.
 	 */
 	ZF_LOGV("Argument of this VERBOSE message will not be evaluated: %i",
-			kill(getpid(), SIGKILL));
+			call_exit());
 	ZF_LOGI("So you will see that INFO message");
 
 	/* Output log level is set to WARN and then to INFO. Argument of INFO log

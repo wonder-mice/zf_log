@@ -74,17 +74,12 @@ static void reset()
 
 static void mock_time_callback(struct tm *const tm, unsigned *const usec)
 {
+	memset(tm, 0, sizeof(*tm));
 	tm->tm_sec = 56;
 	tm->tm_min = 34;
 	tm->tm_hour = 12;
 	tm->tm_mday = 23;
 	tm->tm_mon = 12;
-	tm->tm_year = 0;
-	tm->tm_wday = 0;
-	tm->tm_yday = 0;
-	tm->tm_isdst = 0;
-	tm->tm_gmtoff = 0;
-	tm->tm_zone = 0;
 	*usec = 789000;
 }
 
