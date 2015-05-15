@@ -14,8 +14,8 @@ Features:
 * Debug logging is reduced to no-op in release builds
 * Arguments are not evaluated when the message is not logged
 * No "unused" warning for variables used in log statements only
-* Dump a memory region as HEX and ASCII
-* Optional built-in support for Android log and Apple log (iOS, OSX)
+* Log a memory region as HEX and ASCII
+* Optional built-in support for Android log and Apple system log (iOS, OS X)
 * Custom output functions
 
 Examples
@@ -36,11 +36,10 @@ build):
 |  +- day          |      +- thread id      +- message
 |  |               |      |                 |
 04-29 22:43:20.244 40059  1299 I hello.MAIN Number of arguments: 1
-      |  |  |  |               | |     |
-      |  |  |  +- millisecond  | |     +- tag (optional)
-      |  |  +- second          | +- tag prefix (optional)
-      |  +- minute             +- level
-      +- hour
+      |                        | |     |
+      +- time                  | |     +- tag (optional)
+                               | +- tag prefix (optional)
+                               +- level
 ```
 
 And if `NDEBUG` is NOT defined (aka debug build):
@@ -162,7 +161,7 @@ int main(int argc, char *argv[])
 {
 	ZF_LOGV("Argument of this VERBOSE message will not be evaluated: %i",
 			kill(getpid(), SIGKILL));
-	ZF_LOGI("But you will see that INFO message");
+	ZF_LOGI("So you will see that INFO message");
 	return 0;
 }
 ```
@@ -216,7 +215,7 @@ set custom output function. Library has an optional built-in support for the
 following output facilities (see [zf_log/zf_log.c] for details):
 
 * Android Log (via android/log.h)
-* Apple System Log (iOS, OSX via asl.h)
+* Apple System Log (iOS, OS X via asl.h)
 
 See [examples/custom_output.c] for an example of custom output function.
 

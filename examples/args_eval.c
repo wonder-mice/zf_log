@@ -14,7 +14,7 @@ int main(int argc, char *argv[])
 	 */
 	ZF_LOGV("Argument of this VERBOSE message will not be evaluated: %i",
 			kill(getpid(), SIGKILL));
-	ZF_LOGI("But you will see that INFO message");
+	ZF_LOGI("So you will see that INFO message");
 
 	/* Output log level is set to WARN and then to INFO. Argument of INFO log
 	 * statement will be evaluated only once (after setting output log level to
