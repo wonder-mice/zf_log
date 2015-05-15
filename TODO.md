@@ -4,8 +4,6 @@ Things to do
 * Embeding into the library use case
   Add this to README
 * Add library usage to REAMDE (embeding, cmake, ...)
-* Update README that log messages are compiled out and args
-  marked as unused (so no warning).
 
 Things probably not to do
 -------------------------

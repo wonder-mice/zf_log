@@ -50,10 +50,12 @@
 #define ZF_LOG_NONE    0xFFFF
 
 /* Log level configuration:
- * - ZF_LOG_DEF_LEVEL - defines default log level. Only messages with that level
+ * - ZF_LOG_DEF_LEVEL - defines current log level. Only messages with that level
  *   and higher will be logged (if ZF_LOG_LEVEL is undefined).
- * - ZF_LOG_LEVEL - overrides default log level. Only messages with that level
+ * - ZF_LOG_LEVEL - overrides current log level. Only messages with that level
  *   and higher will be logged.
+ *
+ * Current log level is a compile time check and has no runtime overhead.
  *
  * Common pattern is to define ZF_LOG_DEF_LEVEL in the build script (e.g.
  * Makefile, CMakeLists.txt) for the entire project/target:
@@ -142,17 +144,24 @@ extern "C" {
 
 /* Set tag prefix. Prefix will be separated from the tag with dot ('.').
  * Use 0 or empty string to disable (default). Common use is to set it to
- * the process (or target) name.
+ * the process (or target) name (e.g. to separate client and server process).
  */
 void zf_log_set_tag_prefix(const char *const prefix);
 
-/* Set number of bytes per log line in memory output.
+/* Set number of bytes per log line in memory dump.
  */
 void zf_log_set_mem_width(const unsigned w);
 
-/* Set output log level. When output log level is higher than the current log
- * level it overrides it. Otherwise output log level is ignored. This is because
- * messages below current log level are compiled out.
+/* Set output log level. Output log level is a run time check and has low
+ * overhead of compare operation and conditional jump. When the log message has
+ * level bellow output log level it will not be logged and its arguments will
+ * NOT be evaluated.
+ *
+ * Since all messages that are below current log level are compiled out,
+ * only messages that are on or above the current log level are affected by the
+ * output log level check.
+ *
+ * Output log level can be changed at any time during program execution.
  */
 void zf_log_set_output_level(const int lvl);
 
@@ -171,9 +180,10 @@ zf_log_output_ctx;
 
 typedef void (*zf_log_output_cb)(zf_log_output_ctx *ctx);
 
-/* Set output callback function. It will be called for each log message allowed
+/* Set output callback function. It will be called for each log line allowed
  * by both current log level and output log level. Callback function is allowed
- * to modify contents of the buffer pointed by the ctx.
+ * to modify content of the buffers pointed by the ctx, but it's not allowed to
+ * modify buffer pointers and other fields.
  */
 void zf_log_set_output_callback(const zf_log_output_cb cb);
 
@@ -258,12 +268,16 @@ void _zf_log_write_mem(const int lvl, const char *const tag,
  * - ZF_LOGI("format string", args, ...)
  * - ZF_LOGW("format string", args, ...)
  * - ZF_LOGF("format string", args, ...)
+ *
  * Memory logging macros:
  * - ZF_LOGV_MEM(data_ptr, data_sz, "format string", args, ...)
  * - ZF_LOGD_MEM(data_ptr, data_sz, "format string", args, ...)
  * - ZF_LOGI_MEM(data_ptr, data_sz, "format string", args, ...)
  * - ZF_LOGW_MEM(data_ptr, data_sz, "format string", args, ...)
  * - ZF_LOGF_MEM(data_ptr, data_sz, "format string", args, ...)
+ *
+ * Format string follows printf() conventions. Both data_ptr and data_sz could
+ * be 0.
  */
 #ifdef NDEBUG
 	#define _ZF_LOG_IMP(lvl, tag, ...) \

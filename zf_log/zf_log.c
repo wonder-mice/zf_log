@@ -339,6 +339,10 @@ static void put_msg(zf_log_output_ctx *const ctx,
 static void output_mem(zf_log_output_ctx *const ctx,
 					   const void *const d, const unsigned d_sz)
 {
+	if (0 == d || 0 == d_sz)
+	{
+		return;
+	}
 	const unsigned char *mem_p = (const unsigned char *)d;
 	const unsigned char *const mem_e = mem_p + d_sz;
 	const unsigned char *mem_cut;

@@ -62,7 +62,7 @@ const char data[] = "Lorem ipsum dolor sit amet, consectetur adipiscing elit.";
 ZF_LOGI_MEM(data, sizeof(data), "Lorem ipsum at %p", data);
 ```
 
-Will produce following output:
+Will produce the following output:
 
 ```
 05-06 00:54:33.825 35864  1299 I hello.MAIN Lorem ipsum at 0x10fbc0f20:
@@ -72,12 +72,82 @@ Will produce following output:
 05-06 00:54:33.825 35864  1299 I hello.MAIN 6e6720656c69742e00                ng elit.?
 ```
 
+More examples available in [examples] folder. For more details see comments in
+[zf_log/zf_log.h] file.
+
+[zf_log/zf_log.h]: (zf_log/zf_log.h)
+[examples]: (examples)
+
 Usage
 --------
 
-### Building
+### Embedding
 
-To build shared library:
+The simplest way of using this library is to embed its sources into existing
+project. For that, copy the following files to your source tree:
+
+* [zf_log.h](zf_log/zf_log.h)
+* [zf_log.c](zf_log/zf_log.c)
+
+See comments in those files for configuration macros. One particularly useful
+option when embedding into a library project is `ZF_LOG_LIBRARY_PREFIX`. It
+could be used to decorate zf_log exported symbols to avoid linker conflicts
+(when that library project is used in other project that is also uses zf_log).
+
+### Embedding with CMake
+
+Another options is avaibale for projects that are using CMake. Copy
+[zf_log](zf_log) folder to you source tree and add it with `add_subdirectory()`
+call in one of your CMakeLists.txt files. Also see
+[zf_log/CMakeLists.txt](zf_log/CMakeLists.txt) for available `ZF_LOG_`
+configuration options. For example:
+
+```
+set(ZF_LOG_ANDROID_LOG ON)
+add_subdirectory(zf_log)
+```
+
+This will add `zf_log` library target. For each target that uses zf_log in
+corresponding CMakeLists.txt file add:
+
+```cmake
+target_link_libraries(my_target zf_log)
+```
+
+### Installation
+
+Another option is to build and install the library:
+
+```bash
+git clone https://github.com/wonder-mice/zf_queue.git zf_queue.git
+mkdir zf_queue.build && cd zf_queue.build
+cmake ../zf_queue.git -DCMAKE_INSTALL_PREFIX=/usr/local
+make
+sudo make install
+```
+
+This will also install
+`${CMAKE_INSTALL_PREFIX}/lib/cmake/zf_log/zf_log.cmake`
+and
+`${CMAKE_INSTALL_PREFIX}/lib/cmake/zf_log/zf_log-config.cmake`.
+The first one is for direct `include` from CMakeLists.txt files.
+The second can be located by CMake with:
+
+```cmake
+find_package(zf_log)
+```
+
+Both will add `zf_log` imported library target.
+For each target that uses zf_log in corresponding CMakeLists.txt file add:
+
+```cmake
+target_link_libraries(my_target zf_log)
+```
+
+### Building as a shared library
+
+To build as a shared library set CMake variable `BUILD_SHARED_LIBS`:
+
 ```bash
 cmake -DBUILD_SHARED_LIBS:BOOL=ON
 ```
@@ -85,26 +155,80 @@ cmake -DBUILD_SHARED_LIBS:BOOL=ON
 Performance
 --------
 
-Performance comes with a caveat: it applies only to the case when the message
-was not logged. Log statements that are below *current log level* (compile time
-check) have no overhead - they are compiled out and arguments will not be
-evaluated. Log statements that are below *output log level* (run time check)
-have a small overhead of compare operaion and conditional jump. Arguments will
-not be evaluated and no function call will be performed. But it makes little
-sense to talk about performance when the log statement actually writes
-something to the log. In that case the library only tries to minimize the size
-of code that will be generated for each log statement (compare operation,
-arguments evaluation and a function call).
+Log statements that are below *current log level* (compile time check) have
+**no overhead** - they are compiled out and their log arguments will **not** be
+evaluated. Consider:
+
+```c
+#include <signal.h>
+#include <unistd.h>
+#define ZF_LOG_LEVEL ZF_LOG_INFO
+#include <zf_log.h>
+
+int main(int argc, char *argv[])
+{
+	ZF_LOGV("Argument of this VERBOSE message will not be evaluated: %i",
+			kill(getpid(), SIGKILL));
+	ZF_LOGI("But you will see that INFO message");
+	return 0;
+}
+```
+
+Log statements that are below *output log level* (run time check)
+have a **small overhead** of compare operation and conditional jump. Arguments
+will **not** be evaluated and no function call will be performed. Consider:
+
+```c
+#include <stdlib.h>
+#define ZF_LOG_LEVEL ZF_LOG_INFO
+#include <zf_log.h>
+
+int main(int argc, char *argv[])
+{
+	zf_log_set_output_level(ZF_LOG_WARN);
+	int count = 0;
+	for (int i = 2; 0 < i--;)
+	{
+		ZF_LOGI("Argument of this INFO message will be evaluated only once: %i",
+				++count);
+		zf_log_set_output_level(ZF_LOG_INFO);
+	}
+	if (1 != count)
+	{
+		abort();
+	}
+	ZF_LOGI("And you will see that INFO message");
+	return 0;
+}
+```
+
+Log statements that are on or above current log level and output log level will
+go into log output (and arguments will be evaluated). In that case it's hard to
+talk about performance because string formatting routines will be called and IO
+will be performed.
+
+To conclude, it is OK to have log statements for debug and development purposes,
+even in performance critical parts. But make sure to set correct current log
+level (to compile them out) or output log level (to suppress them) in release
+builds.
+
+That said, in some rare cases it could be useful to provide a custom output
+function that will use memory buffer for the log output.
 
 Output
 --------
 
-By default log messages are written to the stderr, but it is also possible to
+By default log messages are written to the `stderr`, but it is also possible to
 set custom output function. Library has an optional built-in support for the
-following output facilities:
+following output facilities (see [zf_log/zf_log.c] for details):
+
 * Android Log (via android/log.h)
 * Apple System Log (iOS, OSX via asl.h)
 
+See [examples/custom_output.c] for an example of custom output function.
+
+[zf_log/zf_log.c]: (zf_log/zf_log.c)
+[examples/custom_output.c]: (examples/custom_output.c)
 
 Why zf?
 --------
