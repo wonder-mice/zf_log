@@ -17,8 +17,6 @@ Features:
 * Dump a memory region as HEX and ASCII
 * Optional built-in support for Android log and Apple log (iOS, OSX)
 * Custom output functions
-* All externally visible symbols can be prefixed with provided string (useful in
-  libraries that don't want to expose dependency on zf_log)
 
 Examples
 --------
@@ -72,11 +70,8 @@ Will produce the following output:
 05-06 00:54:33.825 35864  1299 I hello.MAIN 6e6720656c69742e00                ng elit.?
 ```
 
-More examples available in [examples] folder. For more details see comments in
-[zf_log/zf_log.h] file.
-
-[zf_log/zf_log.h]: (zf_log/zf_log.h)
-[examples]: (examples)
+More examples available in [examples](examples) folder. For more details see
+comments in [zf_log/zf_log.h](zf_log/zf_log.h) file.
 
 Usage
 --------
@@ -144,12 +139,10 @@ For each target that uses zf_log in corresponding CMakeLists.txt file add:
 target_link_libraries(my_target zf_log)
 ```
 
-### Building as a shared library
-
 To build as a shared library set CMake variable `BUILD_SHARED_LIBS`:
 
 ```bash
-cmake -DBUILD_SHARED_LIBS:BOOL=ON
+cmake ../zf_queue.git -DBUILD_SHARED_LIBS:BOOL=ON
 ```
 
 Performance
