@@ -2,6 +2,10 @@ Things to do
 ------------
 
 * Print start address for each line of memory output?
+* Introduce private format_callback which probably will replace put_msg
+  This will provide more modular structure and will point out where to
+  insert custom code when different format function must be used.
+  As an exercise, add optional support for CFStringCreateWithFormat().
 
 Things probably not to do
 -------------------------
