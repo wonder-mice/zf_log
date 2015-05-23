@@ -6,6 +6,7 @@ Things to do
   This will provide more modular structure and will point out where to
   insert custom code when different format function must be used.
   As an exercise, add optional support for CFStringCreateWithFormat().
+* Use Cmake GNUInstallDirs for install locations.
 
 Things probably not to do
 -------------------------
