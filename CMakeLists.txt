@@ -11,7 +11,7 @@ set(INSTALL_INCLUDE_DIR include CACHE PATH
 	"Installation directory for header files")
 set(INSTALL_LIB_DIR lib CACHE PATH
 	"Installation directory for libraries")
-set(INSTALL_CMAKE_DIR lib/cmake/zf_queue CACHE PATH
+set(INSTALL_CMAKE_DIR lib/cmake/zf_log CACHE PATH
 	"Installation directory for CMake files")
 option(ZF_LOG_CONFIGURE_INSTALL "Generate install target" ON)
 option(ZF_LOG_EXAMPLES "Build examples" OFF)
