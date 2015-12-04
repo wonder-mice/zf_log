@@ -1,32 +1,39 @@
 #include <stdio.h>
-#include <string.h>
+#include <stdlib.h>
 #include "zf_log.h"
 
-#define LOG_FILENAME "test.log"
+FILE *g_log_file;
 
-FILE *log_file;
-
-static void log_file_write(zf_log_output_ctx *ctx) {
+static void file_output_callback(zf_log_output_ctx *ctx)
+{
     *ctx->p = '\n';
+    fwrite(ctx->buf, ctx->p - ctx->buf + 1, 1, g_log_file);
+    fflush(g_log_file);
+}
 
-    fwrite(ctx->buf, 1, (ctx->p + 1) - ctx->buf, log_file);
+static void file_output_close()
+{
+	fclose(g_log_file);
+}
 
-    fflush(log_file);
+static void file_output_open(const char *const log_path)
+{
+    g_log_file = fopen(log_path, "a");
+    if (!g_log_file)
+	{
+		ZF_LOGW("Failed to open log file %s", log_path);
+		return;
+	}
+	atexit(file_output_close);
+	zf_log_set_output_callback(file_output_callback);
 }
 
 int main(int argc, char *argv[])
 {
-    log_file = fopen(LOG_FILENAME, "a+");
-    if (NULL == log_file) {
-        printf("Failed to open log file.\n");
-    }
+	file_output_open("example.log");
 
-    zf_log_set_output_callback(log_file_write);
-
-    ZF_LOGI("You will see the number of arguments: %i", argc);
-    ZF_LOGI_MEM(argv, argc * sizeof(*argv), "argv pointers:");
-
-    fclose(log_file);
+    ZF_LOGI("Writing number of arguments to log file: %i", argc);
+	ZF_LOGI_MEM(argv, argc * sizeof(*argv), "argv pointers:");
 
     return 0;
 }
