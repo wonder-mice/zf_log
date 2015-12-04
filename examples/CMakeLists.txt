@@ -8,5 +8,8 @@
  add_executable(custom_output custom_output.c)
  target_link_libraries(custom_output zf_log)
 
+ add_executable(file_output file_output.c)
+ target_link_libraries(file_output zf_log)
+
  add_executable(args_eval args_eval.c)
  target_link_libraries(args_eval zf_log)
