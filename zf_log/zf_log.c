@@ -26,7 +26,7 @@
  * the maximum length of the log line.
  */
 #ifndef ZF_LOG_BUF_SZ
-	#define ZF_LOG_BUF_SZ 256
+	#define ZF_LOG_BUF_SZ 512
 #endif
 /* String to put in the end of each log line when necessary (can be empty).
  */
@@ -34,6 +34,7 @@
 	#define ZF_LOG_EOL "\n"
 #endif
 /* Number of bytes to reserve for EOL in the log line buffer (must be >0).
+ * Must be larger than or equal to length of ZF_LOG_EOL with terminating null.
  */
 #ifndef ZF_LOG_EOL_SZ
 	#define ZF_LOG_EOL_SZ sizeof(ZF_LOG_EOL)
@@ -60,6 +61,7 @@
 #include <unistd.h>
 #include <time.h>
 #include <sys/time.h>
+#include <sys/syslimits.h>
 #include "zf_log.h"
 
 #if defined(__linux__)
@@ -105,6 +107,8 @@ static void output_callback(zf_log_output_ctx *const ctx);
 
 STATIC_ASSERT(eol_fits_eol_sz, sizeof(ZF_LOG_EOL) <= ZF_LOG_EOL_SZ);
 STATIC_ASSERT(eol_sz_greater_than_zero, 0 < ZF_LOG_EOL_SZ);
+STATIC_ASSERT(eol_sz_less_than_buf_sz, ZF_LOG_EOL_SZ < ZF_LOG_BUF_SZ);
+STATIC_ASSERT(buf_sz_less_than_pipe_buf, ZF_LOG_BUF_SZ <= PIPE_BUF);
 static const char c_hex[] = "0123456789abcdef";
 
 static const char *g_tag_prefix = 0;
@@ -234,8 +238,10 @@ static void output_callback(zf_log_output_ctx *const ctx)
 	*ctx->p = 0;
 	CFLog(apple_lvl(ctx->lvl), CFSTR("%s"), ctx->tag_b);
 #else
-	strcpy(ctx->p, ZF_LOG_EOL);
-	fputs(ctx->buf, stderr);
+	const unsigned eol_len = sizeof(ZF_LOG_EOL) - 1;
+	memcpy(ctx->p, ZF_LOG_EOL, eol_len);
+	/* write() is atomic for buffers less than or equal to PIPE_BUF. */
+	write(STDERR_FILENO, ctx->buf, ctx->p - ctx->buf + eol_len);
 #endif
 	if (ZF_LOG_FATAL == ctx->lvl)
 	{
