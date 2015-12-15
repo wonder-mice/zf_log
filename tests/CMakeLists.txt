@@ -2,12 +2,14 @@ cmake_minimum_required(VERSION 3.2)
 
 include(CMakeParseArguments)
 
+set(CMAKE_C_STANDARD 99)
+set(CMAKE_C_STANDARD_REQUIRED ON)
+set(CMAKE_C_EXTENSIONS OFF)
 if(MSVC)
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /W4 /Wall /WX")
 else()
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra -Werror -pedantic-errors")
 endif()
-set(CMAKE_C_STANDARD 99)
 
 # zf_test
 set(HEADERS_DIR ${CMAKE_CURRENT_SOURCE_DIR})
@@ -23,7 +25,7 @@ function(add_zf_log_test target)
 		"SOURCES;STD"
 		${ARGN})
 	add_executable(${target} ${arg_SOURCES})
-	set_property(TARGET zf_log PROPERTY C_STANDARD "${arg_STD}")
+	set_property(TARGET ${target} PROPERTY C_STANDARD "${arg_STD}")
 	target_include_directories(${target} PRIVATE "${PROJECT_SOURCE_DIR}/zf_log")
 	target_link_libraries(${target}  zf_test)
 	add_test(NAME ${target} COMMAND ${target})
