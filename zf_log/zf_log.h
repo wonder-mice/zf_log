@@ -313,8 +313,8 @@ static inline void _zf_log_unused(const int dummy, ...) {(void)dummy;}
 #if ZF_LOG_ALLOW_VERBOSE
 	#define ZF_LOGV(...) \
 			_ZF_LOG_IMP(ZF_LOG_VERBOSE, _ZF_LOG_TAG, __VA_ARGS__)
-	#define ZF_LOGV_MEM(...) \
-			_ZF_LOG_MEM_IMP(ZF_LOG_VERBOSE, _ZF_LOG_TAG, __VA_ARGS__)
+	#define ZF_LOGV_MEM(d, d_sz, ...) \
+			_ZF_LOG_MEM_IMP(ZF_LOG_VERBOSE, _ZF_LOG_TAG, d, d_sz, __VA_ARGS__)
 #else
 	#define ZF_LOGV(...) _ZF_LOG_UNUSED(__VA_ARGS__)
 	#define ZF_LOGV_MEM(...) _ZF_LOG_UNUSED(__VA_ARGS__)
@@ -323,8 +323,8 @@ static inline void _zf_log_unused(const int dummy, ...) {(void)dummy;}
 #if ZF_LOG_ALLOW_DEBUG
 	#define ZF_LOGD(...) \
 			_ZF_LOG_IMP(ZF_LOG_DEBUG, _ZF_LOG_TAG, __VA_ARGS__)
-	#define ZF_LOGD_MEM(...) \
-			_ZF_LOG_MEM_IMP(ZF_LOG_DEBUG, _ZF_LOG_TAG, __VA_ARGS__)
+	#define ZF_LOGD_MEM(d, d_sz, ...) \
+			_ZF_LOG_MEM_IMP(ZF_LOG_DEBUG, _ZF_LOG_TAG, d, d_sz, __VA_ARGS__)
 #else
 	#define ZF_LOGD(...) _ZF_LOG_UNUSED(__VA_ARGS__)
 	#define ZF_LOGD_MEM(...) _ZF_LOG_UNUSED(__VA_ARGS__)
@@ -333,8 +333,8 @@ static inline void _zf_log_unused(const int dummy, ...) {(void)dummy;}
 #if ZF_LOG_ALLOW_INFO
 	#define ZF_LOGI(...) \
 			_ZF_LOG_IMP(ZF_LOG_INFO, _ZF_LOG_TAG, __VA_ARGS__)
-	#define ZF_LOGI_MEM(...) \
-			_ZF_LOG_MEM_IMP(ZF_LOG_INFO, _ZF_LOG_TAG, __VA_ARGS__)
+	#define ZF_LOGI_MEM(d, d_sz, ...) \
+			_ZF_LOG_MEM_IMP(ZF_LOG_INFO, _ZF_LOG_TAG, d, d_sz, __VA_ARGS__)
 #else
 	#define ZF_LOGI(...) _ZF_LOG_UNUSED(__VA_ARGS__)
 	#define ZF_LOGI_MEM(...) _ZF_LOG_UNUSED(__VA_ARGS__)
@@ -343,8 +343,8 @@ static inline void _zf_log_unused(const int dummy, ...) {(void)dummy;}
 #if ZF_LOG_ALLOW_WARN
 	#define ZF_LOGW(...) \
 			_ZF_LOG_IMP(ZF_LOG_WARN, _ZF_LOG_TAG, __VA_ARGS__)
-	#define ZF_LOGW_MEM(...) \
-			_ZF_LOG_MEM_IMP(ZF_LOG_WARN, _ZF_LOG_TAG, __VA_ARGS__)
+	#define ZF_LOGW_MEM(d, d_sz, ...) \
+			_ZF_LOG_MEM_IMP(ZF_LOG_WARN, _ZF_LOG_TAG, d, d_sz, __VA_ARGS__)
 #else
 	#define ZF_LOGW(...) _ZF_LOG_UNUSED(__VA_ARGS__)
 	#define ZF_LOGW_MEM(...) _ZF_LOG_UNUSED(__VA_ARGS__)
@@ -353,8 +353,8 @@ static inline void _zf_log_unused(const int dummy, ...) {(void)dummy;}
 #if ZF_LOG_ALLOW_ERROR
 	#define ZF_LOGE(...) \
 			_ZF_LOG_IMP(ZF_LOG_ERROR, _ZF_LOG_TAG, __VA_ARGS__)
-	#define ZF_LOGE_MEM(...) \
-			_ZF_LOG_MEM_IMP(ZF_LOG_ERROR, _ZF_LOG_TAG, __VA_ARGS__)
+	#define ZF_LOGE_MEM(d, d_sz, ...) \
+			_ZF_LOG_MEM_IMP(ZF_LOG_ERROR, _ZF_LOG_TAG, d, d_sz, __VA_ARGS__)
 #else
 	#define ZF_LOGE(...) _ZF_LOG_UNUSED(__VA_ARGS__)
 	#define ZF_LOGE_MEM(...) _ZF_LOG_UNUSED(__VA_ARGS__)
@@ -363,8 +363,8 @@ static inline void _zf_log_unused(const int dummy, ...) {(void)dummy;}
 #if ZF_LOG_ALLOW_FATAL
 	#define ZF_LOGF(...) \
 			_ZF_LOG_IMP(ZF_LOG_FATAL, _ZF_LOG_TAG, __VA_ARGS__)
-	#define ZF_LOGF_MEM(...) \
-			_ZF_LOG_MEM_IMP(ZF_LOG_FATAL, _ZF_LOG_TAG, __VA_ARGS__)
+	#define ZF_LOGF_MEM(d, d_sz, ...) \
+			_ZF_LOG_MEM_IMP(ZF_LOG_FATAL, _ZF_LOG_TAG, d, d_sz, __VA_ARGS__)
 #else
 	#define ZF_LOGF(...) _ZF_LOG_UNUSED(__VA_ARGS__)
 	#define ZF_LOGF_MEM(...) _ZF_LOG_UNUSED(__VA_ARGS__)

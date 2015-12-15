@@ -52,17 +52,22 @@
 #endif
 
 #include <assert.h>
+#include <ctype.h>
 #include <string.h>
+#include <time.h>
 #include <stdarg.h>
 #include <stddef.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <ctype.h>
-#include <unistd.h>
-#include <time.h>
-#include <sys/time.h>
-#include <sys/syslimits.h>
 #include "zf_log.h"
+
+#if defined(_WIN32) || defined(_WIN64)
+	#include <windows.h>
+#else
+	#include <unistd.h>
+	#include <sys/time.h>
+	#include <sys/syslimits.h>
+#endif
 
 #if defined(__linux__)
 	#include <sys/prctl.h>
@@ -108,7 +113,9 @@ static void output_callback(zf_log_output_ctx *const ctx);
 STATIC_ASSERT(eol_fits_eol_sz, sizeof(ZF_LOG_EOL) <= ZF_LOG_EOL_SZ);
 STATIC_ASSERT(eol_sz_greater_than_zero, 0 < ZF_LOG_EOL_SZ);
 STATIC_ASSERT(eol_sz_less_than_buf_sz, ZF_LOG_EOL_SZ < ZF_LOG_BUF_SZ);
-STATIC_ASSERT(buf_sz_less_than_pipe_buf, ZF_LOG_BUF_SZ <= PIPE_BUF);
+#if !defined(_WIN32) && !defined(_WIN64)
+	STATIC_ASSERT(buf_sz_less_than_pipe_buf, ZF_LOG_BUF_SZ <= PIPE_BUF);
+#endif
 static const char c_hex[] = "0123456789abcdef";
 
 static const char *g_tag_prefix = 0;
@@ -196,17 +203,37 @@ static char lvl_char(const int lvl)
 
 static void time_callback(struct tm *const tm, unsigned *const usec)
 {
+#if defined(__WIN32) || defined(_WIN64)
+	SYSTEMTIME st;
+	GetLocalTime(&st);
+	tm->tm_year = st.wYear;
+	tm->tm_mon = st.wMonth;
+	tm->tm_mday = st.wDay;
+	tm->tm_wday = st.wDayOfWeek;
+	tm->tm_hour = st.wHour;
+	tm->tm_min = st.wMinute;
+	tm->tm_sec = st.wSecond;
+	*usec = 1000 * st.wMilliseconds;
+#else
 	struct timeval tv;
 	gettimeofday(&tv, 0);
 	const time_t t = tv.tv_sec;
 	localtime_r(&t, tm);
 	*usec = tv.tv_usec;
+#endif
 }
 
 static void pid_callback(int *const pid, int *const tid)
 {
+#if defined(_WIN32) || defined(_WIN64)
+	*pid = GetCurrentProcessId();
+#else
 	*pid = getpid();
-#if defined(__ANDROID__)
+#endif
+
+#if defined(_WIN32) || defined(_WIN64)
+	*tid = GetCurrentThreadId();
+#elif defined(__ANDROID__)
 	*tid = gettid();
 #elif defined(__linux__)
 	*tid = syscall(SYS_gettid);
@@ -237,17 +264,19 @@ static void output_callback(zf_log_output_ctx *const ctx)
 #elif ZF_LOG_APPLE_LOG
 	*ctx->p = 0;
 	CFLog(apple_lvl(ctx->lvl), CFSTR("%s"), ctx->tag_b);
+#elif defined(_WIN32) || defined(_WIN64)
+	const unsigned eol_len = sizeof(ZF_LOG_EOL) - 1;
+	memcpy(ctx->p, ZF_LOG_EOL, eol_len);
+	/* WriteFile() is atomic for local files opened with FILE_APPEND_DATA and
+	   without FILE_WRITE_DATA */
+	WriteFile(GetStdHandle(STD_ERROR_HANDLE), ctx->buf,
+			  (DWORD)(ctx->p - ctx->buf + eol_len), 0, 0);
 #else
 	const unsigned eol_len = sizeof(ZF_LOG_EOL) - 1;
 	memcpy(ctx->p, ZF_LOG_EOL, eol_len);
 	/* write() is atomic for buffers less than or equal to PIPE_BUF. */
 	write(STDERR_FILENO, ctx->buf, ctx->p - ctx->buf + eol_len);
 #endif
-	if (ZF_LOG_FATAL == ctx->lvl)
-	{
-		fflush(stderr);
-		abort();
-	}
 }
 
 static const char *filename(const char *file)
