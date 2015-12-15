@@ -2,7 +2,12 @@ cmake_minimum_required(VERSION 3.2)
 
 include(CMakeParseArguments)
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -Wall -Wextra -Werror -pedantic-errors")
+if(MSVC)
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /W4 /Wall /WX")
+else()
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra -Werror -pedantic-errors")
+endif()
+set(CMAKE_C_STANDARD 99)
 
 # zf_test
 set(HEADERS_DIR ${CMAKE_CURRENT_SOURCE_DIR})
@@ -15,10 +20,10 @@ function(add_zf_log_test target)
 	cmake_parse_arguments(arg
 		""
 		""
-		"SOURCES;FLAGS"
+		"SOURCES;STD"
 		${ARGN})
 	add_executable(${target} ${arg_SOURCES})
-	set_target_properties(${target} PROPERTIES COMPILE_FLAGS "${arg_FLAGS}")
+	set_property(TARGET zf_log PROPERTY C_STANDARD "${arg_STD}")
 	target_include_directories(${target} PRIVATE "${PROJECT_SOURCE_DIR}/zf_log")
 	target_link_libraries(${target}  zf_test)
 	add_test(NAME ${target} COMMAND ${target})
@@ -26,24 +31,24 @@ endfunction()
 
 add_zf_log_test(log_level_tests_c99
 	SOURCES log_level_tests.c
-	FLAGS -std=c99)
+	STD 99)
 add_zf_log_test(log_level_tests_c11
 	SOURCES log_level_tests.c
-	FLAGS -std=c11)
+	STD 11)
 
 add_zf_log_test(log_message_tests_c99
 	SOURCES log_message_tests.c
-	FLAGS -std=c99)
+	STD 99)
 add_zf_log_test(log_message_tests_c11
 	SOURCES log_message_tests.c
-	FLAGS -std=c11)
+	STD 11)
 
 add_zf_log_test(decoration_test_c99
 	SOURCES decoration_module.c decoration_main.c
-	FLAGS -std=c99)
+	STD 99)
 add_zf_log_test(decoration_test_c11
 	SOURCES decoration_module.c decoration_main.c
-	FLAGS -std=c11)
+	STD 11)
 
 # generated code size tests
 add_executable(filesize_check filesize_check.c)
@@ -56,6 +61,14 @@ add_custom_command(OUTPUT "${CODE_SIZE_SOURCE_DIR}/zf_log.h"
 		"${CODE_SIZE_SOURCE_DIR}/zf_log.h"
 	DEPENDS
 		"${CMAKE_CURRENT_SOURCE_DIR}/zf_log.h.master")
+
+function(save_preprocessor_output target)
+	if(MSVC)
+		target_compile_options(${target} PRIVATE "/P")
+	else()
+		target_compile_options(${target} PRIVATE "-save-temps")
+	endif()
+endfunction()
 
 function(add_code_size_test name)
 	# "-save-temps" will put all ".s" files directly in the "tests" build
@@ -83,13 +96,13 @@ function(add_code_size_test name)
 		"${CODE_SIZE_SOURCE_DIR}/zf_log.h"
 		"${CODE_SIZE_SOURCE_DIR}/${name}-prev.c")
 	target_include_directories(${name}-prev PRIVATE "${CODE_SIZE_SOURCE_DIR}")
-	target_compile_options(${name}-prev PRIVATE  "-save-temps")
+	save_preprocessor_output(${name}-prev)
 	# curr library
 	add_library(${name}-curr STATIC
 		"${PROJECT_SOURCE_DIR}/zf_log/zf_log.h"
 		"${CODE_SIZE_SOURCE_DIR}/${name}-curr.c")
 	target_include_directories(${name}-curr PRIVATE "${PROJECT_SOURCE_DIR}/zf_log")
-	target_compile_options(${name}-curr PRIVATE  "-save-temps")
+	save_preprocessor_output(${name}-curr)
 	# test case
 	add_dependencies(filesize_check ${name}-prev ${name}-curr)
 	add_test(NAME ${name}_test
