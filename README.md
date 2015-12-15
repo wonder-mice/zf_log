@@ -15,27 +15,36 @@ performance (to be more precise - low overhead).
 Features:
 
 * Debug logging is reduced to no-op in release builds:
+
   ```c
   /* no runtime overhead whatsoever if verbose log is disabled */
   ZF_LOGV("entering foobar(), args: %i, %s", arg0, arg1);
   ```
+
 * No "unused" warning for variables used in log statements only:
+
   ```c
   /* no warning about err being unused even if verbose log is disabled */
   int err = close(fd);
   ZF_LOGV("close status %i", err);
   ```
+
 * Arguments are not evaluated when the message is not logged:
+
   ```c
   /* to_utf8() will not be called if debug log is turned off or disabled */
   ZF_LOGD("Login: %s", to_utf8(loginUtf16));
   ```
+
 * Log a memory region as HEX and ASCII:
+
   ```c
   /* will print HEX and ASCII view of received network packet */
   ZF_LOGD_MEM(pkg_ptr, pkg_sz, "Received network packet (%u bytes):", pkg_sz);
   ```
+
 * Custom output functions:
+
   ```c
   /* custom output function to redirect logs to syslogd */
   static void syslog_output_callback(zf_log_output_ctx \*ctx)
@@ -45,21 +54,28 @@ Features:
   }
   zf_log_set_output_callback(syslog_output_callback);
   ```
+
 * Compile time configuration of logging level:
+
   ```c
   /* disable verbose and debug logs */
   #define ZF_LOG_LEVEL ZF_LOG_INFO
   ```
+
 * Run time configuration of logging level:
+
   ```c
   /* turn off verbose log */
   zf_log_set_output_level(ZF_LOG_DEBUG);
   ```
+
 * Compiler warnings when format string and arguments don't match:
   ```c
+
   /* warning: format specifies type 'char *' but the argument has type 'int' */
   ZF_LOGI("This is int %s", 42);
   ```
+
 * Optional built-in support for Android log and Apple system log (iOS, OS X)
 * Reasonably cross-platform (OS X, iOS, Linux, Android, other Unix flavors,
   POSIX platforms and Windows)
