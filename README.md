@@ -1,22 +1,70 @@
 zf_log
 ========
 
-### Tiny logging library for C (and C++)
+### Core logging library for C, Objective-C and C++
 
-This is just a thin wrapper around sprintf() function. It provides less than 20%
-of functionality found in more sophisticated libraries, but covers more than 80%
-of common use cases. It could be particularly useful in mobile/embedded
-applications, early stages of development or when prototyping. Focus is made on
-simplicity, ease of use and performance (to be more precise - low overhead).
+Following the [Unix way](https://en.wikipedia.org/wiki/Unix_philosophy), this
+library provides the logging core which can be used directly or extended to
+achieve desired behavior. In essence, it's a thin wrapper around snprintf()
+function. By implementing less than 20% of functionality found in more
+sophisticated and feature reach libraries, it covers more than 80% of common
+use cases. Found to be particularly useful in cross-platform applications and on
+mobile/embedded platforms. Focus is made on simplicity, ease of use and
+performance (to be more precise - low overhead).
 
 Features:
 
-* Debug logging is reduced to no-op in release builds
-* Arguments are not evaluated when the message is not logged
-* No "unused" warning for variables used in log statements only
-* Log a memory region as HEX and ASCII
+* Debug logging is reduced to no-op in release builds:
+  ```c
+  /* no runtime overhead whatsoever if verbose log is disabled */
+  ZF_LOGV("entering foobar(), args: %i, %s", arg0, arg1);
+  ```
+* No "unused" warning for variables used in log statements only:
+  ```c
+  /* no warning about err being unused even if verbose log is disabled */
+  int err = close(fd);
+  ZF_LOGV("close status %i", err);
+  ```
+* Arguments are not evaluated when the message is not logged:
+  ```c
+  /* to_utf8() will not be called if debug log is turned off or disabled */
+  ZF_LOGD("Login: %s", to_utf8(loginUtf16));
+  ```
+* Log a memory region as HEX and ASCII:
+  ```c
+  /* will print HEX and ASCII view of received network packet */
+  ZF_LOGD_MEM(pkg_ptr, pkg_sz, "Received network packet (%u bytes):", pkg_sz);
+  ```
+* Custom output functions:
+  ```c
+  /* custom output function to redirect logs to syslogd */
+  static void syslog_output_callback(zf_log_output_ctx \*ctx)
+  {
+    \*ctx->p = 0;
+    syslog(syslog_level(ctx->lvl), "%s", ctx->tag_b);
+  }
+  zf_log_set_output_callback(syslog_output_callback);
+  ```
+* Compile time configuration of logging level:
+  ```c
+  /* disable verbose and debug logs */
+  #define ZF_LOG_LEVEL ZF_LOG_INFO
+  ```
+* Run time configuration of logging level:
+  ```c
+  /* turn off verbose log */
+  zf_log_set_output_level(ZF_LOG_DEBUG);
+  ```
+* Compiler warnings when format string and arguments don't match:
+  ```c
+  /* warning: format specifies type 'char *' but the argument has type 'int' */
+  ZF_LOGI("This is int %s", 42);
+  ```
 * Optional built-in support for Android log and Apple system log (iOS, OS X)
-* Custom output functions
+* Reasonably cross-platform (OS X, iOS, Linux, Android, other Unix flavors,
+  POSIX platforms and Windows)
+* No external dependencies
+* Thread safe
 
 Examples
 --------
