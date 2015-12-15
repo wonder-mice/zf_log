@@ -199,7 +199,7 @@ static void time_callback(struct tm *const tm, unsigned *const usec)
 	struct timeval tv;
 	gettimeofday(&tv, 0);
 	const time_t t = tv.tv_sec;
-	*tm = *localtime(&t);
+	localtime_r(&t, tm);
 	*usec = tv.tv_usec;
 }
 
