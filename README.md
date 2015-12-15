@@ -70,8 +70,8 @@ Features:
   ```
 
 * Compiler warnings when format string and arguments don't match:
-  ```c
 
+  ```c
   /* warning: format specifies type 'char *' but the argument has type 'int' */
   ZF_LOGI("This is int %s", 42);
   ```
