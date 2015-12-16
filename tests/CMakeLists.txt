@@ -66,7 +66,8 @@ add_custom_command(OUTPUT "${CODE_SIZE_SOURCE_DIR}/zf_log.h"
 
 function(save_preprocessor_output target)
 	if(MSVC)
-		target_compile_options(${target} PRIVATE "/P")
+		# MSVC lacks this feature, /P suppresses compilation.
+		#target_compile_options(${target} PRIVATE "/P")
 	else()
 		target_compile_options(${target} PRIVATE "-save-temps")
 	endif()
