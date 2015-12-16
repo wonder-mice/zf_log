@@ -1,3 +1,6 @@
+#if defined(_WIN32) || defined(_WIN64)
+	#define _CRT_SECURE_NO_WARNINGS
+#endif
 #include <stdio.h>
 #include <stdlib.h>
 #include "zf_log.h"
@@ -11,7 +14,7 @@ static void file_output_callback(zf_log_output_ctx *ctx)
 	fflush(g_log_file);
 }
 
-static void file_output_close()
+static void file_output_close(void)
 {
 	fclose(g_log_file);
 }
