@@ -1,5 +1,4 @@
 #include <signal.h>
-#include <unistd.h>
 #include <stdlib.h>
 #define ZF_LOG_LEVEL ZF_LOG_INFO
 #include <zf_log.h>
@@ -7,7 +6,6 @@
 static int call_exit()
 {
 	exit(1);
-	return 0;
 }
 
 int main(int argc, char *argv[])
