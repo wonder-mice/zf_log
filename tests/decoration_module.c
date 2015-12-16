@@ -1,8 +1,8 @@
-#include <stdlib.h>
-#include <stdio.h>
 #define ZF_LOG_LEVEL ZF_LOG_INFO
 #define ZF_LOG_LIBRARY_PREFIX module
 #include <zf_log.c>
+#include <stdlib.h>
+#include <stdio.h>
 
 static int module_called;
 

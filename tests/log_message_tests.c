@@ -1,5 +1,3 @@
-#include <stddef.h>
-#include <string.h>
 #define ZF_LOG_ANDROID_LOG 0
 #define ZF_LOG_PUT_CTX 1
 #define ZF_LOG_BUF_SZ 128
@@ -8,6 +6,8 @@
 #define ZF_LOG_LEVEL ZF_LOG_INFO
 #define ZF_LOG_TAG "TAG"
 #include <zf_log.c>
+#include <stddef.h>
+#include <string.h>
 
 #ifndef _countof
 	#define _countof(a) (sizeof(a) / sizeof(*a))

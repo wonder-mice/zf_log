@@ -51,6 +51,9 @@
 	#define ZF_LOG_INSTRUMENTED 0
 #endif
 
+#if defined(__linux__)
+	#define _POSIX_SOURCE
+#endif
 #include <assert.h>
 #include <ctype.h>
 #include <string.h>
@@ -66,7 +69,11 @@
 #else
 	#include <unistd.h>
 	#include <sys/time.h>
-	#include <sys/syslimits.h>
+	#if defined(__linux__)
+		#include <linux/limits.h>
+	#else
+		#include <sys/syslimits.h>
+	#endif
 #endif
 
 #if defined(__linux__)
@@ -275,7 +282,9 @@ static void output_callback(zf_log_output_ctx *const ctx)
 	const unsigned eol_len = sizeof(ZF_LOG_EOL) - 1;
 	memcpy(ctx->p, ZF_LOG_EOL, eol_len);
 	/* write() is atomic for buffers less than or equal to PIPE_BUF. */
-	write(STDERR_FILENO, ctx->buf, ctx->p - ctx->buf + eol_len);
+	const ssize_t n = write(STDERR_FILENO, ctx->buf,
+							ctx->p - ctx->buf + eol_len);
+	(void)n;
 #endif
 }
 

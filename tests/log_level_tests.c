@@ -1,8 +1,8 @@
-#include <string.h>
-#include <stdbool.h>
-#include <zf_test.h>
 #define ZF_LOG_LEVEL ZF_LOG_INFO
 #include <zf_log.c>
+#include <zf_test.h>
+#include <string.h>
+#include <stdbool.h>
 
 static unsigned g_output;
 static int g_lvl;
