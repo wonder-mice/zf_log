@@ -1,7 +1,14 @@
 #include <assert.h>
-#include <syslog.h>
+#if defined(_WIN32) || defined(_WIN64)
+	#include <windows.h>
+	#define OUTPUT_DEBUG_STRING
+#else
+	#include <syslog.h>
+	#define OUTPUT_SYSLOG
+#endif
 #include <zf_log.h>
 
+#ifdef OUTPUT_SYSLOG
 static int syslog_level(const int lvl)
 {
 	switch (lvl)
@@ -23,8 +30,9 @@ static int syslog_level(const int lvl)
 		return LOG_EMERG;
 	}
 }
+#endif
 
-static void syslog_output_callback(zf_log_output_ctx *ctx)
+static void custom_output_callback(zf_log_output_ctx *ctx)
 {
 	/* p points to the log message end. By default, message is not terminated
 	 * with 0, but it has some space allocated for EOL area, so there is always
@@ -32,18 +40,28 @@ static void syslog_output_callback(zf_log_output_ctx *ctx)
 	 * zf_log.c).
 	 */
 	*ctx->p = 0;
+#if defined(OUTPUT_DEBUG_STRING)
+	OutputDebugStringA(ctx->buf);
+#elif defined(OUTPUT_SYSLOG)
 	syslog(syslog_level(ctx->lvl), "%s", ctx->tag_b);
+#else
+	#error Unsupported platform
+#endif
 }
 
 int main(int argc, char *argv[])
 {
+#if defined(OUTPUT_SYSLOG)
 	openlog("custom_output", LOG_CONS|LOG_PERROR|LOG_PID, LOG_USER);
+#endif
 
-	zf_log_set_output_callback(syslog_output_callback);
+	zf_log_set_output_callback(custom_output_callback);
 
-	ZF_LOGI("You will see the number of arguments: %i", argc);
-	ZF_LOGI_MEM(argv, argc * sizeof(*argv), "argv pointers:");
+	ZF_LOGI("Number of arguments goes into custom output: %i", argc);
+	ZF_LOGI_MEM(argv, argc * sizeof(*argv), "and argv pointers as well:");
 
+#if defined(OUTPUT_SYSLOG)
 	closelog();
+#endif
 	return 0;
 }
