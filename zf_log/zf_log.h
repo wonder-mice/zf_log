@@ -22,8 +22,7 @@
 
 /* Log level guideline:
  * - ZF_LOG_FATAL - happened something impossible and absolutely unexpected.
- *   Process can't continue and must be terminated. In other words, semantic is
- *   close to assert(). zf_log will call abort() after printing the log message.
+ *   Process can't continue and must be terminated.
  *   Example: division by zero, unexpected modifications from other thread.
  * - ZF_LOG_ERROR - happened something impossible and absolutely unexpected, but
  *   process is able to recover and continue execution.
@@ -38,8 +37,8 @@
  *   execution path.
  * - ZF_LOG_VERBOSE - all other events.
  *
- * Ideally, log file of debugged, well tested, production ready application
- * should be empty (no messages with level ZF_LOG_INFO or higher) or very small.
+ * *Ideally*, log file of debugged, well tested, production ready application
+ * should be empty or very small.
  */
 #define ZF_LOG_VERBOSE 1
 #define ZF_LOG_DEBUG   2
@@ -130,7 +129,11 @@
 	#define zf_log_set_mem_width _ZF_LOG_DECOR(zf_log_set_mem_width)
 	#define zf_log_set_output_level _ZF_LOG_DECOR(zf_log_set_output_level)
 	#define zf_log_set_output_callback _ZF_LOG_DECOR(zf_log_set_output_callback)
-	#define _zf_log_output_lvl _ZF_LOG_DECOR(_zf_log_output_lvl)
+	#define _zf_log_global _ZF_LOG_DECOR(_zf_log_global)
+	#define _zf_log_write_aux_d _ZF_LOG_DECOR(_zf_log_write_aux_d)
+	#define _zf_log_write_aux _ZF_LOG_DECOR(_zf_log_write_aux)
+	#define _zf_log_write_mem_aux_d _ZF_LOG_DECOR(_zf_log_write_mem_aux_d)
+	#define _zf_log_write_mem_aux _ZF_LOG_DECOR(_zf_log_write_mem_aux)
 	#define _zf_log_write_d _ZF_LOG_DECOR(_zf_log_write_d)
 	#define _zf_log_write _ZF_LOG_DECOR(_zf_log_write)
 	#define _zf_log_write_mem_d _ZF_LOG_DECOR(_zf_log_write_mem_d)
@@ -187,6 +190,15 @@ typedef void (*zf_log_output_cb)(zf_log_output_ctx *ctx);
  */
 void zf_log_set_output_callback(const zf_log_output_cb cb);
 
+typedef struct zf_log_instance
+{
+	unsigned mem_width;
+	unsigned put_mask;
+	int output_lvl; /* Minimal enabled log level */
+	zf_log_output_cb output_cb; /* Output callback */
+}
+zf_log_instance;
+
 #ifdef __cplusplus
 }
 #endif
@@ -222,14 +234,22 @@ void zf_log_set_output_callback(const zf_log_output_cb cb);
  *       ZF_LOGD("data: len=%u, sha256=%s", data_sz, hash);
  *   }
  */
-#define ZF_LOG_OUTPUT(lvl) \
-		(ZF_LOG_ALLOW((lvl)) && (lvl) >= _zf_log_output_lvl)
-#define ZF_LOG_OUTPUT_VERBOSE ZF_LOG_OUTPUT(ZF_LOG_VERBOSE)
-#define ZF_LOG_OUTPUT_DEBUG ZF_LOG_OUTPUT(ZF_LOG_DEBUG)
-#define ZF_LOG_OUTPUT_INFO ZF_LOG_OUTPUT(ZF_LOG_INFO)
-#define ZF_LOG_OUTPUT_WARN ZF_LOG_OUTPUT(ZF_LOG_WARN)
-#define ZF_LOG_OUTPUT_ERROR ZF_LOG_OUTPUT(ZF_LOG_ERROR)
-#define ZF_LOG_OUTPUT_FATAL ZF_LOG_OUTPUT(ZF_LOG_FATAL)
+#define ZF_LOG_AUX_OUTPUT(log, lvl) \
+		(ZF_LOG_ALLOW((lvl)) && (lvl) >= (log)->output_lvl)
+#define ZF_LOG_AUX_OUTPUT_VERBOSE(log)	ZF_LOG_AUX_OUTPUT(log, ZF_LOG_VERBOSE)
+#define ZF_LOG_AUX_OUTPUT_DEBUG(log)	ZF_LOG_AUX_OUTPUT(log, ZF_LOG_DEBUG)
+#define ZF_LOG_AUX_OUTPUT_INFO(log)		ZF_LOG_AUX_OUTPUT(log, ZF_LOG_INFO)
+#define ZF_LOG_AUX_OUTPUT_WARN(log)		ZF_LOG_AUX_OUTPUT(log, ZF_LOG_WARN)
+#define ZF_LOG_AUX_OUTPUT_ERROR(log)	ZF_LOG_AUX_OUTPUT(log, ZF_LOG_ERROR)
+#define ZF_LOG_AUX_OUTPUT_FATAL(log)	ZF_LOG_AUX_OUTPUT(log, ZF_LOG_FATAL)
+
+#define ZF_LOG_OUTPUT(lvl)		ZF_LOG_AUX_OUTPUT(&_zf_log_global, lvl)
+#define ZF_LOG_OUTPUT_VERBOSE	ZF_LOG_OUTPUT(ZF_LOG_VERBOSE)
+#define ZF_LOG_OUTPUT_DEBUG		ZF_LOG_OUTPUT(ZF_LOG_DEBUG)
+#define ZF_LOG_OUTPUT_INFO		ZF_LOG_OUTPUT(ZF_LOG_INFO)
+#define ZF_LOG_OUTPUT_WARN		ZF_LOG_OUTPUT(ZF_LOG_WARN)
+#define ZF_LOG_OUTPUT_ERROR		ZF_LOG_OUTPUT(ZF_LOG_ERROR)
+#define ZF_LOG_OUTPUT_FATAL		ZF_LOG_OUTPUT(ZF_LOG_FATAL)
 
 #ifdef __printflike
 	#define _ZF_LOG_PRINTFLIKE(a, b) __printflike(a, b)
@@ -241,23 +261,41 @@ void zf_log_set_output_callback(const zf_log_output_cb cb);
 extern "C" {
 #endif
 
-extern int _zf_log_output_lvl;
+extern zf_log_instance _zf_log_global;
 
-void _zf_log_write_d(const char *const func,
-					 const char *const file, const unsigned line,
-					 const int lvl, const char *const tag,
-					 const char *const fmt, ...) _ZF_LOG_PRINTFLIKE(6, 7);
-void _zf_log_write(const int lvl, const char *const tag,
-				   const char *const fmt, ...) _ZF_LOG_PRINTFLIKE(3, 4);
+void _zf_log_write_aux_d(
+		const char *const func, const char *const file, const unsigned line,
+		const zf_log_instance *const log, const int lvl, const char *const tag,
+		const char *const fmt, ...) _ZF_LOG_PRINTFLIKE(7, 8);
+void _zf_log_write_aux(
+		const zf_log_instance *const log, const int lvl, const char *const tag,
+		const char *const fmt, ...) _ZF_LOG_PRINTFLIKE(4, 5);
+void _zf_log_write_mem_aux_d(
+		const char *const func, const char *const file, const unsigned line,
+		const zf_log_instance *const log, const int lvl, const char *const tag,
+		const void *const d, const unsigned d_sz,
+		const char *const fmt, ...) _ZF_LOG_PRINTFLIKE(9, 10);
+void _zf_log_write_mem_aux(
+		const zf_log_instance *const log, const int lvl, const char *const tag,
+		const void *const d, const unsigned d_sz,
+		const char *const fmt, ...) _ZF_LOG_PRINTFLIKE(6, 7);
 
-void _zf_log_write_mem_d(const char *const func,
-						 const char *const file, const unsigned line,
-						 const int lvl, const char *const tag,
-						 const void *const d, const unsigned d_sz,
-						 const char *const fmt, ...) _ZF_LOG_PRINTFLIKE(8, 9);
-void _zf_log_write_mem(const int lvl, const char *const tag,
-					   const void *const d, const unsigned d_sz,
-					   const char *const fmt, ...) _ZF_LOG_PRINTFLIKE(5, 6);
+void _zf_log_write_d(
+		const char *const func, const char *const file, const unsigned line,
+		const int lvl, const char *const tag,
+		const char *const fmt, ...) _ZF_LOG_PRINTFLIKE(6, 7);
+void _zf_log_write(
+		const int lvl, const char *const tag,
+		const char *const fmt, ...) _ZF_LOG_PRINTFLIKE(3, 4);
+void _zf_log_write_mem_d(
+		const char *const func, const char *const file, const unsigned line,
+		const int lvl, const char *const tag,
+		const void *const d, const unsigned d_sz,
+		const char *const fmt, ...) _ZF_LOG_PRINTFLIKE(8, 9);
+void _zf_log_write_mem(
+		const int lvl, const char *const tag,
+		const void *const d, const unsigned d_sz,
+		const char *const fmt, ...) _ZF_LOG_PRINTFLIKE(5, 6);
 #ifdef __cplusplus
 }
 #endif
@@ -290,6 +328,18 @@ void _zf_log_write_mem(const int lvl, const char *const tag,
 				if (ZF_LOG_OUTPUT(lvl)) \
 					_zf_log_write_mem(lvl, tag, d, d_sz, __VA_ARGS__); \
 			} while (0)
+	#define _ZF_LOG_AUX_IMP(log, lvl, tag, ...) \
+			do { \
+				const zf_log_instance *const _log = (log); \
+				if (ZF_LOG_AUX_OUTPUT(_log, lvl)) \
+					_zf_log_write_aux(_log, lvl, tag, __VA_ARGS__); \
+			} while (0)
+	#define _ZF_LOG_MEM_AUX_IMP(log, lvl, tag, d, d_sz, ...) \
+			do { \
+				const zf_log_instance *const _log = (log); \
+				if (ZF_LOG_AUX_OUTPUT(_log, lvl)) \
+					_zf_log_write_mem_aux(_log, lvl, tag, d, d_sz, __VA_ARGS__); \
+			} while (0)
 #else
 	#define _ZF_LOG_IMP(lvl, tag, ...) \
 			do { \
@@ -302,6 +352,20 @@ void _zf_log_write_mem(const int lvl, const char *const tag,
 				if (ZF_LOG_OUTPUT(lvl)) \
 					_zf_log_write_mem_d(__FUNCTION__, __FILE__, __LINE__, \
 							lvl, tag, d, d_sz, __VA_ARGS__); \
+			} while (0)
+	#define _ZF_LOG_AUX_IMP(log, lvl, tag, ...) \
+			do { \
+				const zf_log_instance *const _log = (log); \
+				if (ZF_LOG_AUX_OUTPUT(_log, lvl)) \
+					_zf_log_write_d(__FUNCTION__, __FILE__, __LINE__, \
+							_log, lvl, tag, __VA_ARGS__); \
+			} while (0)
+	#define _ZF_LOG_MEM_AUX_IMP(log, lvl, tag, d, d_sz, ...) \
+			do { \
+				const zf_log_instance *const _log = (log); \
+				if (ZF_LOG_AUX_OUTPUT(_log, lvl)) \
+					_zf_log_write_mem_aux_d(__FUNCTION__, __FILE__, __LINE__, \
+							_log, lvl, tag, d, d_sz, __VA_ARGS__); \
 			} while (0)
 #endif
 

@@ -133,9 +133,8 @@ static INSTRUMENTED_CONST time_cb g_time_cb = time_callback;
 static INSTRUMENTED_CONST pid_cb g_pid_cb = pid_callback;
 #endif
 static INSTRUMENTED_CONST buffer_cb g_buffer_cb = buffer_callback;
-static zf_log_output_cb g_output_cb = output_callback;
 
-int _zf_log_output_lvl = 0;
+zf_log_instance _zf_log_global = { 0, 0, 0, output_callback };
 
 #if ZF_LOG_ANDROID_LOG
 static int android_lvl(const int lvl)
@@ -422,7 +421,7 @@ static void output_mem(zf_log_output_ctx *const ctx,
 			*hex++ = ' ';
 		}
 		ctx->p = ascii;
-		g_output_cb(ctx);
+		_zf_log_global.output_cb(ctx);
 	}
 }
 
@@ -438,12 +437,12 @@ void zf_log_set_mem_width(const unsigned w)
 
 void zf_log_set_output_level(const int lvl)
 {
-	_zf_log_output_lvl = lvl;
+	_zf_log_global.output_lvl = lvl;
 }
 
 void zf_log_set_output_callback(const zf_log_output_cb cb)
 {
-	g_output_cb = cb;
+	_zf_log_global.output_cb = cb;
 }
 
 #define CTX(lvl_, tag_) \
@@ -467,7 +466,7 @@ void _zf_log_write_d(const char *const func,
 	put_tag(&ctx, tag);
 	put_src(&ctx, func, file, line);
 	put_msg(&ctx, fmt, va);
-	g_output_cb(&ctx);
+	_zf_log_global.output_cb(&ctx);
 	va_end(va);
 }
 
@@ -480,7 +479,7 @@ void _zf_log_write(const int lvl, const char *const tag,
 	put_ctx(&ctx);
 	put_tag(&ctx, tag);
 	put_msg(&ctx, fmt, va);
-	g_output_cb(&ctx);
+	_zf_log_global.output_cb(&ctx);
 	va_end(va);
 }
 
@@ -497,7 +496,7 @@ void _zf_log_write_mem_d(const char *const func,
 	put_tag(&ctx, tag);
 	put_src(&ctx, func, file, line);
 	put_msg(&ctx, fmt, va);
-	g_output_cb(&ctx);
+	_zf_log_global.output_cb(&ctx);
 	output_mem(&ctx, d, d_sz);
 	va_end(va);
 }
@@ -512,7 +511,7 @@ void _zf_log_write_mem(const int lvl, const char *const tag,
 	put_ctx(&ctx);
 	put_tag(&ctx, tag);
 	put_msg(&ctx, fmt, va);
-	g_output_cb(&ctx);
+	_zf_log_global.output_cb(&ctx);
 	output_mem(&ctx, d, d_sz);
 	va_end(va);
 }

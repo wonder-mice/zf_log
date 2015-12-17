@@ -25,3 +25,12 @@ Things probably not to do
   increase complexity of output_mem() function, while providing not
   much benefits. Memory output line is pretty much limited in length,
   so problem could be solved easily by choosing right ZF_LOG_BUF_SZ.
+
+* Debug functions (_zf_log_write.*_d) could also receive the length of
+  string passed in as a "file" parameter. That will allow to search for
+  a slash from the end of the string. While it will be up to 30 times
+  faster, overall performance gain will be too small to notice, because
+  the biggest offenders right now are localtime() and file io. Also
+  this will require to push additional argument which will increase the
+  size of call site which could be very noticable - size of the binary
+  will go up.
