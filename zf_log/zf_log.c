@@ -15,11 +15,11 @@
  * When defined, must be 1 (enable) or 0 (disable). If not defined, default
  * will be used.
  */
-#ifndef ZF_LOG_PUT_CTX
+#ifndef ZF_LOG_PUT_CTX_DEPRECATED
 	#if ZF_LOG_ANDROID_LOG || ZF_LOG_APPLE_LOG
-		#define ZF_LOG_PUT_CTX 0
+		#define ZF_LOG_PUT_CTX_DEPRECATED 0
 	#else
-		#define ZF_LOG_PUT_CTX 1
+		#define ZF_LOG_PUT_CTX_DEPRECATED 1
 	#endif
 #endif
 /* Size of the log line buffer. The buffer is allocated on the stack. It limits
@@ -85,7 +85,7 @@
 	/* avoid defining _GNU_SOURCE */
 	int syscall(int number, ...);
 #endif
-#if defined(__MACH__) && ZF_LOG_PUT_CTX
+#if defined(__MACH__) && ZF_LOG_PUT_CTX_DEPRECATED
 	#include <pthread.h>
 #endif
 
@@ -110,7 +110,7 @@ typedef void (*time_cb)(struct tm *const tm, unsigned *const usec);
 typedef void (*pid_cb)(int *const pid, int *const tid);
 typedef void (*buffer_cb)(zf_log_output_ctx *ctx, char *buf);
 
-#if ZF_LOG_PUT_CTX
+#if ZF_LOG_PUT_CTX_DEPRECATED
 static void time_callback(struct tm *const tm, unsigned *const usec);
 static void pid_callback(int *const pid, int *const tid);
 #endif
@@ -126,15 +126,35 @@ STATIC_ASSERT(eol_sz_less_than_buf_sz, ZF_LOG_EOL_SZ < ZF_LOG_BUF_SZ);
 static const char c_hex[] = "0123456789abcdef";
 
 static const char *g_tag_prefix = 0;
-static unsigned g_mem_width = ZF_LOG_MEM_WIDTH;
 static INSTRUMENTED_CONST unsigned g_buf_sz = ZF_LOG_BUF_SZ - ZF_LOG_EOL_SZ;
-#if ZF_LOG_PUT_CTX
+#if ZF_LOG_PUT_CTX_DEPRECATED
 static INSTRUMENTED_CONST time_cb g_time_cb = time_callback;
 static INSTRUMENTED_CONST pid_cb g_pid_cb = pid_callback;
 #endif
 static INSTRUMENTED_CONST buffer_cb g_buffer_cb = buffer_callback;
 
-zf_log_instance _zf_log_global = { 0, 0, 0, output_callback };
+zf_log_instance _zf_log_global =
+{
+	0, /* output_lvl */
+	ZF_LOG_PUT_STD, /* put_mask */
+	ZF_LOG_MEM_WIDTH, /* mem width */
+	output_callback, /* output_callback */
+};
+
+typedef struct src_location
+{
+	const char *const func;
+	const char *const file;
+	const unsigned line;
+}
+src_location;
+
+typedef struct mem_block
+{
+	const void *const d;
+	const unsigned d_sz;
+}
+mem_block;
 
 #if ZF_LOG_ANDROID_LOG
 static int android_lvl(const int lvl)
@@ -184,7 +204,7 @@ static int apple_lvl(const int lvl)
 }
 #endif
 
-#if ZF_LOG_PUT_CTX
+#if ZF_LOG_PUT_CTX_DEPRECATED
 static char lvl_char(const int lvl)
 {
 	switch (lvl)
@@ -249,7 +269,7 @@ static void pid_callback(int *const pid, int *const tid)
 	#define Platform not supported
 #endif
 }
-#endif // ZF_LOG_PUT_CTX
+#endif // ZF_LOG_PUT_CTX_DEPRECATED
 
 static void buffer_callback(zf_log_output_ctx *ctx, char *buf)
 {
@@ -322,7 +342,7 @@ static inline void put_nprintf(zf_log_output_ctx *const ctx, const int n)
 
 static void put_ctx(zf_log_output_ctx *const ctx)
 {
-#if ZF_LOG_PUT_CTX
+#if ZF_LOG_PUT_CTX_DEPRECATED
 	int n;
 	struct tm tm;
 	unsigned usec;
@@ -368,12 +388,11 @@ static void put_tag(zf_log_output_ctx *const ctx, const char *const tag)
 	}
 }
 
-static void put_src(zf_log_output_ctx *const ctx, const char *const func,
-					const char *const file, const unsigned line)
+static void put_src(zf_log_output_ctx *const ctx, const src_location *const src)
 {
 	int n;
 	n = snprintf(ctx->p, nprintf_size(ctx), "%s@%s:%u ",
-				 func, filename(file), line);
+				 src->func, filename(src->file), src->line);
 	put_nprintf(ctx, n);
 }
 
@@ -386,17 +405,16 @@ static void put_msg(zf_log_output_ctx *const ctx,
 	put_nprintf(ctx, n);
 }
 
-static void output_mem(zf_log_output_ctx *const ctx,
-					   const void *const d, const unsigned d_sz)
+static void output_mem(zf_log_output_ctx *const ctx, const mem_block *const mem)
 {
-	if (0 == d || 0 == d_sz)
+	if (0 == mem->d || 0 == mem->d_sz)
 	{
 		return;
 	}
-	const unsigned char *mem_p = (const unsigned char *)d;
-	const unsigned char *const mem_e = mem_p + d_sz;
+	const unsigned char *mem_p = (const unsigned char *)mem->d;
+	const unsigned char *const mem_e = mem_p + mem->d_sz;
 	const unsigned char *mem_cut;
-	const ptrdiff_t mem_width = g_mem_width;
+	const ptrdiff_t mem_width = _zf_log_global.mem_width;
 	char *const hex_b = ctx->msg_b;
 	char *const ascii_b = hex_b + 2 * mem_width + 2;
 	char *const ascii_e = ascii_b + mem_width;
@@ -432,7 +450,7 @@ void zf_log_set_tag_prefix(const char *const prefix)
 
 void zf_log_set_mem_width(const unsigned w)
 {
-	g_mem_width = w;
+	_zf_log_global.mem_width = w;
 }
 
 void zf_log_set_output_level(const int lvl)
@@ -440,64 +458,118 @@ void zf_log_set_output_level(const int lvl)
 	_zf_log_global.output_lvl = lvl;
 }
 
-void zf_log_set_output_callback(const zf_log_output_cb cb)
+void zf_log_set_output_callback(const unsigned mask, const zf_log_output_cb cb)
 {
+	_zf_log_global.put_mask = mask;
 	_zf_log_global.output_cb = cb;
 }
 
-#define CTX(lvl_, tag_) \
-	zf_log_output_ctx ctx; \
-	char buf[ZF_LOG_BUF_SZ]; \
-	ctx.lvl = (lvl_); \
-	ctx.tag = (tag_); \
-	g_buffer_cb(&ctx, buf); \
-	(void)0
-
-
-void _zf_log_write_d(const char *const func,
-					 const char *const file, const unsigned line,
-					 const int lvl, const char *const tag,
-					 const char *const fmt, ...)
+void zf_log_get_global(zf_log_instance *const log)
 {
-	CTX(lvl, tag);
+	*log = _zf_log_global;
+}
+
+static void _zf_log_write_imp(
+		const zf_log_instance *log,
+		const src_location *const src, const mem_block *const mem,
+		const int lvl, const char *const tag, const char *const fmt, va_list va)
+{
+	zf_log_output_ctx ctx;
+	char buf[ZF_LOG_BUF_SZ];
+	ctx.lvl = lvl;
+	ctx.tag = tag;
+	g_buffer_cb(&ctx, buf);
+	if (ZF_LOG_PUT_CTX & log->put_mask)
+	{
+		put_ctx(&ctx);
+	}
+	if (ZF_LOG_PUT_TAG & log->put_mask)
+	{
+		put_tag(&ctx, tag);
+	}
+	if (0 != src && ZF_LOG_PUT_SRC & log->put_mask)
+	{
+		put_src(&ctx, src);
+	}
+	if (ZF_LOG_PUT_MSG & log->put_mask)
+	{
+		put_msg(&ctx, fmt, va);
+	}
+	_zf_log_global.output_cb(&ctx);
+	if (0 != mem && ZF_LOG_PUT_MSG & log->put_mask)
+	{
+		output_mem(&ctx, mem);
+	}
+}
+
+void _zf_log_write_d(
+		const char *const func, const char *const file, const unsigned line,
+		const int lvl, const char *const tag,
+		const char *const fmt, ...)
+{
+	const src_location src = {func, file, line};
 	va_list va;
 	va_start(va, fmt);
-	put_ctx(&ctx);
-	put_tag(&ctx, tag);
-	put_src(&ctx, func, file, line);
-	put_msg(&ctx, fmt, va);
-	_zf_log_global.output_cb(&ctx);
+	_zf_log_write_imp(&_zf_log_global, &src, 0, lvl, tag, fmt, va);
+	va_end(va);
+}
+
+void _zf_log_write_aux_d(
+		const char *const func, const char *const file, const unsigned line,
+		const zf_log_instance *const log, const int lvl, const char *const tag,
+		const char *const fmt, ...)
+{
+	const src_location src = {func, file, line};
+	va_list va;
+	va_start(va, fmt);
+	_zf_log_write_imp(log, &src, 0, lvl, tag, fmt, va);
 	va_end(va);
 }
 
 void _zf_log_write(const int lvl, const char *const tag,
 				   const char *const fmt, ...)
 {
-	CTX(lvl, tag);
 	va_list va;
 	va_start(va, fmt);
-	put_ctx(&ctx);
-	put_tag(&ctx, tag);
-	put_msg(&ctx, fmt, va);
-	_zf_log_global.output_cb(&ctx);
+	_zf_log_write_imp(&_zf_log_global, 0, 0, lvl, tag, fmt, va);
 	va_end(va);
 }
 
-void _zf_log_write_mem_d(const char *const func,
-						 const char *const file, const unsigned line,
-						 const int lvl, const char *const tag,
-						 const void *const d, const unsigned d_sz,
-						 const char *const fmt, ...)
+void _zf_log_write_aux(
+		const zf_log_instance *const log, const int lvl, const char *const tag,
+		const char *const fmt, ...)
 {
-	CTX(lvl, tag);
 	va_list va;
 	va_start(va, fmt);
-	put_ctx(&ctx);
-	put_tag(&ctx, tag);
-	put_src(&ctx, func, file, line);
-	put_msg(&ctx, fmt, va);
-	_zf_log_global.output_cb(&ctx);
-	output_mem(&ctx, d, d_sz);
+	_zf_log_write_imp(log, 0, 0, lvl, tag, fmt, va);
+	va_end(va);
+}
+
+void _zf_log_write_mem_d(
+		const char *const func, const char *const file, const unsigned line,
+		const int lvl, const char *const tag,
+		const void *const d, const unsigned d_sz,
+		const char *const fmt, ...)
+{
+	const src_location src = {func, file, line};
+	const mem_block mem = {d, d_sz};
+	va_list va;
+	va_start(va, fmt);
+	_zf_log_write_imp(&_zf_log_global, &src, &mem, lvl, tag, fmt, va);
+	va_end(va);
+}
+
+void _zf_log_write_mem_aux_d(
+		const char *const func, const char *const file, const unsigned line,
+		const zf_log_instance *const log, const int lvl, const char *const tag,
+		const void *const d, const unsigned d_sz,
+		const char *const fmt, ...)
+{
+	const src_location src = {func, file, line};
+	const mem_block mem = {d, d_sz};
+	va_list va;
+	va_start(va, fmt);
+	_zf_log_write_imp(log, &src, &mem, lvl, tag, fmt, va);
 	va_end(va);
 }
 
@@ -505,13 +577,21 @@ void _zf_log_write_mem(const int lvl, const char *const tag,
 					   const void *const d, const unsigned d_sz,
 					   const char *const fmt, ...)
 {
-	CTX(lvl, tag);
+	const mem_block mem = {d, d_sz};
 	va_list va;
 	va_start(va, fmt);
-	put_ctx(&ctx);
-	put_tag(&ctx, tag);
-	put_msg(&ctx, fmt, va);
-	_zf_log_global.output_cb(&ctx);
-	output_mem(&ctx, d, d_sz);
+	_zf_log_write_imp(&_zf_log_global, 0, &mem, lvl, tag, fmt, va);
+	va_end(va);
+}
+
+void _zf_log_write_mem_aux(
+		const zf_log_instance *const log, const int lvl, const char *const tag,
+		const void *const d, const unsigned d_sz,
+		const char *const fmt, ...)
+{
+	const mem_block mem = {d, d_sz};
+	va_list va;
+	va_start(va, fmt);
+	_zf_log_write_imp(log, 0, &mem, lvl, tag, fmt, va);
 	va_end(va);
 }
