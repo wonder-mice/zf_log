@@ -46,7 +46,7 @@
 #define ZF_LOG_WARN    4
 #define ZF_LOG_ERROR   5
 #define ZF_LOG_FATAL   6
-#define ZF_LOG_NONE    0xFFFF
+#define ZF_LOG_NONE    0xFF
 
 /* Log level configuration:
  * - ZF_LOG_DEF_LEVEL - defines current log level. Only messages with that level
@@ -87,6 +87,53 @@
 	#else
 		#define _ZF_LOG_LEVEL ZF_LOG_DEBUG
 	#endif
+#endif
+
+/* Output log level override. For more details about output log level, see
+ * zf_log_set_output_level() function. When defined, must evaluate to integral
+ * value that corresponds to desired output log level. That doesn't have to be a
+ * constant value. On the contrary, the intended usecase is to allow different
+ * output log levels between modules. Use it only when module is required to
+ * have different output log level configurable in runtime. For other cases,
+ * consider defining ZF_LOG_LEVEL or using zf_log_set_output_level() function.
+ * Output log level override example:
+ *
+ *   #define ZF_LOG_OUTPUT_LEVEL g_module_log_level
+ *   #include <zf_log.h>
+ *   static int g_module_log_level = ZF_LOG_INFO;
+ *   static void foo() {
+ *       ZF_LOGI("Will check g_module_log_level for output log level");
+ *   }
+ *   void debug_log(bool on) {
+ *       g_module_log_level = on? ZF_LOG_DEBUG: ZF_LOG_INFO;
+ *   }
+ *
+ * Note on performance. This expression will be evaluated each time message is
+ * logged (except when message log level is disabled - see ZF_LOG_DEF_LEVEL for
+ * details). Keep this expression as simple as possible, otherwise it will not
+ * only add runtime overhead, but also will increase size of call site
+ * significantly (which will result in larger executable). The prefered way is
+ * to use integeral variable (as in example above). If structure must be used,
+ * log_level field must be the first field in this structure:
+ *
+ *   #define ZF_LOG_OUTPUT_LEVEL (g_config.log_level)
+ *   #include <zf_log.h>
+ *   struct config {
+ *       int log_level;
+ *       unsigned other_field;
+ *       [...]
+ *   };
+ *   static config g_config = {ZF_LOG_INFO, 0, ...};
+ *
+ * This allows compiler to generate more compact load instruction (no need to
+ * specify offset since it's zero). Calling a function to get output log level
+ * is generaly a bad idea, since it will increase call site size and runtime
+ * overhead even further.
+ */
+#if defined(ZF_LOG_OUTPUT_LEVEL)
+	#define _ZF_LOG_OUTPUT_LEVEL ZF_LOG_OUTPUT_LEVEL
+#else
+	#define _ZF_LOG_OUTPUT_LEVEL _zf_log_output_lvl
 #endif
 
 /* Log tag configuration:
@@ -138,6 +185,7 @@
 	#define zf_log_set_output_level _ZF_LOG_DECOR(zf_log_set_output_level)
 	#define zf_log_set_output_callback _ZF_LOG_DECOR(zf_log_set_output_callback)
 	#define zf_log_get_global _ZF_LOG_DECOR(zf_log_get_global)
+	#define _zf_log_output_lvl _ZF_LOG_DECOR(_zf_log_output_lvl)
 	#define _zf_log_global _ZF_LOG_DECOR(_zf_log_global)
 	#define _zf_log_write_d _ZF_LOG_DECOR(_zf_log_write_d)
 	#define _zf_log_write_aux_d _ZF_LOG_DECOR(_zf_log_write_aux_d)
@@ -224,11 +272,6 @@ void zf_log_set_output_callback(const unsigned mask, const zf_log_output_cb cb);
 
 typedef struct zf_log_instance
 {
-	/* It's very important for output_lvl to be the first field in the
-	 * structure. This allows to have more compact call site, because load
-	 * instruction is shorter when loading data with zero offset.
-	 */
-	int output_lvl; /* Output log level (minimal enabled log level) */
 	unsigned put_mask; /* What to put into log line buffer */
 	unsigned mem_width; /* Bytes per line in memory (ASCII-HEX) dump */
 	zf_log_output_cb output_cb; /* Output callback */
@@ -276,7 +319,7 @@ void zf_log_get_global(zf_log_instance *const log);
  *   }
  */
 #define ZF_LOG_ON(lvl) \
-		(ZF_LOG_ENABLED((lvl)) && (lvl) >= _zf_log_global.output_lvl)
+		(ZF_LOG_ENABLED((lvl)) && (lvl) >= _ZF_LOG_OUTPUT_LEVEL)
 #define ZF_LOG_ON_VERBOSE   ZF_LOG_ON(ZF_LOG_VERBOSE)
 #define ZF_LOG_ON_DEBUG     ZF_LOG_ON(ZF_LOG_DEBUG)
 #define ZF_LOG_ON_INFO      ZF_LOG_ON(ZF_LOG_INFO)
@@ -303,6 +346,7 @@ void zf_log_get_global(zf_log_instance *const log);
 extern "C" {
 #endif
 
+extern int _zf_log_output_lvl;
 extern zf_log_instance _zf_log_global;
 
 void _zf_log_write_d(

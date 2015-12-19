@@ -133,9 +133,9 @@ static INSTRUMENTED_CONST pid_cb g_pid_cb = pid_callback;
 #endif
 static INSTRUMENTED_CONST buffer_cb g_buffer_cb = buffer_callback;
 
+int _zf_log_output_lvl = 0;
 zf_log_instance _zf_log_global =
 {
-	0, /* output_lvl */
 	ZF_LOG_PUT_STD, /* put_mask */
 	ZF_LOG_MEM_WIDTH, /* mem width */
 	output_callback, /* output_callback */
@@ -455,7 +455,7 @@ void zf_log_set_mem_width(const unsigned w)
 
 void zf_log_set_output_level(const int lvl)
 {
-	_zf_log_global.output_lvl = lvl;
+	_zf_log_output_lvl = lvl;
 }
 
 void zf_log_set_output_callback(const unsigned mask, const zf_log_output_cb cb)
