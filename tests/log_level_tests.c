@@ -20,8 +20,8 @@ static void reset()
 static void mock_output_callback(zf_log_output_ctx *ctx)
 {
 	g_lvl = ctx->lvl;
-	g_len = ctx->p - ctx->buf;
-	strncpy(g_msg, ctx->buf, g_len);
+	g_len = (unsigned)(ctx->p - ctx->buf);
+	memcpy(g_msg, ctx->buf, g_len);
 	++g_output;
 }
 
