@@ -18,7 +18,7 @@ static void module_output_callback(zf_log_output_ctx *ctx)
 
 void test_module()
 {
-	zf_log_set_output_callback(module_output_callback);
+	zf_log_set_output_callback(ZF_LOG_PUT_STD, module_output_callback);
 	ZF_LOGI("module");
 	if (!module_called)
 	{
