@@ -42,11 +42,10 @@ static size_t g_line;
 
 static size_t memchk(const void *const b, const int c, const size_t sz)
 {
-	const unsigned char v = c;
 	const unsigned char *const s = (const unsigned char *)b;
 	const unsigned char *const e = s + sz;
 	const unsigned char *p = s;
-	for (;p != e && v == *p; ++p) {}
+	for (;p != e && c == *p; ++p) {}
 	return (size_t)(p - s);
 }
 
@@ -97,7 +96,7 @@ static void mock_buffer_callback(zf_log_output_ctx *ctx, char *buf)
 
 static void mock_output_callback(zf_log_output_ctx *ctx)
 {
-	const int i = g_line++;
+	const size_t i = g_line++;
 	if (MAX_LINES <= i)
 	{
 		fprintf(stderr, "too many lines produced\n");
@@ -171,7 +170,7 @@ static void verify_log_output(const size_t buf_sz,
 
 static void test_msg_output()
 {
-	for (size_t buf_sz = 0; ZF_LOG_BUF_SZ - ZF_LOG_EOL_SZ >= buf_sz; ++buf_sz)
+	for (unsigned buf_sz = 0; ZF_LOG_BUF_SZ - ZF_LOG_EOL_SZ >= buf_sz; ++buf_sz)
 	{
 		reset();
 		g_buf_sz = buf_sz;
@@ -184,7 +183,7 @@ static void test_msg_output()
 
 static void test_mem_output()
 {
-	for (size_t buf_sz = 0; ZF_LOG_BUF_SZ - ZF_LOG_EOL_SZ >= buf_sz; ++buf_sz)
+	for (unsigned buf_sz = 0; ZF_LOG_BUF_SZ - ZF_LOG_EOL_SZ >= buf_sz; ++buf_sz)
 	{
 		reset();
 		g_buf_sz = buf_sz;
