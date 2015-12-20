@@ -126,7 +126,7 @@ STATIC_ASSERT(eol_sz_less_than_buf_sz, ZF_LOG_EOL_SZ < ZF_LOG_BUF_SZ);
 static const char c_hex[] = "0123456789abcdef";
 
 static const char *g_tag_prefix = 0;
-static size_t g_mem_width = ZF_LOG_MEM_WIDTH;
+static unsigned g_mem_width = ZF_LOG_MEM_WIDTH;
 static INSTRUMENTED_CONST unsigned g_buf_sz = ZF_LOG_BUF_SZ - ZF_LOG_EOL_SZ;
 #if ZF_LOG_PUT_CTX
 static INSTRUMENTED_CONST time_cb g_time_cb = time_callback;
