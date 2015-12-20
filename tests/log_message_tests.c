@@ -42,10 +42,11 @@ static size_t g_line;
 
 static size_t memchk(const void *const b, const int c, const size_t sz)
 {
+	const unsigned char v = (unsigned char)c;
 	const unsigned char *const s = (const unsigned char *)b;
 	const unsigned char *const e = s + sz;
 	const unsigned char *p = s;
-	for (;p != e && c == *p; ++p) {}
+	for (;p != e && v == *p; ++p) {}
 	return (size_t)(p - s);
 }
 
