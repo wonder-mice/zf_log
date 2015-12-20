@@ -80,7 +80,10 @@ Features:
 * Reasonably cross-platform (OS X, iOS, Linux, Android, other Unix flavors,
   POSIX platforms and Windows)
 * No external dependencies
+* Compact call site
 * Thread safe
+* Library size is under 8Kb (when compiled for x86_64)
+* Can be used privatly in libraries
 
 Examples
 --------
