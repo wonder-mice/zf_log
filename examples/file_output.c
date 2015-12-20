@@ -28,7 +28,7 @@ static void file_output_open(const char *const log_path)
 		return;
 	}
 	atexit(file_output_close);
-	zf_log_set_output_callback(file_output_callback);
+	zf_log_set_output_callback(ZF_LOG_PUT_STD, file_output_callback);
 }
 
 int main(int argc, char *argv[])

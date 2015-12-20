@@ -55,7 +55,14 @@ int main(int argc, char *argv[])
 	openlog("custom_output", LOG_CONS|LOG_PERROR|LOG_PID, LOG_USER);
 #endif
 
-	zf_log_set_output_callback(custom_output_callback);
+	const unsigned put_mask =
+#if defined(OUTPUT_SYSLOG)
+			ZF_LOG_PUT_STD & !ZF_LOG_PUT_CTX;
+#else
+			ZF_LOG_PUT_STD;
+#endif
+			;
+	zf_log_set_output_callback(put_mask, custom_output_callback);
 
 	ZF_LOGI("Number of arguments goes into custom output: %i", argc);
 	ZF_LOGI_MEM(argv, argc * sizeof(*argv), "and argv pointers as well:");

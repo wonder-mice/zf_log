@@ -96,24 +96,24 @@ static void test_args_evaluation()
 static void test_level_checks()
 {
 	reset();
-#if ZF_LOG_ALLOW_DEBUG
+#if ZF_LOG_ENABLED_DEBUG
 	#error No debug log
 #endif
-#if !ZF_LOG_ALLOW_INFO
+#if !ZF_LOG_ENABLED_INFO
 	#error Info log
 #endif
-	TEST_VERIFY_FALSE(ZF_LOG_OUTPUT_DEBUG);
-	TEST_VERIFY_TRUE(ZF_LOG_OUTPUT_INFO);
+	TEST_VERIFY_FALSE(ZF_LOG_ON_DEBUG);
+	TEST_VERIFY_TRUE(ZF_LOG_ON_INFO);
 
 	reset();
 	zf_log_set_output_level(ZF_LOG_WARN);
-	TEST_VERIFY_FALSE(ZF_LOG_OUTPUT_INFO);
-	TEST_VERIFY_TRUE(ZF_LOG_OUTPUT_WARN);
+	TEST_VERIFY_FALSE(ZF_LOG_ON_INFO);
+	TEST_VERIFY_TRUE(ZF_LOG_ON_WARN);
 }
 
 int main(int argc, char *argv[])
 {
-	zf_log_set_output_callback(mock_output_callback);
+	zf_log_set_output_callback(ZF_LOG_PUT_STD, mock_output_callback);
 	TEST_RUNNER_CREATE(argc, argv);
 
 	TEST_EXECUTE(test_current_level());

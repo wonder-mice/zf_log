@@ -1,5 +1,5 @@
 #define ZF_LOG_ANDROID_LOG 0
-#define ZF_LOG_PUT_CTX 1
+#define ZF_LOG_PUT_CTX_DEPRECATED 1
 #define ZF_LOG_BUF_SZ 128
 #define ZF_LOG_MEM_WIDTH 16
 #define ZF_LOG_INSTRUMENTED 1
@@ -202,7 +202,7 @@ int main(int argc, char *argv[])
 	g_time_cb = mock_time_callback;
 	g_pid_cb = mock_pid_callback;
 	g_buffer_cb = mock_buffer_callback;
-	zf_log_set_output_callback(mock_output_callback);
+	zf_log_set_output_callback(ZF_LOG_PUT_STD, mock_output_callback);
 	zf_log_set_tag_prefix("prefix");
 
 	test_msg_output();
