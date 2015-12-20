@@ -272,8 +272,8 @@ void zf_log_set_output_callback(const unsigned mask, const zf_log_output_cb cb);
 
 typedef struct zf_log_instance
 {
-	unsigned put_mask; /* What to put into log line buffer */
 	unsigned mem_width; /* Bytes per line in memory (ASCII-HEX) dump */
+	unsigned put_mask; /* What to put into log line buffer */
 	zf_log_output_cb output_cb; /* Output callback */
 }
 zf_log_instance;
@@ -326,15 +326,6 @@ void zf_log_get_global(zf_log_instance *const log);
 #define ZF_LOG_ON_WARN      ZF_LOG_ON(ZF_LOG_WARN)
 #define ZF_LOG_ON_ERROR     ZF_LOG_ON(ZF_LOG_ERROR)
 #define ZF_LOG_ON_FATAL     ZF_LOG_ON(ZF_LOG_FATAL)
-
-#define ZF_LOG_ON_AUX(log, lvl) \
-		(ZF_LOG_ENABLED((lvl)) && (lvl) >= (log)->output_lvl)
-#define ZF_LOG_ON_AUX_VERBOSE(log)  ZF_LOG_ON_AUX(log, ZF_LOG_VERBOSE)
-#define ZF_LOG_ON_AUX_DEBUG(log)    ZF_LOG_ON_AUX(log, ZF_LOG_DEBUG)
-#define ZF_LOG_ON_AUX_INFO(log)     ZF_LOG_ON_AUX(log, ZF_LOG_INFO)
-#define ZF_LOG_ON_AUX_WARN(log)     ZF_LOG_ON_AUX(log, ZF_LOG_WARN)
-#define ZF_LOG_ON_AUX_ERROR(log)    ZF_LOG_ON_AUX(log, ZF_LOG_ERROR)
-#define ZF_LOG_ON_AUX_FATAL(log)    ZF_LOG_ON_AUX(log, ZF_LOG_FATAL)
 
 #ifdef __printflike
 	#define _ZF_LOG_PRINTFLIKE(a, b) __printflike(a, b)
@@ -431,15 +422,13 @@ void _zf_log_write_mem_aux(
 			} while (0)
 	#define _ZF_LOG_AUX_IMP(log, lvl, tag, ...) \
 			do { \
-				const zf_log_instance *const _log = (log); \
-				if (ZF_LOG_ON_AUX(_log, lvl)) \
-					_zf_log_write_aux(_log, lvl, tag, __VA_ARGS__); \
+				if (ZF_LOG_ON(lvl)) \
+					_zf_log_write_aux(log, lvl, tag, __VA_ARGS__); \
 			} while (0)
 	#define _ZF_LOG_MEM_AUX_IMP(log, lvl, tag, d, d_sz, ...) \
 			do { \
-				const zf_log_instance *const _log = (log); \
-				if (ZF_LOG_ON_AUX(_log, lvl)) \
-					_zf_log_write_mem_aux(_log, lvl, tag, d, d_sz, __VA_ARGS__); \
+				if (ZF_LOG_ON(lvl)) \
+					_zf_log_write_mem_aux(log, lvl, tag, d, d_sz, __VA_ARGS__); \
 			} while (0)
 #else
 	#define _ZF_LOG_IMP(lvl, tag, ...) \
@@ -456,17 +445,15 @@ void _zf_log_write_mem_aux(
 			} while (0)
 	#define _ZF_LOG_AUX_IMP(log, lvl, tag, ...) \
 			do { \
-				const zf_log_instance *const _log = (log); \
-				if (ZF_LOG_ON_AUX(_log, lvl)) \
+				if (ZF_LOG_ON(lvl)) \
 					_zf_log_write_d(__FUNCTION__, __FILE__, __LINE__, \
-							_log, lvl, tag, __VA_ARGS__); \
+							log, lvl, tag, __VA_ARGS__); \
 			} while (0)
 	#define _ZF_LOG_MEM_AUX_IMP(log, lvl, tag, d, d_sz, ...) \
 			do { \
-				const zf_log_instance *const _log = (log); \
-				if (ZF_LOG_ON_AUX(_log, lvl)) \
+				if (ZF_LOG_ON(lvl)) \
 					_zf_log_write_mem_aux_d(__FUNCTION__, __FILE__, __LINE__, \
-							_log, lvl, tag, d, d_sz, __VA_ARGS__); \
+							log, lvl, tag, d, d_sz, __VA_ARGS__); \
 			} while (0)
 #endif
 

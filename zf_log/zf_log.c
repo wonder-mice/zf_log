@@ -136,9 +136,9 @@ static INSTRUMENTED_CONST buffer_cb g_buffer_cb = buffer_callback;
 int _zf_log_output_lvl = 0;
 zf_log_instance _zf_log_global =
 {
-	ZF_LOG_PUT_STD, /* put_mask */
-	ZF_LOG_MEM_WIDTH, /* mem width */
-	output_callback, /* output_callback */
+	ZF_LOG_MEM_WIDTH,
+	ZF_LOG_PUT_STD,
+	output_callback,
 };
 
 typedef struct src_location
