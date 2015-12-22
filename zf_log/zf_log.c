@@ -11,17 +11,6 @@
 #ifndef ZF_LOG_APPLE_LOG
 	#define ZF_LOG_APPLE_LOG 0
 #endif
-/* Controls whether to add timestamp, pid, tid and level in the log message.
- * When defined, must be 1 (enable) or 0 (disable). If not defined, default
- * will be used.
- */
-#ifndef ZF_LOG_PUT_CTX_DEPRECATED
-	#if ZF_LOG_ANDROID_LOG || ZF_LOG_APPLE_LOG
-		#define ZF_LOG_PUT_CTX_DEPRECATED 0
-	#else
-		#define ZF_LOG_PUT_CTX_DEPRECATED 1
-	#endif
-#endif
 /* Size of the log line buffer. The buffer is allocated on the stack. It limits
  * the maximum length of the log line.
  */
@@ -85,16 +74,8 @@
 	/* avoid defining _GNU_SOURCE */
 	int syscall(int number, ...);
 #endif
-#if defined(__MACH__) && ZF_LOG_PUT_CTX_DEPRECATED
+#if defined(__MACH__)
 	#include <pthread.h>
-#endif
-
-#if ZF_LOG_ANDROID_LOG
-	#include <android/log.h>
-#endif
-#if ZF_LOG_APPLE_LOG
-	#include <CoreFoundation/CoreFoundation.h>
-	CF_EXPORT void CFLog(int32_t level, CFStringRef format, ...);
 #endif
 
 #if ZF_LOG_INSTRUMENTED
@@ -103,43 +84,13 @@
 	#define INSTRUMENTED_CONST const
 #endif
 
+#define RETVAL_UNUSED(expr) do { while(expr) break; } while(0)
 #define STATIC_ASSERT(name, cond) \
 	typedef char assert_##name[(cond)? 1: -1]
 
 typedef void (*time_cb)(struct tm *const tm, unsigned *const usec);
 typedef void (*pid_cb)(int *const pid, int *const tid);
 typedef void (*buffer_cb)(zf_log_output_ctx *ctx, char *buf);
-
-#if ZF_LOG_PUT_CTX_DEPRECATED
-static void time_callback(struct tm *const tm, unsigned *const usec);
-static void pid_callback(int *const pid, int *const tid);
-#endif
-static void buffer_callback(zf_log_output_ctx *ctx, char *buf);
-static void output_callback(zf_log_output_ctx *const ctx);
-
-STATIC_ASSERT(eol_fits_eol_sz, sizeof(ZF_LOG_EOL) <= ZF_LOG_EOL_SZ);
-STATIC_ASSERT(eol_sz_greater_than_zero, 0 < ZF_LOG_EOL_SZ);
-STATIC_ASSERT(eol_sz_less_than_buf_sz, ZF_LOG_EOL_SZ < ZF_LOG_BUF_SZ);
-#if !defined(_WIN32) && !defined(_WIN64)
-	STATIC_ASSERT(buf_sz_less_than_pipe_buf, ZF_LOG_BUF_SZ <= PIPE_BUF);
-#endif
-static const char c_hex[] = "0123456789abcdef";
-
-static const char *g_tag_prefix = 0;
-static INSTRUMENTED_CONST unsigned g_buf_sz = ZF_LOG_BUF_SZ - ZF_LOG_EOL_SZ;
-#if ZF_LOG_PUT_CTX_DEPRECATED
-static INSTRUMENTED_CONST time_cb g_time_cb = time_callback;
-static INSTRUMENTED_CONST pid_cb g_pid_cb = pid_callback;
-#endif
-static INSTRUMENTED_CONST buffer_cb g_buffer_cb = buffer_callback;
-
-int _zf_log_output_lvl = 0;
-zf_log_instance _zf_log_global =
-{
-	ZF_LOG_MEM_WIDTH,
-	ZF_LOG_PUT_STD,
-	output_callback,
-};
 
 typedef struct src_location
 {
@@ -156,55 +107,129 @@ typedef struct mem_block
 }
 mem_block;
 
+static void time_callback(struct tm *const tm, unsigned *const usec);
+static void pid_callback(int *const pid, int *const tid);
+static void buffer_callback(zf_log_output_ctx *ctx, char *buf);
+
+STATIC_ASSERT(eol_fits_eol_sz, sizeof(ZF_LOG_EOL) <= ZF_LOG_EOL_SZ);
+STATIC_ASSERT(eol_sz_greater_than_zero, 0 < ZF_LOG_EOL_SZ);
+STATIC_ASSERT(eol_sz_less_than_buf_sz, ZF_LOG_EOL_SZ < ZF_LOG_BUF_SZ);
+#if !defined(_WIN32) && !defined(_WIN64)
+	STATIC_ASSERT(buf_sz_less_than_pipe_buf, ZF_LOG_BUF_SZ <= PIPE_BUF);
+#endif
+static const char c_hex[] = "0123456789abcdef";
+
+static const char *g_tag_prefix = 0;
+static INSTRUMENTED_CONST unsigned g_buf_sz = ZF_LOG_BUF_SZ - ZF_LOG_EOL_SZ;
+static INSTRUMENTED_CONST time_cb g_time_cb = time_callback;
+static INSTRUMENTED_CONST pid_cb g_pid_cb = pid_callback;
+static INSTRUMENTED_CONST buffer_cb g_buffer_cb = buffer_callback;
+
 #if ZF_LOG_ANDROID_LOG
-static int android_lvl(const int lvl)
-{
-	switch (lvl)
+	#include <android/log.h>
+
+	static int android_lvl(const int lvl)
 	{
-	case ZF_LOG_VERBOSE:
-		return ANDROID_LOG_VERBOSE;
-	case ZF_LOG_DEBUG:
-		return ANDROID_LOG_DEBUG;
-	case ZF_LOG_INFO:
-		return ANDROID_LOG_INFO;
-	case ZF_LOG_WARN:
-		return ANDROID_LOG_WARN;
-	case ZF_LOG_ERROR:
-		return ANDROID_LOG_ERROR;
-	case ZF_LOG_FATAL:
-		return ANDROID_LOG_FATAL;
-	default:
-		assert(!"Bad log level");
-		return ANDROID_LOG_UNKNOWN;
+		switch (lvl)
+		{
+		case ZF_LOG_VERBOSE:
+			return ANDROID_LOG_VERBOSE;
+		case ZF_LOG_DEBUG:
+			return ANDROID_LOG_DEBUG;
+		case ZF_LOG_INFO:
+			return ANDROID_LOG_INFO;
+		case ZF_LOG_WARN:
+			return ANDROID_LOG_WARN;
+		case ZF_LOG_ERROR:
+			return ANDROID_LOG_ERROR;
+		case ZF_LOG_FATAL:
+			return ANDROID_LOG_FATAL;
+		default:
+			assert(!"Bad log level");
+			return ANDROID_LOG_UNKNOWN;
+		}
 	}
-}
+
+	static const unsigned put_mask_android = ZF_LOG_PUT_STD & ~ZF_LOG_PUT_CTX;
+
+	static void output_callback_android(zf_log_output_ctx *const ctx)
+	{
+		*ctx->p = 0;
+		const char *tag = ctx->p;
+		if (ctx->tag_e != ctx->tag_b)
+		{
+			tag = ctx->tag_b;
+			*ctx->tag_e = 0;
+		}
+		__android_log_print(android_lvl(ctx->lvl), tag, "%s", ctx->msg_b);
+	}
+#elif ZF_LOG_APPLE_LOG
+	#include <CoreFoundation/CoreFoundation.h>
+	CF_EXPORT void CFLog(int32_t level, CFStringRef format, ...);
+
+	static int apple_lvl(const int lvl)
+	{
+		switch (lvl)
+		{
+		case ZF_LOG_VERBOSE:
+			return 7; /* ASL_LEVEL_DEBUG / kCFLogLevelDebug */;
+		case ZF_LOG_DEBUG:
+			return 7; /* ASL_LEVEL_DEBUG / kCFLogLevelDebug */;
+		case ZF_LOG_INFO:
+			return 6; /* ASL_LEVEL_INFO / kCFLogLevelInfo */;
+		case ZF_LOG_WARN:
+			return 4; /* ASL_LEVEL_WARNING / kCFLogLevelWarning */;
+		case ZF_LOG_ERROR:
+			return 3; /* ASL_LEVEL_ERR / kCFLogLevelError */;
+		case ZF_LOG_FATAL:
+			return 0; /* ASL_LEVEL_EMERG / kCFLogLevelEmergency */;
+		default:
+			assert(!"Bad log level");
+			return 0; /* ASL_LEVEL_EMERG / kCFLogLevelEmergency */;
+		}
+	}
+
+	static const unsigned put_mask_apple = ZF_LOG_PUT_STD & ~ZF_LOG_PUT_CTX;
+
+	static void output_callback_apple(zf_log_output_ctx *const ctx)
+	{
+		*ctx->p = 0;
+		CFLog(apple_lvl(ctx->lvl), CFSTR("%s"), ctx->tag_b);
+	}
+#else
+	static const unsigned put_mask_stderr = ZF_LOG_PUT_STD;
+
+	static void output_callback_stderr(zf_log_output_ctx *const ctx)
+	{
+	#if defined(_WIN32) || defined(_WIN64)
+		const unsigned eol_len = sizeof(ZF_LOG_EOL) - 1;
+		memcpy(ctx->p, ZF_LOG_EOL, eol_len);
+		/* WriteFile() is atomic for local files opened with FILE_APPEND_DATA and
+		   without FILE_WRITE_DATA */
+		WriteFile(GetStdHandle(STD_ERROR_HANDLE), ctx->buf,
+				  (DWORD)(ctx->p - ctx->buf + eol_len), 0, 0);
+	#else
+		const unsigned eol_len = sizeof(ZF_LOG_EOL) - 1;
+		memcpy(ctx->p, ZF_LOG_EOL, eol_len);
+		/* write() is atomic for buffers less than or equal to PIPE_BUF. */
+		RETVAL_UNUSED(write(STDERR_FILENO, ctx->buf, ctx->p - ctx->buf + eol_len));
+	#endif
+	}
 #endif
 
-#if ZF_LOG_APPLE_LOG
-static int apple_lvl(const int lvl)
+int _zf_log_output_lvl = 0;
+zf_log_instance _zf_log_global =
 {
-	switch (lvl)
-	{
-	case ZF_LOG_VERBOSE:
-		return 7; /* ASL_LEVEL_DEBUG / kCFLogLevelDebug */;
-	case ZF_LOG_DEBUG:
-		return 7; /* ASL_LEVEL_DEBUG / kCFLogLevelDebug */;
-	case ZF_LOG_INFO:
-		return 6; /* ASL_LEVEL_INFO / kCFLogLevelInfo */;
-	case ZF_LOG_WARN:
-		return 4; /* ASL_LEVEL_WARNING / kCFLogLevelWarning */;
-	case ZF_LOG_ERROR:
-		return 3; /* ASL_LEVEL_ERR / kCFLogLevelError */;
-	case ZF_LOG_FATAL:
-		return 0; /* ASL_LEVEL_EMERG / kCFLogLevelEmergency */;
-	default:
-		assert(!"Bad log level");
-		return 0; /* ASL_LEVEL_EMERG / kCFLogLevelEmergency */;
-	}
-}
+	ZF_LOG_MEM_WIDTH,
+#if ZF_LOG_ANDROID_LOG
+	put_mask_android, output_callback_android,
+#elif ZF_LOG_APPLE_LOG
+	put_mask_apple, output_callback_apple,
+#else
+	put_mask_stderr, output_callback_stderr,
 #endif
+};
 
-#if ZF_LOG_PUT_CTX_DEPRECATED
 static char lvl_char(const int lvl)
 {
 	switch (lvl)
@@ -269,42 +294,10 @@ static void pid_callback(int *const pid, int *const tid)
 	#define Platform not supported
 #endif
 }
-#endif // ZF_LOG_PUT_CTX_DEPRECATED
 
 static void buffer_callback(zf_log_output_ctx *ctx, char *buf)
 {
 	ctx->e = (ctx->p = ctx->buf = buf) + g_buf_sz;
-}
-
-static void output_callback(zf_log_output_ctx *const ctx)
-{
-#if ZF_LOG_ANDROID_LOG
-	*ctx->p = 0;
-	const char *tag = ctx->p;
-	if (ctx->tag_e != ctx->tag_b)
-	{
-		tag = ctx->tag_b;
-		*ctx->tag_e = 0;
-	}
-	__android_log_print(android_lvl(ctx->lvl), tag, "%s", ctx->msg_b);
-#elif ZF_LOG_APPLE_LOG
-	*ctx->p = 0;
-	CFLog(apple_lvl(ctx->lvl), CFSTR("%s"), ctx->tag_b);
-#elif defined(_WIN32) || defined(_WIN64)
-	const unsigned eol_len = sizeof(ZF_LOG_EOL) - 1;
-	memcpy(ctx->p, ZF_LOG_EOL, eol_len);
-	/* WriteFile() is atomic for local files opened with FILE_APPEND_DATA and
-	   without FILE_WRITE_DATA */
-	WriteFile(GetStdHandle(STD_ERROR_HANDLE), ctx->buf,
-			  (DWORD)(ctx->p - ctx->buf + eol_len), 0, 0);
-#else
-	const unsigned eol_len = sizeof(ZF_LOG_EOL) - 1;
-	memcpy(ctx->p, ZF_LOG_EOL, eol_len);
-	/* write() is atomic for buffers less than or equal to PIPE_BUF. */
-	const ssize_t n = write(STDERR_FILENO, ctx->buf,
-							ctx->p - ctx->buf + eol_len);
-	(void)n;
-#endif
 }
 
 static const char *filename(const char *file)
@@ -342,7 +335,6 @@ static inline void put_nprintf(zf_log_output_ctx *const ctx, const int n)
 
 static void put_ctx(zf_log_output_ctx *const ctx)
 {
-#if ZF_LOG_PUT_CTX_DEPRECATED
 	int n;
 	struct tm tm;
 	unsigned usec;
@@ -356,9 +348,6 @@ static void put_ctx(zf_log_output_ctx *const ctx)
 				 (unsigned)(usec / 1000),
 				 pid, tid, (char)lvl_char(ctx->lvl));
 	put_nprintf(ctx, n);
-#else
-	(void)ctx;
-#endif
 }
 
 static void put_tag(zf_log_output_ctx *const ctx, const char *const tag)
