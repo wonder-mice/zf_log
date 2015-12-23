@@ -173,7 +173,7 @@ void zf_log_set_output_callback(const zf_log_output_cb cb);
  *   }
  */
 #define ZF_LOG_OUTPUT(lvl) \
-		(ZF_LOG_ALLOW((lvl)) && (lvl) >= _zf_log_output_lvl)
+		(ZF_LOG_ALLOW((lvl)) && (lvl) >= _zf_log_global_output_lvl)
 #define ZF_LOG_OUTPUT_VERBOSE ZF_LOG_OUTPUT(ZF_LOG_VERBOSE)
 #define ZF_LOG_OUTPUT_DEBUG ZF_LOG_OUTPUT(ZF_LOG_DEBUG)
 #define ZF_LOG_OUTPUT_INFO ZF_LOG_OUTPUT(ZF_LOG_INFO)
@@ -191,7 +191,7 @@ void zf_log_set_output_callback(const zf_log_output_cb cb);
 extern "C" {
 #endif
 
-extern int _zf_log_output_lvl;
+extern int _zf_log_global_output_lvl;
 
 void _zf_log_write_d(const char *const func,
 					 const char *const file, const unsigned line,
