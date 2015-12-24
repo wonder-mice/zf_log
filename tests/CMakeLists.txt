@@ -45,6 +45,7 @@ add_test_target_group(log_level_tests_error SOURCES log_level_tests.c DEFINES ZF
 add_test_target_group(log_level_tests_fatal SOURCES log_level_tests.c DEFINES ZF_LOG_LEVEL=ZF_LOG_FATAL)
 add_test_target_group(log_level_tests_none SOURCES log_level_tests.c DEFINES ZF_LOG_LEVEL=ZF_LOG_NONE)
 add_test_target_group(log_level_override_tests SOURCES log_level_override_tests.c)
+add_test_target_group(extern_definition_tests SOURCES extern_definition_tests.c)
 add_test_target_group(log_message_tests SOURCES log_message_tests.c)
 add_test_target_group(decoration_test SOURCES decoration_module.c decoration_main.c)
 
