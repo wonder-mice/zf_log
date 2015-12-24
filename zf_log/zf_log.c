@@ -11,6 +11,66 @@
 #ifndef ZF_LOG_APPLE_LOG
 	#define ZF_LOG_APPLE_LOG 0
 #endif
+/* When defined, zf_log library will not contain definition of tag prefix
+ * variable. In that case it must be defined elsewhere using
+ * ZF_LOG_DEFINE_TAG_PREFIX macro, for example:
+ *
+ *   ZF_LOG_DEFINE_TAG_PREFIX = "ProcessName";
+ *
+ * This allows to specify custom value for static initialization and avoid
+ * overhead of setting this value in runtime.
+ */
+#ifdef ZF_LOG_EXTERN_TAG_PREFIX
+	#undef ZF_LOG_EXTERN_TAG_PREFIX
+	#define ZF_LOG_EXTERN_TAG_PREFIX 1
+#else
+	#define ZF_LOG_EXTERN_TAG_PREFIX 0
+#endif
+/* When defined, zf_log library will not contain definition of global format
+ * variable. In that case it must be defined elsewhere using
+ * ZF_LOG_DEFINE_GLOBAL_FORMAT macro, for example:
+ *
+ *   ZF_LOG_DEFINE_GLOBAL_FORMAT = {MEM_WIDTH};
+ *
+ * This allows to specify custom value for static initialization and avoid
+ * overhead of setting this value in runtime.
+ */
+#ifdef ZF_LOG_EXTERN_GLOBAL_FORMAT
+	#undef ZF_LOG_EXTERN_GLOBAL_FORMAT
+	#define ZF_LOG_EXTERN_GLOBAL_FORMAT 1
+#else
+	#define ZF_LOG_EXTERN_GLOBAL_FORMAT 0
+#endif
+/* When defined, zf_log library will not contain definition of global output
+ * variable. In that case it must be defined elsewhere using
+ * ZF_LOG_DEFINE_GLOBAL_OUTPUT macro, for example:
+ *
+ *   ZF_LOG_DEFINE_GLOBAL_OUTPUT = {ZF_LOG_PUT_STD, custom_output_callback};
+ *
+ * This allows to specify custom value for static initialization and avoid
+ * overhead of setting this value in runtime.
+ */
+#ifdef ZF_LOG_EXTERN_GLOBAL_OUTPUT
+	#undef ZF_LOG_EXTERN_GLOBAL_OUTPUT
+	#define ZF_LOG_EXTERN_GLOBAL_OUTPUT 1
+#else
+	#define ZF_LOG_EXTERN_GLOBAL_OUTPUT 0
+#endif
+/* When defined, zf_log library will not contain definition of global output
+ * level variable. In that case it must be defined elsewhere using
+ * ZF_LOG_DEFINE_GLOBAL_OUTPUT_LEVEL macro, for example:
+ *
+ *   ZF_LOG_DEFINE_GLOBAL_OUTPUT_LEVEL = ZF_LOG_WARN;
+ *
+ * This allows to specify custom value for static initialization and avoid
+ * overhead of setting this value in runtime.
+ */
+#ifdef ZF_LOG_EXTERN_GLOBAL_OUTPUT_LEVEL
+	#undef ZF_LOG_EXTERN_GLOBAL_OUTPUT_LEVEL
+	#define ZF_LOG_EXTERN_GLOBAL_OUTPUT_LEVEL 1
+#else
+	#define ZF_LOG_EXTERN_GLOBAL_OUTPUT_LEVEL 0
+#endif
 /* Size of the log line buffer. The buffer is allocated on the stack. It limits
  * the maximum length of the log line.
  */
@@ -119,16 +179,15 @@ STATIC_ASSERT(eol_sz_less_than_buf_sz, ZF_LOG_EOL_SZ < ZF_LOG_BUF_SZ);
 #endif
 static const char c_hex[] = "0123456789abcdef";
 
-static const char *g_tag_prefix = 0;
 static INSTRUMENTED_CONST unsigned g_buf_sz = ZF_LOG_BUF_SZ - ZF_LOG_EOL_SZ;
 static INSTRUMENTED_CONST time_cb g_time_cb = time_callback;
 static INSTRUMENTED_CONST pid_cb g_pid_cb = pid_callback;
 static INSTRUMENTED_CONST buffer_cb g_buffer_cb = buffer_callback;
 
-#if ZF_LOG_ANDROID_LOG
+#if ZF_LOG_ANDROID_LOG && defined(ZF_LOG_OUT_ANDROID)
 	#include <android/log.h>
 
-	static int android_lvl(const int lvl)
+	static inline int android_lvl(const int lvl)
 	{
 		switch (lvl)
 		{
@@ -150,9 +209,7 @@ static INSTRUMENTED_CONST buffer_cb g_buffer_cb = buffer_callback;
 		}
 	}
 
-	static const unsigned put_mask_android = ZF_LOG_PUT_STD & ~ZF_LOG_PUT_CTX;
-
-	static void output_callback_android(zf_log_output_ctx *const ctx)
+	void zf_log_out_android_callback(zf_log_output_ctx *const ctx)
 	{
 		*ctx->p = 0;
 		const char *tag = ctx->p;
@@ -163,11 +220,13 @@ static INSTRUMENTED_CONST buffer_cb g_buffer_cb = buffer_callback;
 		}
 		__android_log_print(android_lvl(ctx->lvl), tag, "%s", ctx->msg_b);
 	}
-#elif ZF_LOG_APPLE_LOG
+#endif
+
+#if ZF_LOG_APPLE_LOG && defined(ZF_LOG_OUT_NSLOG)
 	#include <CoreFoundation/CoreFoundation.h>
 	CF_EXPORT void CFLog(int32_t level, CFStringRef format, ...);
 
-	static int apple_lvl(const int lvl)
+	static inline int apple_lvl(const int lvl)
 	{
 		switch (lvl)
 		{
@@ -189,45 +248,58 @@ static INSTRUMENTED_CONST buffer_cb g_buffer_cb = buffer_callback;
 		}
 	}
 
-	static const unsigned put_mask_apple = ZF_LOG_PUT_STD & ~ZF_LOG_PUT_CTX;
-
-	static void output_callback_apple(zf_log_output_ctx *const ctx)
+	void zf_log_out_nslog_callback(zf_log_output_ctx *const ctx)
 	{
 		*ctx->p = 0;
 		CFLog(apple_lvl(ctx->lvl), CFSTR("%s"), ctx->tag_b);
 	}
-#else
-	static const unsigned put_mask_stderr = ZF_LOG_PUT_STD;
-
-	static void output_callback_stderr(zf_log_output_ctx *const ctx)
-	{
-	#if defined(_WIN32) || defined(_WIN64)
-		const unsigned eol_len = sizeof(ZF_LOG_EOL) - 1;
-		memcpy(ctx->p, ZF_LOG_EOL, eol_len);
-		/* WriteFile() is atomic for local files opened with FILE_APPEND_DATA and
-		   without FILE_WRITE_DATA */
-		WriteFile(GetStdHandle(STD_ERROR_HANDLE), ctx->buf,
-				  (DWORD)(ctx->p - ctx->buf + eol_len), 0, 0);
-	#else
-		const unsigned eol_len = sizeof(ZF_LOG_EOL) - 1;
-		memcpy(ctx->p, ZF_LOG_EOL, eol_len);
-		/* write() is atomic for buffers less than or equal to PIPE_BUF. */
-		RETVAL_UNUSED(write(STDERR_FILENO, ctx->buf, ctx->p - ctx->buf + eol_len));
-	#endif
-	}
 #endif
 
-int _zf_log_output_lvl = 0;
-zf_log_instance _zf_log_global =
+void zf_log_out_stderr_callback(zf_log_output_ctx *const ctx)
 {
-	ZF_LOG_MEM_WIDTH,
-#if ZF_LOG_ANDROID_LOG
-	put_mask_android, output_callback_android,
-#elif ZF_LOG_APPLE_LOG
-	put_mask_apple, output_callback_apple,
+#if defined(_WIN32) || defined(_WIN64)
+	const unsigned eol_len = sizeof(ZF_LOG_EOL) - 1;
+	memcpy(ctx->p, ZF_LOG_EOL, eol_len);
+	/* WriteFile() is atomic for local files opened with FILE_APPEND_DATA and
+	   without FILE_WRITE_DATA */
+	WriteFile(GetStdHandle(STD_ERROR_HANDLE), ctx->buf,
+			  (DWORD)(ctx->p - ctx->buf + eol_len), 0, 0);
 #else
-	put_mask_stderr, output_callback_stderr,
+	const unsigned eol_len = sizeof(ZF_LOG_EOL) - 1;
+	memcpy(ctx->p, ZF_LOG_EOL, eol_len);
+	/* write() is atomic for buffers less than or equal to PIPE_BUF. */
+	RETVAL_UNUSED(write(STDERR_FILENO, ctx->buf, ctx->p - ctx->buf + eol_len));
 #endif
+}
+
+#if !ZF_LOG_EXTERN_TAG_PREFIX
+	ZF_LOG_DEFINE_TAG_PREFIX = 0;
+#endif
+
+#if !ZF_LOG_EXTERN_GLOBAL_FORMAT
+	ZF_LOG_DEFINE_GLOBAL_FORMAT = {ZF_LOG_MEM_WIDTH};
+#endif
+
+#if !ZF_LOG_EXTERN_GLOBAL_OUTPUT
+	#if ZF_LOG_ANDROID_LOG && defined(ZF_LOG_OUT_ANDROID)
+		ZF_LOG_DEFINE_GLOBAL_OUTPUT = ZF_LOG_OUT_ANDROID;
+	#elif ZF_LOG_APPLE_LOG && defined(ZF_LOG_OUT_NSLOG)
+		ZF_LOG_DEFINE_GLOBAL_OUTPUT = ZF_LOG_OUT_NSLOG;
+	#elif defined(ZF_LOG_OUT_DEBUGSTRING)
+		ZF_LOG_DEFINE_GLOBAL_OUTPUT = ZF_LOG_OUT_DEBUGSTRING;
+	#else
+		ZF_LOG_DEFINE_GLOBAL_OUTPUT = ZF_LOG_OUT_STDERR;
+	#endif
+#endif
+
+#if !ZF_LOG_EXTERN_GLOBAL_OUTPUT_LEVEL
+	ZF_LOG_DEFINE_GLOBAL_OUTPUT_LEVEL = 0;
+#endif
+
+static const zf_log_instance global_spec =
+{
+	ZF_LOG_GLOBAL_FORMAT,
+	ZF_LOG_GLOBAL_OUTPUT,
 };
 
 static char lvl_char(const int lvl)
@@ -354,7 +426,7 @@ static void put_tag(zf_log_output_ctx *const ctx, const char *const tag)
 {
 	const char *ch;
 	ctx->tag_b = ctx->p;
-	if (0 != (ch = g_tag_prefix))
+	if (0 != (ch = _zf_log_tag_prefix))
 	{
 		for (;ctx->e != ctx->p && 0 != (*ctx->p = *ch); ++ctx->p, ++ch)
 		{
@@ -394,7 +466,8 @@ static void put_msg(zf_log_output_ctx *const ctx,
 	put_nprintf(ctx, n);
 }
 
-static void output_mem(zf_log_output_ctx *const ctx, const mem_block *const mem)
+static void output_mem(const zf_log_instance *log, zf_log_output_ctx *const ctx,
+					   const mem_block *const mem)
 {
 	if (0 == mem->d || 0 == mem->d_sz)
 	{
@@ -403,7 +476,7 @@ static void output_mem(zf_log_output_ctx *const ctx, const mem_block *const mem)
 	const unsigned char *mem_p = (const unsigned char *)mem->d;
 	const unsigned char *const mem_e = mem_p + mem->d_sz;
 	const unsigned char *mem_cut;
-	const ptrdiff_t mem_width = _zf_log_global.mem_width;
+	const ptrdiff_t mem_width = log->format->mem_width;
 	char *const hex_b = ctx->msg_b;
 	char *const ascii_b = hex_b + 2 * mem_width + 2;
 	char *const ascii_e = ascii_b + mem_width;
@@ -428,34 +501,29 @@ static void output_mem(zf_log_output_ctx *const ctx, const mem_block *const mem)
 			*hex++ = ' ';
 		}
 		ctx->p = ascii;
-		_zf_log_global.output_cb(ctx);
+		log->output->output_cb(ctx);
 	}
 }
 
 void zf_log_set_tag_prefix(const char *const prefix)
 {
-	g_tag_prefix = prefix;
+	_zf_log_tag_prefix = prefix;
 }
 
 void zf_log_set_mem_width(const unsigned w)
 {
-	_zf_log_global.mem_width = w;
+	_zf_log_global_format.mem_width = w;
 }
 
 void zf_log_set_output_level(const int lvl)
 {
-	_zf_log_output_lvl = lvl;
+	_zf_log_global_output_lvl = lvl;
 }
 
 void zf_log_set_output_callback(const unsigned mask, const zf_log_output_cb cb)
 {
-	_zf_log_global.put_mask = mask;
-	_zf_log_global.output_cb = cb;
-}
-
-void zf_log_get_global(zf_log_instance *const log)
-{
-	*log = _zf_log_global;
+	_zf_log_global_output.put_mask = mask;
+	_zf_log_global_output.output_cb = cb;
 }
 
 static void _zf_log_write_imp(
@@ -465,29 +533,30 @@ static void _zf_log_write_imp(
 {
 	zf_log_output_ctx ctx;
 	char buf[ZF_LOG_BUF_SZ];
+	const unsigned put_mask = log->output->put_mask;
 	ctx.lvl = lvl;
 	ctx.tag = tag;
 	g_buffer_cb(&ctx, buf);
-	if (ZF_LOG_PUT_CTX & log->put_mask)
+	if (ZF_LOG_PUT_CTX & put_mask)
 	{
 		put_ctx(&ctx);
 	}
-	if (ZF_LOG_PUT_TAG & log->put_mask)
+	if (ZF_LOG_PUT_TAG & put_mask)
 	{
 		put_tag(&ctx, tag);
 	}
-	if (0 != src && ZF_LOG_PUT_SRC & log->put_mask)
+	if (0 != src && ZF_LOG_PUT_SRC & put_mask)
 	{
 		put_src(&ctx, src);
 	}
-	if (ZF_LOG_PUT_MSG & log->put_mask)
+	if (ZF_LOG_PUT_MSG & put_mask)
 	{
 		put_msg(&ctx, fmt, va);
 	}
-	_zf_log_global.output_cb(&ctx);
-	if (0 != mem && ZF_LOG_PUT_MSG & log->put_mask)
+	log->output->output_cb(&ctx);
+	if (0 != mem && ZF_LOG_PUT_MSG & put_mask)
 	{
-		output_mem(&ctx, mem);
+		output_mem(log, &ctx, mem);
 	}
 }
 
@@ -499,7 +568,7 @@ void _zf_log_write_d(
 	const src_location src = {func, file, line};
 	va_list va;
 	va_start(va, fmt);
-	_zf_log_write_imp(&_zf_log_global, &src, 0, lvl, tag, fmt, va);
+	_zf_log_write_imp(&global_spec, &src, 0, lvl, tag, fmt, va);
 	va_end(va);
 }
 
@@ -520,7 +589,7 @@ void _zf_log_write(const int lvl, const char *const tag,
 {
 	va_list va;
 	va_start(va, fmt);
-	_zf_log_write_imp(&_zf_log_global, 0, 0, lvl, tag, fmt, va);
+	_zf_log_write_imp(&global_spec, 0, 0, lvl, tag, fmt, va);
 	va_end(va);
 }
 
@@ -544,7 +613,7 @@ void _zf_log_write_mem_d(
 	const mem_block mem = {d, d_sz};
 	va_list va;
 	va_start(va, fmt);
-	_zf_log_write_imp(&_zf_log_global, &src, &mem, lvl, tag, fmt, va);
+	_zf_log_write_imp(&global_spec, &src, &mem, lvl, tag, fmt, va);
 	va_end(va);
 }
 
@@ -569,7 +638,7 @@ void _zf_log_write_mem(const int lvl, const char *const tag,
 	const mem_block mem = {d, d_sz};
 	va_list va;
 	va_start(va, fmt);
-	_zf_log_write_imp(&_zf_log_global, 0, &mem, lvl, tag, fmt, va);
+	_zf_log_write_imp(&global_spec, 0, &mem, lvl, tag, fmt, va);
 	va_end(va);
 }
 
