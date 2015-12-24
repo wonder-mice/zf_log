@@ -1,114 +1,198 @@
-#define ZF_LOG_LEVEL ZF_LOG_INFO
+#ifndef ZF_LOG_LEVEL
+	#error ZF_LOG_LEVEL must be defined for this test
+#endif
 #include <zf_log.c>
 #include <zf_test.h>
 #include <string.h>
 #include <stdbool.h>
 
-static unsigned g_output;
-static int g_lvl;
+#ifndef _countof
+	#define _countof(xs) (sizeof(xs) / sizeof((xs)[0]))
+#endif
+
+static int g_output_lvl_used;
+static unsigned g_output_called;
+static unsigned g_arg_called;
 static char g_msg[1024];
-static unsigned g_len;
-static unsigned g_arg;
+static unsigned g_msg_len;
+
+static const int c_levels[] =
+{
+	ZF_LOG_VERBOSE,
+	ZF_LOG_DEBUG,
+	ZF_LOG_INFO,
+	ZF_LOG_WARN,
+	ZF_LOG_ERROR,
+	ZF_LOG_FATAL,
+	ZF_LOG_NONE,
+};
 
 static void reset()
 {
-	g_output = 0;
+	g_output_called = 0;
+	g_arg_called = 0;
 	zf_log_set_output_level(0);
-	g_arg = 0;
 }
 
 static void mock_output_callback(zf_log_output_ctx *ctx)
 {
-	g_lvl = ctx->lvl;
-	g_len = (unsigned)(ctx->p - ctx->buf);
-	memcpy(g_msg, ctx->buf, g_len);
-	++g_output;
+	g_output_lvl_used = ctx->lvl;
+	g_msg_len = (unsigned)(ctx->p - ctx->buf);
+	memcpy(g_msg, ctx->buf, g_msg_len);
+	++g_output_called;
 }
 
 static int get_arg()
 {
-	++g_arg;
-	return g_arg;
+	++g_arg_called;
+	return 0;
 }
 
 static void test_current_level()
 {
 	reset();
-	ZF_LOGD("no debug log");
-	TEST_VERIFY_EQUAL(g_output, 0);
-
+	ZF_LOGV("verbose log");
+	TEST_VERIFY_EQUAL(1 == g_output_called, ZF_LOG_LEVEL <= ZF_LOG_VERBOSE);
+	reset();
+	ZF_LOGD("debug log");
+	TEST_VERIFY_EQUAL(1 == g_output_called, ZF_LOG_LEVEL <= ZF_LOG_DEBUG);
 	reset();
 	ZF_LOGI("info log");
-	TEST_VERIFY_EQUAL(g_output, 1);
-	TEST_VERIFY_EQUAL(g_lvl, ZF_LOG_INFO);
+	TEST_VERIFY_EQUAL(1 == g_output_called, ZF_LOG_LEVEL <= ZF_LOG_INFO);
+	reset();
+	ZF_LOGW("warning log");
+	TEST_VERIFY_EQUAL(1 == g_output_called, ZF_LOG_LEVEL <= ZF_LOG_WARN);
+	reset();
+	ZF_LOGE("error log");
+	TEST_VERIFY_EQUAL(1 == g_output_called, ZF_LOG_LEVEL <= ZF_LOG_ERROR);
+	reset();
+	ZF_LOGF("fatal log");
+	TEST_VERIFY_EQUAL(1 == g_output_called, ZF_LOG_LEVEL <= ZF_LOG_FATAL);
 }
 
 static void test_output_level()
 {
-	reset();
-	zf_log_set_output_level(ZF_LOG_WARN);
-	ZF_LOGD("no debug log");
-	TEST_VERIFY_EQUAL(g_output, 0);
-	ZF_LOGI("no info log");
-	TEST_VERIFY_EQUAL(g_output, 0);
-
-	reset();
-	zf_log_set_output_level(ZF_LOG_INFO);
-	ZF_LOGD("no debug log");
-	TEST_VERIFY_EQUAL(g_output, 0);
-	ZF_LOGI("info log");
-	TEST_VERIFY_EQUAL(g_output, 1);
-	TEST_VERIFY_EQUAL(g_lvl, ZF_LOG_INFO);
-
-	reset();
-	zf_log_set_output_level(ZF_LOG_DEBUG);
-	ZF_LOGD("no debug log");
-	TEST_VERIFY_EQUAL(g_output, 0);
-	ZF_LOGI("info log");
-	TEST_VERIFY_EQUAL(g_output, 1);
-	TEST_VERIFY_EQUAL(g_lvl, ZF_LOG_INFO);
-
-	reset();
-	zf_log_set_output_level(0);
-	ZF_LOGD("no debug log");
-	TEST_VERIFY_EQUAL(g_output, 0);
-	ZF_LOGI("info log");
-	TEST_VERIFY_EQUAL(g_output, 1);
-	TEST_VERIFY_EQUAL(g_lvl, ZF_LOG_INFO);
+	for (unsigned i = 0; _countof(c_levels) > i; ++i)
+	{
+		const int lvl = c_levels[i];
+		reset();
+		zf_log_set_output_level(lvl);
+		ZF_LOGV("verbose log");
+		TEST_VERIFY_EQUAL(1 == g_output_called,
+						  ZF_LOG_LEVEL <= ZF_LOG_VERBOSE && lvl <= ZF_LOG_VERBOSE);
+		reset();
+		zf_log_set_output_level(lvl);
+		ZF_LOGD("debug log");
+		TEST_VERIFY_EQUAL(1 == g_output_called,
+						  ZF_LOG_LEVEL <= ZF_LOG_DEBUG && lvl <= ZF_LOG_DEBUG);
+		reset();
+		zf_log_set_output_level(lvl);
+		ZF_LOGI("info log");
+		TEST_VERIFY_EQUAL(1 == g_output_called,
+						  ZF_LOG_LEVEL <= ZF_LOG_INFO && lvl <= ZF_LOG_INFO);
+		reset();
+		zf_log_set_output_level(lvl);
+		ZF_LOGW("warn log");
+		TEST_VERIFY_EQUAL(1 == g_output_called,
+						  ZF_LOG_LEVEL <= ZF_LOG_WARN && lvl <= ZF_LOG_WARN);
+		reset();
+		zf_log_set_output_level(lvl);
+		ZF_LOGE("error log");
+		TEST_VERIFY_EQUAL(1 == g_output_called,
+						  ZF_LOG_LEVEL <= ZF_LOG_ERROR && lvl <= ZF_LOG_ERROR);
+		reset();
+		zf_log_set_output_level(lvl);
+		ZF_LOGF("fatal log");
+		TEST_VERIFY_EQUAL(1 == g_output_called,
+						  ZF_LOG_LEVEL <= ZF_LOG_FATAL && lvl <= ZF_LOG_FATAL);
+	}
 }
 
 static void test_args_evaluation()
 {
 	reset();
-	ZF_LOGD("debug log arg not evaluated: %i", get_arg());
-	TEST_VERIFY_EQUAL(g_arg, 0);
-
+	ZF_LOGV("verbose log: %i", get_arg());
+	TEST_VERIFY_EQUAL(1 == g_arg_called, ZF_LOG_LEVEL <= ZF_LOG_VERBOSE);
 	reset();
-	ZF_LOGI("info log arg evaluated: %i", get_arg());
-	TEST_VERIFY_EQUAL(g_arg, 1);
-
+	ZF_LOGD("debug log: %i", get_arg());
+	TEST_VERIFY_EQUAL(1 == g_arg_called, ZF_LOG_LEVEL <= ZF_LOG_DEBUG);
 	reset();
-	zf_log_set_output_level(ZF_LOG_WARN);
-	ZF_LOGI("info log arg not evaluated: %i", get_arg());
-	TEST_VERIFY_EQUAL(g_arg, 0);
+	ZF_LOGI("info log: %i", get_arg());
+	TEST_VERIFY_EQUAL(1 == g_arg_called, ZF_LOG_LEVEL <= ZF_LOG_INFO);
+	reset();
+	ZF_LOGW("warning log: %i", get_arg());
+	TEST_VERIFY_EQUAL(1 == g_arg_called, ZF_LOG_LEVEL <= ZF_LOG_WARN);
+	reset();
+	ZF_LOGE("error log: %i", get_arg());
+	TEST_VERIFY_EQUAL(1 == g_arg_called, ZF_LOG_LEVEL <= ZF_LOG_ERROR);
+	reset();
+	ZF_LOGF("fatal log: %i", get_arg());
+	TEST_VERIFY_EQUAL(1 == g_arg_called, ZF_LOG_LEVEL <= ZF_LOG_FATAL);
+
+	for (unsigned i = 0; _countof(c_levels) > i; ++i)
+	{
+		const int lvl = c_levels[i];
+		reset();
+		zf_log_set_output_level(lvl);
+		ZF_LOGV("verbose log: %i", get_arg());
+		TEST_VERIFY_EQUAL(1 == g_arg_called,
+						  ZF_LOG_LEVEL <= ZF_LOG_VERBOSE && lvl <= ZF_LOG_VERBOSE);
+		reset();
+		zf_log_set_output_level(lvl);
+		ZF_LOGD("debug log: %i", get_arg());
+		TEST_VERIFY_EQUAL(1 == g_arg_called,
+						  ZF_LOG_LEVEL <= ZF_LOG_DEBUG && lvl <= ZF_LOG_DEBUG);
+		reset();
+		zf_log_set_output_level(lvl);
+		ZF_LOGI("info log: %i", get_arg());
+		TEST_VERIFY_EQUAL(1 == g_arg_called,
+						  ZF_LOG_LEVEL <= ZF_LOG_INFO && lvl <= ZF_LOG_INFO);
+		reset();
+		zf_log_set_output_level(lvl);
+		ZF_LOGW("warn log: %i", get_arg());
+		TEST_VERIFY_EQUAL(1 == g_arg_called,
+						  ZF_LOG_LEVEL <= ZF_LOG_WARN && lvl <= ZF_LOG_WARN);
+		reset();
+		zf_log_set_output_level(lvl);
+		ZF_LOGE("error log: %i", get_arg());
+		TEST_VERIFY_EQUAL(1 == g_arg_called,
+						  ZF_LOG_LEVEL <= ZF_LOG_ERROR && lvl <= ZF_LOG_ERROR);
+		reset();
+		zf_log_set_output_level(lvl);
+		ZF_LOGF("fatal log: %i", get_arg());
+		TEST_VERIFY_EQUAL(1 == g_arg_called,
+						  ZF_LOG_LEVEL <= ZF_LOG_FATAL && lvl <= ZF_LOG_FATAL);
+	}
 }
 
 static void test_level_checks()
 {
 	reset();
-#if ZF_LOG_ENABLED_DEBUG
-	#error No debug log
-#endif
-#if !ZF_LOG_ENABLED_INFO
-	#error Info log
-#endif
-	TEST_VERIFY_FALSE(ZF_LOG_ON_DEBUG);
-	TEST_VERIFY_TRUE(ZF_LOG_ON_INFO);
+	TEST_VERIFY_EQUAL(!!ZF_LOG_ENABLED_VERBOSE, ZF_LOG_LEVEL <= ZF_LOG_VERBOSE);
+	TEST_VERIFY_EQUAL(!!ZF_LOG_ENABLED_DEBUG, ZF_LOG_LEVEL <= ZF_LOG_DEBUG);
+	TEST_VERIFY_EQUAL(!!ZF_LOG_ENABLED_INFO, ZF_LOG_LEVEL <= ZF_LOG_INFO);
+	TEST_VERIFY_EQUAL(!!ZF_LOG_ENABLED_WARN, ZF_LOG_LEVEL <= ZF_LOG_WARN);
+	TEST_VERIFY_EQUAL(!!ZF_LOG_ENABLED_ERROR, ZF_LOG_LEVEL <= ZF_LOG_ERROR);
+	TEST_VERIFY_EQUAL(!!ZF_LOG_ENABLED_FATAL, ZF_LOG_LEVEL <= ZF_LOG_FATAL);
 
-	reset();
-	zf_log_set_output_level(ZF_LOG_WARN);
-	TEST_VERIFY_FALSE(ZF_LOG_ON_INFO);
-	TEST_VERIFY_TRUE(ZF_LOG_ON_WARN);
+	for (unsigned i = 0; _countof(c_levels) > i; ++i)
+	{
+		const int lvl = c_levels[i];
+		reset();
+		zf_log_set_output_level(lvl);
+		TEST_VERIFY_EQUAL(!!ZF_LOG_ON_VERBOSE,
+						  ZF_LOG_LEVEL <= ZF_LOG_VERBOSE && lvl <= ZF_LOG_VERBOSE);
+		TEST_VERIFY_EQUAL(!!ZF_LOG_ON_DEBUG,
+						  ZF_LOG_LEVEL <= ZF_LOG_DEBUG && lvl <= ZF_LOG_DEBUG);
+		TEST_VERIFY_EQUAL(!!ZF_LOG_ON_INFO,
+						  ZF_LOG_LEVEL <= ZF_LOG_INFO && lvl <= ZF_LOG_INFO);
+		TEST_VERIFY_EQUAL(!!ZF_LOG_ON_WARN,
+						  ZF_LOG_LEVEL <= ZF_LOG_WARN && lvl <= ZF_LOG_WARN);
+		TEST_VERIFY_EQUAL(!!ZF_LOG_ON_ERROR,
+						  ZF_LOG_LEVEL <= ZF_LOG_ERROR && lvl <= ZF_LOG_ERROR);
+		TEST_VERIFY_EQUAL(!!ZF_LOG_ON_FATAL,
+						  ZF_LOG_LEVEL <= ZF_LOG_FATAL && lvl <= ZF_LOG_FATAL);
+	}
 }
 
 int main(int argc, char *argv[])
