@@ -18,39 +18,34 @@ target_include_directories(zf_test INTERFACE $<BUILD_INTERFACE:${HEADERS_DIR}>)
 set(HEADERS zf_test.h)
 add_custom_target(zf_test_headers SOURCES ${HEADERS})
 
-function(add_zf_log_test target)
+function(add_test_target target)
 	cmake_parse_arguments(arg
 		""
 		""
-		"SOURCES;STD"
+		"SOURCES;STD;DEFINES"
 		${ARGN})
 	add_executable(${target} ${arg_SOURCES})
 	set_property(TARGET ${target} PROPERTY C_STANDARD "${arg_STD}")
+	set_property(TARGET ${target} PROPERTY COMPILE_DEFINITIONS "${arg_DEFINES}")
 	target_include_directories(${target} PRIVATE "${PROJECT_SOURCE_DIR}/zf_log")
 	target_link_libraries(${target}  zf_test)
 	add_test(NAME ${target} COMMAND ${target})
 endfunction()
 
-add_zf_log_test(log_level_tests_c99
-	SOURCES log_level_tests.c
-	STD 99)
-add_zf_log_test(log_level_tests_c11
-	SOURCES log_level_tests.c
-	STD 11)
+function(add_test_target_group target)
+	add_test_target(${target}_c99 ${ARGN} STD 99)
+	add_test_target(${target}_c11 ${ARGN} STD 11)
+endfunction()
 
-add_zf_log_test(log_message_tests_c99
-	SOURCES log_message_tests.c
-	STD 99)
-add_zf_log_test(log_message_tests_c11
-	SOURCES log_message_tests.c
-	STD 11)
-
-add_zf_log_test(decoration_test_c99
-	SOURCES decoration_module.c decoration_main.c
-	STD 99)
-add_zf_log_test(decoration_test_c11
-	SOURCES decoration_module.c decoration_main.c
-	STD 11)
+add_test_target_group(log_level_tests_verbose SOURCES log_level_tests.c DEFINES ZF_LOG_LEVEL=ZF_LOG_VERBOSE)
+add_test_target_group(log_level_tests_debug SOURCES log_level_tests.c DEFINES ZF_LOG_LEVEL=ZF_LOG_DEBUG)
+add_test_target_group(log_level_tests_info SOURCES log_level_tests.c DEFINES ZF_LOG_LEVEL=ZF_LOG_INFO)
+add_test_target_group(log_level_tests_warn SOURCES log_level_tests.c DEFINES ZF_LOG_LEVEL=ZF_LOG_WARN)
+add_test_target_group(log_level_tests_error SOURCES log_level_tests.c DEFINES ZF_LOG_LEVEL=ZF_LOG_ERROR)
+add_test_target_group(log_level_tests_fatal SOURCES log_level_tests.c DEFINES ZF_LOG_LEVEL=ZF_LOG_FATAL)
+add_test_target_group(log_level_tests_none SOURCES log_level_tests.c DEFINES ZF_LOG_LEVEL=ZF_LOG_NONE)
+add_test_target_group(log_message_tests SOURCES log_message_tests.c)
+add_test_target_group(decoration_test SOURCES decoration_module.c decoration_main.c)
 
 # generated code size tests
 add_executable(filesize_check filesize_check.c)
