@@ -53,21 +53,27 @@ static void test_current_level()
 	reset();
 	ZF_LOGV("verbose log");
 	TEST_VERIFY_EQUAL(1 == g_output_called, ZF_LOG_LEVEL <= ZF_LOG_VERBOSE);
+	TEST_VERIFY_TRUE(0 == g_output_called || ZF_LOG_VERBOSE == g_output_lvl_used);
 	reset();
 	ZF_LOGD("debug log");
 	TEST_VERIFY_EQUAL(1 == g_output_called, ZF_LOG_LEVEL <= ZF_LOG_DEBUG);
+	TEST_VERIFY_TRUE(0 == g_output_called || ZF_LOG_DEBUG == g_output_lvl_used);
 	reset();
 	ZF_LOGI("info log");
 	TEST_VERIFY_EQUAL(1 == g_output_called, ZF_LOG_LEVEL <= ZF_LOG_INFO);
+	TEST_VERIFY_TRUE(0 == g_output_called || ZF_LOG_INFO == g_output_lvl_used);
 	reset();
 	ZF_LOGW("warning log");
 	TEST_VERIFY_EQUAL(1 == g_output_called, ZF_LOG_LEVEL <= ZF_LOG_WARN);
+	TEST_VERIFY_TRUE(0 == g_output_called || ZF_LOG_WARN == g_output_lvl_used);
 	reset();
 	ZF_LOGE("error log");
 	TEST_VERIFY_EQUAL(1 == g_output_called, ZF_LOG_LEVEL <= ZF_LOG_ERROR);
+	TEST_VERIFY_TRUE(0 == g_output_called || ZF_LOG_ERROR == g_output_lvl_used);
 	reset();
 	ZF_LOGF("fatal log");
 	TEST_VERIFY_EQUAL(1 == g_output_called, ZF_LOG_LEVEL <= ZF_LOG_FATAL);
+	TEST_VERIFY_TRUE(0 == g_output_called || ZF_LOG_FATAL == g_output_lvl_used);
 }
 
 static void test_output_level()
@@ -80,31 +86,37 @@ static void test_output_level()
 		ZF_LOGV("verbose log");
 		TEST_VERIFY_EQUAL(1 == g_output_called,
 						  ZF_LOG_LEVEL <= ZF_LOG_VERBOSE && lvl <= ZF_LOG_VERBOSE);
+		TEST_VERIFY_TRUE(0 == g_output_called || ZF_LOG_VERBOSE == g_output_lvl_used);
 		reset();
 		zf_log_set_output_level(lvl);
 		ZF_LOGD("debug log");
 		TEST_VERIFY_EQUAL(1 == g_output_called,
 						  ZF_LOG_LEVEL <= ZF_LOG_DEBUG && lvl <= ZF_LOG_DEBUG);
+		TEST_VERIFY_TRUE(0 == g_output_called || ZF_LOG_DEBUG == g_output_lvl_used);
 		reset();
 		zf_log_set_output_level(lvl);
 		ZF_LOGI("info log");
 		TEST_VERIFY_EQUAL(1 == g_output_called,
 						  ZF_LOG_LEVEL <= ZF_LOG_INFO && lvl <= ZF_LOG_INFO);
+		TEST_VERIFY_TRUE(0 == g_output_called || ZF_LOG_INFO == g_output_lvl_used);
 		reset();
 		zf_log_set_output_level(lvl);
 		ZF_LOGW("warn log");
 		TEST_VERIFY_EQUAL(1 == g_output_called,
 						  ZF_LOG_LEVEL <= ZF_LOG_WARN && lvl <= ZF_LOG_WARN);
+		TEST_VERIFY_TRUE(0 == g_output_called || ZF_LOG_WARN == g_output_lvl_used);
 		reset();
 		zf_log_set_output_level(lvl);
 		ZF_LOGE("error log");
 		TEST_VERIFY_EQUAL(1 == g_output_called,
 						  ZF_LOG_LEVEL <= ZF_LOG_ERROR && lvl <= ZF_LOG_ERROR);
+		TEST_VERIFY_TRUE(0 == g_output_called || ZF_LOG_ERROR == g_output_lvl_used);
 		reset();
 		zf_log_set_output_level(lvl);
 		ZF_LOGF("fatal log");
 		TEST_VERIFY_EQUAL(1 == g_output_called,
 						  ZF_LOG_LEVEL <= ZF_LOG_FATAL && lvl <= ZF_LOG_FATAL);
+		TEST_VERIFY_TRUE(0 == g_output_called || ZF_LOG_FATAL == g_output_lvl_used);
 	}
 }
 
