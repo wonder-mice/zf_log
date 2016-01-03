@@ -1,9 +1,7 @@
 Things to do
 ------------
 
-* Example how to use with cppformat
-* Do not use snprintf() for context (time, pid, tid). Doing the same
-  thing manually will be 2x faster.
+* Example how to use external format library (e.g. cppformat)
 * Print start address for each line of memory output?
 * Introduce private format_callback which probably will replace put_msg
   This will provide more modular structure and will point out where to
