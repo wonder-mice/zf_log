@@ -133,7 +133,7 @@
 #endif
 
 #if defined(__linux__)
-	#define _POSIX_SOURCE
+	#define _XOPEN_SOURCE
 #endif
 #include <assert.h>
 #include <ctype.h>
@@ -378,9 +378,9 @@ static char lvl_char(const int lvl)
 
 #if !ZF_LOG_OPTIMIZE_SIZE && !defined(__WIN32) && !defined(_WIN64)
 #define TCACHE
-static const unsigned c_tcache_stale = 0x40000000;
-static const unsigned c_tcache_fluid = 0x40000000 | 0x80000000;
-static unsigned g_tcache_mode = c_tcache_stale;
+#define TCACHE_STALE (0x40000000)
+#define TCACHE_FLUID (0x40000000 | 0x80000000)
+static unsigned g_tcache_mode = TCACHE_STALE;
 static struct timeval g_tcache_tv = {0, 0};
 static struct tm g_tcache_tm = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
@@ -388,10 +388,10 @@ static inline int tcache_get(const struct timeval *const tv, struct tm *const tm
 {
 	unsigned mode;
 	mode = __atomic_load_n(&g_tcache_mode, __ATOMIC_RELAXED);
-	if (0 == (mode & c_tcache_fluid))
+	if (0 == (mode & TCACHE_FLUID))
 	{
 		mode = __atomic_fetch_add(&g_tcache_mode, 1, __ATOMIC_ACQUIRE);
-		if (0 == (mode & c_tcache_fluid))
+		if (0 == (mode & TCACHE_FLUID))
 		{
 			if (g_tcache_tv.tv_sec == tv->tv_sec)
 			{
@@ -399,7 +399,7 @@ static inline int tcache_get(const struct timeval *const tv, struct tm *const tm
 				__atomic_sub_fetch(&g_tcache_mode, 1, __ATOMIC_RELEASE);
 				return !0;
 			}
-			__atomic_or_fetch(&g_tcache_mode, c_tcache_stale, __ATOMIC_RELAXED);
+			__atomic_or_fetch(&g_tcache_mode, TCACHE_STALE, __ATOMIC_RELAXED);
 		}
 		__atomic_sub_fetch(&g_tcache_mode, 1, __ATOMIC_RELEASE);
 	}
@@ -408,13 +408,13 @@ static inline int tcache_get(const struct timeval *const tv, struct tm *const tm
 
 static inline void tcache_set(const struct timeval *const tv, struct tm *const tm)
 {
-	unsigned stale = c_tcache_stale;
-	if (__atomic_compare_exchange_n(&g_tcache_mode, &stale, c_tcache_fluid,
+	unsigned stale = TCACHE_STALE;
+	if (__atomic_compare_exchange_n(&g_tcache_mode, &stale, TCACHE_FLUID,
 									0, __ATOMIC_ACQUIRE, __ATOMIC_RELAXED))
 	{
 		g_tcache_tv = *tv;
 		g_tcache_tm = *tm;
-		__atomic_and_fetch(&g_tcache_mode, ~c_tcache_fluid, __ATOMIC_RELEASE);
+		__atomic_and_fetch(&g_tcache_mode, ~TCACHE_FLUID, __ATOMIC_RELEASE);
 	}
 }
 #endif
