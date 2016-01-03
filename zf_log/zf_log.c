@@ -361,12 +361,49 @@ static char lvl_char(const int lvl)
 }
 
 #if !ZF_LOG_OPTIMIZE_SIZE && !defined(__WIN32) && !defined(_WIN64)
-static pthread_rwlock_t g_tcache_lock = PTHREAD_RWLOCK_INITIALIZER;
+#define TCACHE
+static const unsigned c_tcache_stale = 0x40000000;
+static const unsigned c_tcache_fluid = 0x40000000 | 0x80000000;
+static unsigned g_tcache_mode = c_tcache_stale;
 static struct timeval g_tcache_tv = {0, 0};
 static struct tm g_tcache_tm = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+
+static inline int tcache_get(const struct timeval *const tv, struct tm *const tm)
+{
+	unsigned mode;
+	mode = __atomic_load_n(&g_tcache_mode, __ATOMIC_RELAXED);
+	if (0 == (mode & c_tcache_fluid))
+	{
+		mode = __atomic_fetch_add(&g_tcache_mode, 1, __ATOMIC_ACQUIRE);
+		if (0 == (mode & c_tcache_fluid))
+		{
+			if (g_tcache_tv.tv_sec == tv->tv_sec)
+			{
+				*tm = g_tcache_tm;
+				__atomic_sub_fetch(&g_tcache_mode, 1, __ATOMIC_RELEASE);
+				return !0;
+			}
+			__atomic_or_fetch(&g_tcache_mode, c_tcache_stale, __ATOMIC_RELAXED);
+		}
+		__atomic_sub_fetch(&g_tcache_mode, 1, __ATOMIC_RELEASE);
+	}
+	return 0;
+}
+
+static inline void tcache_set(const struct timeval *const tv, struct tm *const tm)
+{
+	unsigned stale = c_tcache_stale;
+	if (__atomic_compare_exchange_n(&g_tcache_mode, &stale, c_tcache_fluid,
+									0, __ATOMIC_ACQUIRE, __ATOMIC_RELAXED))
+	{
+		g_tcache_tv = *tv;
+		g_tcache_tm = *tm;
+		__atomic_and_fetch(&g_tcache_mode, ~c_tcache_fluid, __ATOMIC_RELEASE);
+	}
+}
 #endif
 
-static void time_callback(struct tm *const tm, unsigned *const usec)
+static void time_callback(struct tm *const tm, unsigned *const msec)
 {
 #if defined(__WIN32) || defined(_WIN64)
 	SYSTEMTIME st;
@@ -378,29 +415,20 @@ static void time_callback(struct tm *const tm, unsigned *const usec)
 	tm->tm_hour = st.wHour;
 	tm->tm_min = st.wMinute;
 	tm->tm_sec = st.wSecond;
-	*usec = 1000 * st.wMilliseconds;
+	*msec = st.wMilliseconds;
 #else
 	struct timeval tv;
 	gettimeofday(&tv, 0);
-	#if !ZF_LOG_OPTIMIZE_SIZE
-		pthread_rwlock_rdlock(&g_tcache_lock);
-		if (g_tcache_tv.tv_sec == tv.tv_sec)
+	#ifndef TCACHE
+		localtime_r(&tv.tv_sec, tm);
+	#else
+		if (!tcache_get(&tv, tm))
 		{
-			*tm = g_tcache_tm;
-		}
-		else
-		{
-			pthread_rwlock_unlock(&g_tcache_lock);
-	#endif
 			localtime_r(&tv.tv_sec, tm);
-	#if !ZF_LOG_OPTIMIZE_SIZE
-			pthread_rwlock_wrlock(&g_tcache_lock);
-			g_tcache_tv = tv;
-			g_tcache_tm = *tm;
+			tcache_set(&tv, tm);
 		}
-		pthread_rwlock_unlock(&g_tcache_lock);
 	#endif
-	*usec = tv.tv_usec;
+	*msec = tv.tv_usec / 1000;
 #endif
 }
 
@@ -533,9 +561,9 @@ static inline char *put_uint(unsigned v, const unsigned w, const char wc,
 static void put_ctx(zf_log_output_ctx *const ctx)
 {
 	struct tm tm;
-	unsigned usec;
+	unsigned msec;
 	int pid, tid;
-	g_time_cb(&tm, &usec);
+	g_time_cb(&tm, &msec);
 	g_pid_cb(&pid, &tid);
 
 #if ZF_LOG_OPTIMIZE_SIZE
@@ -544,7 +572,7 @@ static void put_ctx(zf_log_output_ctx *const ctx)
 				 "%02u-%02u %02u:%02u:%02u.%03u %5i %5i %c ",
 				 (unsigned)(tm.tm_mon + 1), (unsigned)tm.tm_mday,
 				 (unsigned)tm.tm_hour, (unsigned)tm.tm_min, (unsigned)tm.tm_sec,
-				 (unsigned)(usec / 1000),
+				 (unsigned)msec,
 				 pid, tid, (char)lvl_char(ctx->lvl));
 	put_nprintf(ctx, n);
 #else
@@ -558,7 +586,7 @@ static void put_ctx(zf_log_output_ctx *const ctx)
 	*--p = ' ';
 	p = put_int_r(pid, 5, ' ', p);
 	*--p = ' ';
-	p = put_uint_r(usec / 1000, 3, '0', p);
+	p = put_uint_r(msec, 3, '0', p);
 	*--p = '.';
 	p = put_uint_r(tm.tm_sec, 2, '0', p);
 	*--p = ':';
