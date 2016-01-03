@@ -32,6 +32,8 @@ static void test_static_initialization()
 	TEST_VERIFY_EQUAL(_zf_log_global_output.put_mask, 0xcafebabe);
 	TEST_VERIFY_EQUAL(_zf_log_global_output.output_cb, mock_output_callback);
 	TEST_VERIFY_EQUAL(_zf_log_global_output_lvl, (int)0xdeadbeef);
+	TEST_VERIFY_EQUAL(ZF_LOG_GLOBAL_FORMAT, &_zf_log_global_format);
+	TEST_VERIFY_EQUAL(ZF_LOG_GLOBAL_OUTPUT, &_zf_log_global_output);
 }
 
 int main(int argc, char *argv[])
