@@ -360,6 +360,12 @@ static char lvl_char(const int lvl)
 	}
 }
 
+#if !ZF_LOG_OPTIMIZE_SIZE && !defined(__WIN32) && !defined(_WIN64)
+static pthread_rwlock_t g_tcache_lock = PTHREAD_RWLOCK_INITIALIZER;
+static struct timeval g_tcache_tv = {0, 0};
+static struct tm g_tcache_tm = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+#endif
+
 static void time_callback(struct tm *const tm, unsigned *const usec)
 {
 #if defined(__WIN32) || defined(_WIN64)
@@ -376,7 +382,24 @@ static void time_callback(struct tm *const tm, unsigned *const usec)
 #else
 	struct timeval tv;
 	gettimeofday(&tv, 0);
-	localtime_r(&tv.tv_sec, tm);
+	#if !ZF_LOG_OPTIMIZE_SIZE
+		pthread_rwlock_rdlock(&g_tcache_lock);
+		if (g_tcache_tv.tv_sec == tv.tv_sec)
+		{
+			*tm = g_tcache_tm;
+		}
+		else
+		{
+			pthread_rwlock_unlock(&g_tcache_lock);
+	#endif
+			localtime_r(&tv.tv_sec, tm);
+	#if !ZF_LOG_OPTIMIZE_SIZE
+			pthread_rwlock_wrlock(&g_tcache_lock);
+			g_tcache_tv = tv;
+			g_tcache_tm = *tm;
+		}
+		pthread_rwlock_unlock(&g_tcache_lock);
+	#endif
 	*usec = tv.tv_usec;
 #endif
 }
