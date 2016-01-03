@@ -79,7 +79,7 @@ static void mock_time_callback(struct tm *const tm, unsigned *const usec)
 	tm->tm_min = 34;
 	tm->tm_hour = 12;
 	tm->tm_mday = 23;
-	tm->tm_mon = 12;
+	tm->tm_mon = 11;
 	*usec = 789000;
 }
 
