@@ -28,7 +28,11 @@
  */
 #ifdef ZF_LOG_USE_DEBUGSTRING
 	#undef ZF_LOG_USE_DEBUGSTRING
-	#define ZF_LOG_USE_DEBUGSTRING (defined(_WIN32) || defined(_WIN64))
+	#if defined(_WIN32) || defined(_WIN64)
+		#define ZF_LOG_USE_DEBUGSTRING 1
+	#else
+		#define ZF_LOG_USE_DEBUGSTRING 0
+	#endif
 #else
 	#define ZF_LOG_USE_DEBUGSTRING 0
 #endif
@@ -307,7 +311,7 @@ static INSTRUMENTED_CONST buffer_cb g_buffer_cb = buffer_callback;
 	void out_debugstring_callback(zf_log_output_ctx *const ctx)
 	{
 		*ctx->p = 0;
-		OutputDebugStringA(ctx->p);
+		OutputDebugStringA(ctx->buf);
 	}
 
 	enum { OUT_DEBUGSTRING_MASK = ZF_LOG_PUT_STD };
