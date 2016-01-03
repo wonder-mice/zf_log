@@ -72,7 +72,7 @@ static void reset()
 	g_line = 0;
 }
 
-static void mock_time_callback(struct tm *const tm, unsigned *const usec)
+static void mock_time_callback(struct tm *const tm, unsigned *const msec)
 {
 	memset(tm, 0, sizeof(*tm));
 	tm->tm_sec = 56;
@@ -80,7 +80,7 @@ static void mock_time_callback(struct tm *const tm, unsigned *const usec)
 	tm->tm_hour = 12;
 	tm->tm_mday = 23;
 	tm->tm_mon = 11;
-	*usec = 789000;
+	*msec = 789;
 }
 
 static void mock_pid_callback(int *const pid, int *const tid)

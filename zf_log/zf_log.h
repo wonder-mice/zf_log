@@ -438,6 +438,7 @@ void _zf_log_write_mem_aux(
  * - ZF_LOGD("format string", args, ...)
  * - ZF_LOGI("format string", args, ...)
  * - ZF_LOGW("format string", args, ...)
+ * - ZF_LOGE("format string", args, ...)
  * - ZF_LOGF("format string", args, ...)
  *
  * Memory logging macros:
@@ -445,6 +446,7 @@ void _zf_log_write_mem_aux(
  * - ZF_LOGD_MEM(data_ptr, data_sz, "format string", args, ...)
  * - ZF_LOGI_MEM(data_ptr, data_sz, "format string", args, ...)
  * - ZF_LOGW_MEM(data_ptr, data_sz, "format string", args, ...)
+ * - ZF_LOGE_MEM(data_ptr, data_sz, "format string", args, ...)
  * - ZF_LOGF_MEM(data_ptr, data_sz, "format string", args, ...)
  *
  * Auxiliary logging macros:
@@ -452,6 +454,7 @@ void _zf_log_write_mem_aux(
  * - ZF_LOGD_AUX(&log_instance, "format string", args, ...)
  * - ZF_LOGI_AUX(&log_instance, "format string", args, ...)
  * - ZF_LOGW_AUX(&log_instance, "format string", args, ...)
+ * - ZF_LOGE_AUX(&log_instance, "format string", args, ...)
  * - ZF_LOGF_AUX(&log_instance, "format string", args, ...)
  *
  * Auxiliary memory logging macros:
@@ -459,7 +462,16 @@ void _zf_log_write_mem_aux(
  * - ZF_LOGD_MEM_AUX(&log_instance, data_ptr, data_sz, "format string", args, ...)
  * - ZF_LOGI_MEM_AUX(&log_instance, data_ptr, data_sz, "format string", args, ...)
  * - ZF_LOGW_MEM_AUX(&log_instance, data_ptr, data_sz, "format string", args, ...)
+ * - ZF_LOGE_MEM_AUX(&log_instance, data_ptr, data_sz, "format string", args, ...)
  * - ZF_LOGF_MEM_AUX(&log_instance, data_ptr, data_sz, "format string", args, ...)
+ *
+ * Preformatted string logging macros:
+ * - ZF_LOGV_STR("preformatted string");
+ * - ZF_LOGD_STR("preformatted string");
+ * - ZF_LOGI_STR("preformatted string");
+ * - ZF_LOGW_STR("preformatted string");
+ * - ZF_LOGE_STR("preformatted string");
+ * - ZF_LOGF_STR("preformatted string");
  *
  * Format string follows printf() conventions. Both data_ptr and data_sz could
  * be 0. Most compilers will verify that type of arguments match format
@@ -616,6 +628,13 @@ static inline void _zf_log_unused(const int dummy, ...) {(void)dummy;}
 	#define ZF_LOGF_MEM(...) _ZF_LOG_UNUSED(__VA_ARGS__)
 	#define ZF_LOGF_MEM_AUX(...) _ZF_LOG_UNUSED(__VA_ARGS__)
 #endif
+
+#define ZF_LOGV_STR(s) ZF_LOGV("%s", (s))
+#define ZF_LOGD_STR(s) ZF_LOGD("%s", (s))
+#define ZF_LOGI_STR(s) ZF_LOGI("%s", (s))
+#define ZF_LOGW_STR(s) ZF_LOGW("%s", (s))
+#define ZF_LOGE_STR(s) ZF_LOGE("%s", (s))
+#define ZF_LOGF_STR(s) ZF_LOGF("%s", (s))
 
 /* Output to standard error stream. Library uses it by default, though in few
  * cases it could be necessary to specify it explicitly. For example, when
