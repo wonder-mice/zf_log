@@ -171,7 +171,6 @@
 #endif
 
 #if defined(_MSC_VER) && !defined(__INTEL_COMPILER)
-	/* ridiculous platform */
 	#define memccpy _memccpy
 	#pragma warning(disable:4204) /* nonstandard extension used: non-constant aggregate initializer */
 #endif
