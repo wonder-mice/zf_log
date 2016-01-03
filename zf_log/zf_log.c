@@ -1,27 +1,34 @@
-/* If defined, Android log (android/log.h) will be used by default instead of
- * stderr (when available).
+/* When defined, Android log (android/log.h) will be used by default instead of
+ * stderr (ignored on non-Android platforms). Date, time, pid and tid (context)
+ * will be provided by Android log. Android log features will be used to output
+ * log level and tag.
  */
 #ifdef ZF_LOG_USE_ANDROID_LOG
 	#undef ZF_LOG_USE_ANDROID_LOG
-	#define ZF_LOG_USE_ANDROID_LOG 1
+	#define ZF_LOG_USE_ANDROID_LOG (defined(__ANDROID__))
 #else
 	#define ZF_LOG_USE_ANDROID_LOG 0
 #endif
-/* When defined, NSLog will be used instead of stderr when available. Doesn't
- * use NSLog() directly, but piggybacks on non-public CFLog() function.
+/* When defined, NSLog (uses Apple System Log) will be used instead of stderr
+ * (ignored on non-Apple platforms). Date, time, pid and tid (context) will be
+ * provided by NSLog. Curiously, doesn't use NSLog() directly, but piggybacks on
+ * non-public CFLog() function. Both use Apple System Log internally, but it's
+ * easier to call CFLog() from C than NSLog(). Current implementation doesn't
+ * support "%@" format specifier.
  */
 #ifdef ZF_LOG_USE_NSLOG
 	#undef ZF_LOG_USE_NSLOG
-	#define ZF_LOG_USE_NSLOG 1
+	#define ZF_LOG_USE_NSLOG (defined(__APPLE__) && defined(__MACH__))
 #else
 	#define ZF_LOG_USE_NSLOG 0
 #endif
-/* When defined, OutputDebugString() will be used instead of stderr when
- * available. Uses OutputDebugStringA() variant and feeds it with UTF-8 data.
+/* When defined, OutputDebugString() will be used instead of stderr (ignored on
+ * non-Windows platforms). Uses OutputDebugStringA() variant and feeds it with
+ * UTF-8 data.
  */
 #ifdef ZF_LOG_USE_DEBUGSTRING
 	#undef ZF_LOG_USE_DEBUGSTRING
-	#define ZF_LOG_USE_DEBUGSTRING 1
+	#define ZF_LOG_USE_DEBUGSTRING (defined(_WIN32) || defined(_WIN64))
 #else
 	#define ZF_LOG_USE_DEBUGSTRING 0
 #endif
@@ -86,7 +93,8 @@
 	#define ZF_LOG_EXTERN_GLOBAL_OUTPUT_LEVEL 0
 #endif
 /* When defined, implementation will prefer smaller code size over speed.
- * Disabled by default.
+ * Very rough estimate is that code will be up to 2x smaller and up to 2x
+ * slower. Disabled by default.
  */
 #ifdef ZF_LOG_OPTIMIZE_SIZE
 	#undef ZF_LOG_OPTIMIZE_SIZE
@@ -94,13 +102,20 @@
 #else
 	#define ZF_LOG_OPTIMIZE_SIZE 0
 #endif
-/* Size of the log line buffer. The buffer is allocated on the stack. It limits
- * the maximum length of the log line.
+/* Size of the log line buffer. The buffer is allocated on stack. It limits
+ * maximum length of a log line.
  */
 #ifndef ZF_LOG_BUF_SZ
 	#define ZF_LOG_BUF_SZ 512
 #endif
-/* String to put in the end of each log line when necessary (can be empty).
+/* Default number of bytes in one line of memory output. For large values
+ * ZF_LOG_BUF_SZ also must be increased.
+ */
+#ifndef ZF_LOG_MEM_WIDTH
+	#define ZF_LOG_MEM_WIDTH 32
+#endif
+/* String to put in the end of each log line (can be empty). Its value used by
+ * stderr output callback. Its size used as a default value for ZF_LOG_EOL_SZ.
  */
 #ifndef ZF_LOG_EOL
 	#define ZF_LOG_EOL "\n"
@@ -110,12 +125,6 @@
  */
 #ifndef ZF_LOG_EOL_SZ
 	#define ZF_LOG_EOL_SZ sizeof(ZF_LOG_EOL)
-#endif
-/* Default number of bytes in one line of memory output. For large values
- * ZF_LOG_BUF_SZ also must be increased.
- */
-#ifndef ZF_LOG_MEM_WIDTH
-	#define ZF_LOG_MEM_WIDTH 32
 #endif
 /* Compile instrumented version of the library to facilitate unit testing.
  */
@@ -210,7 +219,7 @@ static INSTRUMENTED_CONST time_cb g_time_cb = time_callback;
 static INSTRUMENTED_CONST pid_cb g_pid_cb = pid_callback;
 static INSTRUMENTED_CONST buffer_cb g_buffer_cb = buffer_callback;
 
-#if ZF_LOG_USE_ANDROID_LOG && defined(ZF_LOG_OUT_ANDROID)
+#if ZF_LOG_USE_ANDROID_LOG
 	#include <android/log.h>
 
 	static inline int android_lvl(const int lvl)
@@ -235,7 +244,7 @@ static INSTRUMENTED_CONST buffer_cb g_buffer_cb = buffer_callback;
 		}
 	}
 
-	void zf_log_out_android_callback(zf_log_output_ctx *const ctx)
+	static void out_android_callback(zf_log_output_ctx *const ctx)
 	{
 		*ctx->p = 0;
 		const char *tag = ctx->p;
@@ -246,9 +255,12 @@ static INSTRUMENTED_CONST buffer_cb g_buffer_cb = buffer_callback;
 		}
 		__android_log_print(android_lvl(ctx->lvl), tag, "%s", ctx->msg_b);
 	}
+
+	enum { OUT_ANDROID_MASK = ZF_LOG_PUT_STD & ~ZF_LOG_PUT_CTX };
+	#define OUT_ANDROID {OUT_ANDROID_MASK, out_android_callback}
 #endif
 
-#if ZF_LOG_USE_NSLOG && defined(ZF_LOG_OUT_NSLOG)
+#if ZF_LOG_USE_NSLOG
 	#include <CoreFoundation/CoreFoundation.h>
 	CF_EXPORT void CFLog(int32_t level, CFStringRef format, ...);
 
@@ -274,35 +286,39 @@ static INSTRUMENTED_CONST buffer_cb g_buffer_cb = buffer_callback;
 		}
 	}
 
-	void zf_log_out_nslog_callback(zf_log_output_ctx *const ctx)
+	void out_nslog_callback(zf_log_output_ctx *const ctx)
 	{
 		*ctx->p = 0;
 		CFLog(apple_lvl(ctx->lvl), CFSTR("%s"), ctx->tag_b);
 	}
+
+	enum { OUT_NSLOG_MASK = ZF_LOG_PUT_STD & ~ZF_LOG_PUT_CTX };
+	#define OUT_NSLOG {OUT_NSLOG_MASK, out_nslog_callback}
 #endif
 
-#if ZF_LOG_USE_DEBUGSTRING && defined(ZF_LOG_OUT_DEBUGSTRING)
+#if ZF_LOG_USE_DEBUGSTRING
 	#include <windows.h>
 
-	void zf_log_out_debugstring_callback(zf_log_output_ctx *const ctx)
+	void out_debugstring_callback(zf_log_output_ctx *const ctx)
 	{
 		*ctx->p = 0;
 		OutputDebugStringA(ctx->p);
 	}
+
+	enum { OUT_DEBUGSTRING_MASK = ZF_LOG_PUT_STD };
+	#define OUT_DEBUGSTRING {OUT_DEBUGSTRING_MASK, out_debugstring_callback}
 #endif
 
 void zf_log_out_stderr_callback(zf_log_output_ctx *const ctx)
 {
-#if defined(_WIN32) || defined(_WIN64)
 	const unsigned eol_len = sizeof(ZF_LOG_EOL) - 1;
 	memcpy(ctx->p, ZF_LOG_EOL, eol_len);
+#if defined(_WIN32) || defined(_WIN64)
 	/* WriteFile() is atomic for local files opened with FILE_APPEND_DATA and
 	   without FILE_WRITE_DATA */
 	WriteFile(GetStdHandle(STD_ERROR_HANDLE), ctx->buf,
 			  (DWORD)(ctx->p - ctx->buf + eol_len), 0, 0);
 #else
-	const unsigned eol_len = sizeof(ZF_LOG_EOL) - 1;
-	memcpy(ctx->p, ZF_LOG_EOL, eol_len);
 	/* write() is atomic for buffers less than or equal to PIPE_BUF. */
 	RETVAL_UNUSED(write(STDERR_FILENO, ctx->buf, ctx->p - ctx->buf + eol_len));
 #endif
@@ -317,12 +333,12 @@ void zf_log_out_stderr_callback(zf_log_output_ctx *const ctx)
 #endif
 
 #if !ZF_LOG_EXTERN_GLOBAL_OUTPUT
-	#if ZF_LOG_USE_ANDROID_LOG && defined(ZF_LOG_OUT_ANDROID)
-		ZF_LOG_DEFINE_GLOBAL_OUTPUT = ZF_LOG_OUT_ANDROID;
-	#elif ZF_LOG_USE_NSLOG && defined(ZF_LOG_OUT_NSLOG)
-		ZF_LOG_DEFINE_GLOBAL_OUTPUT = ZF_LOG_OUT_NSLOG;
-	#elif ZF_LOG_USE_DEBUGSTRING && defined(ZF_LOG_OUT_DEBUGSTRING)
-		ZF_LOG_DEFINE_GLOBAL_OUTPUT = ZF_LOG_OUT_DEBUGSTRING;
+	#if ZF_LOG_USE_ANDROID_LOG
+		ZF_LOG_DEFINE_GLOBAL_OUTPUT = OUT_ANDROID;
+	#elif ZF_LOG_USE_NSLOG
+		ZF_LOG_DEFINE_GLOBAL_OUTPUT = OUT_NSLOG;
+	#elif ZF_LOG_USE_DEBUGSTRING
+		ZF_LOG_DEFINE_GLOBAL_OUTPUT = OUT_DEBUGSTRING;
 	#else
 		ZF_LOG_DEFINE_GLOBAL_OUTPUT = ZF_LOG_OUT_STDERR;
 	#endif

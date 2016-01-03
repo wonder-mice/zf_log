@@ -618,47 +618,20 @@ static inline void _zf_log_unused(const int dummy, ...) {(void)dummy;}
 #endif
 
 /* Output to standard error stream. Library uses it by default, though in few
- * cases it could be required to specify it explicitly. For example, when
- * library was compiled with ZF_LOG_EXTERN_GLOBAL_OUTPUT, application must
+ * cases it could be necessary to specify it explicitly. For example, when
+ * zf_log library is compiled with ZF_LOG_EXTERN_GLOBAL_OUTPUT, application must
  * define and initialize global output variable:
  *
  *   ZF_LOG_DEFINE_GLOBAL_OUTPUT = ZF_LOG_OUT_STDERR;
  *
- * Also it could be used to change
+ * When using custom output, stderr could be used as a fallback when custom
+ * output having problems:
+ *
  *   zf_log_set_output_callback(zf_log_out_stderr_callback,
  *                              ZF_LOG_OUT_STDERR_MASK);
  */
 enum { ZF_LOG_OUT_STDERR_MASK = ZF_LOG_PUT_STD };
 void zf_log_out_stderr_callback(zf_log_output_ctx *ctx);
 #define ZF_LOG_OUT_STDERR {ZF_LOG_OUT_STDERR_MASK, zf_log_out_stderr_callback}
-
-/* Output to Android log. Date, time, pid, tid will be provided by Android log.
- * Level and tag will be provided by zf_log, but Android log features will be
- * used to output them.
- */
-#if defined(__ANDROID__)
-	enum { ZF_LOG_OUT_ANDROID_MASK = ZF_LOG_PUT_STD & ~ZF_LOG_PUT_CTX };
-	void zf_log_out_android_callback(zf_log_output_ctx *ctx);
-	#define ZF_LOG_OUT_ANDROID {ZF_LOG_OUT_ANDROID_MASK, zf_log_out_android_callback}
-#endif
-/* Output using NSLog. Funny enough, current implementation doesn't use NSLog at
- * all. Instead, its analog from CoreFoundation is used (CFLog). Both use Apple
- * System Log internally, but it's easier to call CFLog from C than NSLog.
- * Current implementation doesn't support %@ format specifier, but it's on a
- * todo list.
- */
-#if defined(__APPLE__) && defined(__MACH__)
-	enum { ZF_LOG_OUT_NSLOG_MASK = ZF_LOG_PUT_STD & ~ZF_LOG_PUT_CTX };
-	void zf_log_out_nslog_callback(zf_log_output_ctx *ctx);
-	#define ZF_LOG_OUT_NSLOG {ZF_LOG_OUT_NSLOG_MASK, zf_log_out_nslog_callback}
-#endif
-/* Output using OutputDebugString(). Library uses OutputDebugStringA() variant
- * and feeds it with UTF-8 encoded strings.
- */
-#if defined(_WIN32) || defined(_WIN64)
-	enum { ZF_LOG_OUT_DEBUGSTRING_MASK = ZF_LOG_PUT_STD };
-	void zf_log_out_debugstring_callback(zf_log_output_ctx *ctx);
-	#define ZF_LOG_OUT_DEBUGSTRING {ZF_LOG_OUT_DEBUGSTRING_MASK, zf_log_out_debugstring_callback}
-#endif
 
 #endif
