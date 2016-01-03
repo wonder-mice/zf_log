@@ -650,7 +650,7 @@ static inline void _zf_log_unused(const int dummy, ...) {(void)dummy;}
  *                              ZF_LOG_OUT_STDERR_MASK);
  */
 enum { ZF_LOG_OUT_STDERR_MASK = ZF_LOG_PUT_STD };
-void zf_log_out_stderr_callback(zf_log_output_ctx *ctx);
+void zf_log_out_stderr_callback(zf_log_output_ctx *const ctx);
 #define ZF_LOG_OUT_STDERR {ZF_LOG_OUT_STDERR_MASK, zf_log_out_stderr_callback}
 
 #endif
