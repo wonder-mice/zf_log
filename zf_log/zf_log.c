@@ -550,7 +550,7 @@ static inline char *put_string(const char *s, char *p, char *const e)
 }
 
 static inline char *put_uint(unsigned v, const unsigned w, const char wc,
-							 char *const p, const char *const e)
+							 char *const p, char *const e)
 {
 	char buf[16];
 	char *const se = buf + _countof(buf);
@@ -651,14 +651,6 @@ static void put_msg(zf_log_output_ctx *const ctx,
 {
 	int n;
 	ctx->msg_b = ctx->p;
-#if !ZF_LOG_OPTIMIZE_SIZE
-	if ('%' == fmt[0] && 's' == fmt[1] && '\0' == fmt[2])
-	{
-		const char *const s = va_arg(va, const char *);
-		ctx->p = put_string(s, ctx->p, ctx->e);
-		return;
-	}
-#endif
 	n = vsnprintf(ctx->p, nprintf_size(ctx), fmt, va);
 	put_nprintf(ctx, n);
 }
