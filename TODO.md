@@ -1,6 +1,7 @@
 Things to do
 ------------
 
+* Example how to use with cppformat
 * Do not use snprintf() for context (time, pid, tid). Doing the same
   thing manually will be 2x faster.
 * Print start address for each line of memory output?
