@@ -170,36 +170,37 @@
 
 /* Static (compile-time) initialization support. Set of macros below allows to
  * define and initialize zf_log variables outside of the library. Such
- * initialization will be performed in compile-time and will not have run-time
+ * initialization will be performed at compile-time and will not have run-time
  * overhead. Also it allows to avoid initialization code inside main() function.
  * To use that, library must be compiled with following macros defined:
  * - ZF_LOG_EXTERN_TAG_PREFIX for ZF_LOG_DEFINE_TAG_PREFIX
  * - ZF_LOG_EXTERN_GLOBAL_FORMAT for ZF_LOG_DEFINE_GLOBAL_FORMAT
+ * - ZF_LOG_EXTERN_GLOBAL_OUTPUT for ZF_LOG_DEFINE_GLOBAL_OUTPUT
+ * - ZF_LOG_EXTERN_GLOBAL_OUTPUT_LEVEL for ZF_LOG_DEFINE_GLOBAL_OUTPUT_LEVEL
  * Example:
  *
+ *   ZF_LOG_DEFINE_TAG_PREFIX = "TagPrefix";
  *   ZF_LOG_DEFINE_GLOBAL_FORMAT = {CUSTOM_MEM_WIDTH};
- */
-
-/* To use that, library must be compiled with ZF_LOG_EXTERN_GLOBAL_OUTPUT.
- * Example:
+ *   ZF_LOG_DEFINE_GLOBAL_OUTPUT = {ZF_LOG_PUT_STD, custom_output_callback};
+ *   ZF_LOG_DEFINE_GLOBAL_OUTPUT_LEVEL = ZF_LOG_INFO;
  *
- *   ZF_LOG_DEFINE_GLOBAL_OUTPUT = {CUSTOM_PUT_MASK, CUSTOM_OUTPUT_CALLBACK};
- */
-/* To use that, library must be compiled with ZF_LOG_EXTERN_GLOBAL_OUTPUT_LEVEL.
- * Example:
- *
- *   ZF_LOG_EXTERN_GLOBAL_OUTPUT_LEVEL = ZF_LOG_INFO;
+ * When zf_log library compiled with one of ZF_LOG_EXTERN_XXX macros defined,
+ * corresponding ZF_LOG_DEFINE_XXX macro MUST be used exactly once somewhere.
+ * Otherwise it will result in link error.
  */
 #define ZF_LOG_DEFINE_TAG_PREFIX const char *_zf_log_tag_prefix
 #define ZF_LOG_DEFINE_GLOBAL_FORMAT zf_log_format _zf_log_global_format
 #define ZF_LOG_DEFINE_GLOBAL_OUTPUT zf_log_output _zf_log_global_output
 #define ZF_LOG_DEFINE_GLOBAL_OUTPUT_LEVEL int _zf_log_global_output_lvl
 
-/* Pointer to global format. Direct modification is not allowed.
- */
-/* Pointer to global output. Direct modification is not allowed.
+/* Pointer to global format variable. Direct modification is not allowed. Use
+ * zf_log_set_mem_width() instead.
  */
 #define ZF_LOG_GLOBAL_FORMAT ((const zf_log_format *)&_zf_log_global_format)
+
+/* Pointer to global output variable. Direct modification is not allowed. Use
+ * zf_log_set_output_callback() instead.
+ */
 #define ZF_LOG_GLOBAL_OUTPUT ((const zf_log_output *)&_zf_log_global_output)
 
 /* When defined, all symbols produced by linker will be prefixed with its value.
@@ -301,6 +302,18 @@ zf_log_output_ctx;
 
 typedef void (*zf_log_output_cb)(zf_log_output_ctx *ctx);
 
+/* Set output callback function. It will be called for each log line allowed
+ * by both current log level and output log level (enabled and turned on).
+ * Callback function is allowed to modify content of the buffers pointed by the
+ * ctx, but it's not allowed to modify buffer pointers and other fields.
+ *
+ * Mask allows to control what information will be added to the log line buffer
+ * before callback function is invoked. Default mask value is ZF_LOG_PUT_STD.
+ *
+ * String inside buffer is UTF-8 encoded (no BOM mark).
+ */
+void zf_log_set_output_callback(const unsigned mask, const zf_log_output_cb cb);
+
 typedef struct zf_log_format
 {
 	unsigned mem_width; /* Bytes per line in memory (ASCII-HEX) dump */
@@ -313,18 +326,6 @@ typedef struct zf_log_output
 	zf_log_output_cb output_cb; /* Output callback */
 }
 zf_log_output;
-
-/* Set output callback function. It will be called for each log line allowed
- * by both current log level and output log level (enabled and turned on).
- * Callback function is allowed to modify content of the buffers pointed by the
- * ctx, but it's not allowed to modify buffer pointers and other fields.
- *
- * Mask allows to control what information will be added to the log line buffer
- * before callback function is invoked. Default mask value is ZF_LOG_PUT_STD.
- *
- * String inside buffer is UTF-8 encoded (no BOM mark).
- */
-void zf_log_set_output_callback(const unsigned mask, const zf_log_output_cb cb);
 
 //FIXME: rename to zf_log_spec
 typedef struct zf_log_instance
@@ -630,7 +631,7 @@ void zf_log_out_stderr_callback(zf_log_output_ctx *ctx);
 	#define ZF_LOG_OUT_ANDROID {ZF_LOG_OUT_ANDROID_MASK, zf_log_out_android_callback}
 #endif
 /* Output using NSLog. Funny enough, current implementation doesn't use NSLog at
- * all. Instread, its analog from CoreFoundation is used (CFLog). Both use Apple
+ * all. Instead, its analog from CoreFoundation is used (CFLog). Both use Apple
  * System Log internally, but it's easier to call CFLog from C than NSLog.
  * Current implementation doesn't support %@ format specifier, but it's on a
  * todo list.

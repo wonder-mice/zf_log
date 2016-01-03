@@ -1,15 +1,29 @@
-/* Controls Android log (android/log.h) support. When defined, must be 1
- * (enable) or 0 (disable). Disabled by default.
+/* When defined, Android log (android/log.h) will be used by default instead of
+ * stderr (when available).
  */
-#ifndef ZF_LOG_ANDROID_LOG
-	#define ZF_LOG_ANDROID_LOG 0
+#ifdef ZF_LOG_USE_ANDROID_LOG
+	#undef ZF_LOG_USE_ANDROID_LOG
+	#define ZF_LOG_USE_ANDROID_LOG 1
+#else
+	#define ZF_LOG_USE_ANDROID_LOG 0
 #endif
-/* Controls Apple log (asl.h) support. When defined, must be 1 (enable) or 0
- * (disable). Disabled by default. Doesn't use asl directly, but piggybacks on
- * non-public CFLog() function.
+/* When defined, NSLog() will be used instead of stderr when available. Doesn't
+ * use NSLog() directly, but piggybacks on non-public CFLog() function.
  */
-#ifndef ZF_LOG_APPLE_LOG
-	#define ZF_LOG_APPLE_LOG 0
+#ifdef ZF_LOG_USE_NSLOG
+	#undef ZF_LOG_USE_NSLOG
+	#define ZF_LOG_USE_NSLOG 1
+#else
+	#define ZF_LOG_USE_NSLOG 0
+#endif
+/* When defined, OutputDebugString() will be used instead of stderr when
+ * available. Uses OutputDebugStringA() variant and feeds it with UTF-8 data.
+ */
+#ifdef ZF_LOG_USE_DEBUGSTRING
+	#undef ZF_LOG_USE_DEBUGSTRING
+	#define ZF_LOG_USE_DEBUGSTRING 1
+#else
+	#define ZF_LOG_USE_DEBUGSTRING 0
 #endif
 /* When defined, zf_log library will not contain definition of tag prefix
  * variable. In that case it must be defined elsewhere using
@@ -184,7 +198,7 @@ static INSTRUMENTED_CONST time_cb g_time_cb = time_callback;
 static INSTRUMENTED_CONST pid_cb g_pid_cb = pid_callback;
 static INSTRUMENTED_CONST buffer_cb g_buffer_cb = buffer_callback;
 
-#if ZF_LOG_ANDROID_LOG && defined(ZF_LOG_OUT_ANDROID)
+#if ZF_LOG_USE_ANDROID_LOG && defined(ZF_LOG_OUT_ANDROID)
 	#include <android/log.h>
 
 	static inline int android_lvl(const int lvl)
@@ -222,7 +236,7 @@ static INSTRUMENTED_CONST buffer_cb g_buffer_cb = buffer_callback;
 	}
 #endif
 
-#if ZF_LOG_APPLE_LOG && defined(ZF_LOG_OUT_NSLOG)
+#if ZF_LOG_USE_NSLOG && defined(ZF_LOG_OUT_NSLOG)
 	#include <CoreFoundation/CoreFoundation.h>
 	CF_EXPORT void CFLog(int32_t level, CFStringRef format, ...);
 
@@ -255,6 +269,16 @@ static INSTRUMENTED_CONST buffer_cb g_buffer_cb = buffer_callback;
 	}
 #endif
 
+#if ZF_LOG_USE_DEBUGSTRING && defined(ZF_LOG_OUT_DEBUGSTRING)
+	#include <windows.h>
+
+	void zf_log_out_debugstring_callback(zf_log_output_ctx *const ctx)
+	{
+		*ctx->p = 0;
+		OutputDebugStringA(ctx->p);
+	}
+#endif
+
 void zf_log_out_stderr_callback(zf_log_output_ctx *const ctx)
 {
 #if defined(_WIN32) || defined(_WIN64)
@@ -281,11 +305,11 @@ void zf_log_out_stderr_callback(zf_log_output_ctx *const ctx)
 #endif
 
 #if !ZF_LOG_EXTERN_GLOBAL_OUTPUT
-	#if ZF_LOG_ANDROID_LOG && defined(ZF_LOG_OUT_ANDROID)
+	#if ZF_LOG_USE_ANDROID_LOG && defined(ZF_LOG_OUT_ANDROID)
 		ZF_LOG_DEFINE_GLOBAL_OUTPUT = ZF_LOG_OUT_ANDROID;
-	#elif ZF_LOG_APPLE_LOG && defined(ZF_LOG_OUT_NSLOG)
+	#elif ZF_LOG_USE_NSLOG && defined(ZF_LOG_OUT_NSLOG)
 		ZF_LOG_DEFINE_GLOBAL_OUTPUT = ZF_LOG_OUT_NSLOG;
-	#elif defined(ZF_LOG_OUT_DEBUGSTRING)
+	#elif ZF_LOG_USE_DEBUGSTRING && defined(ZF_LOG_OUT_DEBUGSTRING)
 		ZF_LOG_DEFINE_GLOBAL_OUTPUT = ZF_LOG_OUT_DEBUGSTRING;
 	#else
 		ZF_LOG_DEFINE_GLOBAL_OUTPUT = ZF_LOG_OUT_STDERR;
