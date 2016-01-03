@@ -85,6 +85,15 @@
 #else
 	#define ZF_LOG_EXTERN_GLOBAL_OUTPUT_LEVEL 0
 #endif
+/* When defined, implementation will prefer smaller code size over speed.
+ * Disabled by default.
+ */
+#ifdef ZF_LOG_OPTIMIZE_SIZE
+	#undef ZF_LOG_OPTIMIZE_SIZE
+	#define ZF_LOG_OPTIMIZE_SIZE 1
+#else
+	#define ZF_LOG_OPTIMIZE_SIZE 0
+#endif
 /* Size of the log line buffer. The buffer is allocated on the stack. It limits
  * the maximum length of the log line.
  */
@@ -161,6 +170,9 @@
 #define RETVAL_UNUSED(expr) do { while(expr) break; } while(0)
 #define STATIC_ASSERT(name, cond) \
 	typedef char assert_##name[(cond)? 1: -1]
+#ifndef _countof
+	#define _countof(xs) (sizeof(xs) / sizeof((xs)[0]))
+#endif
 
 typedef void (*time_cb)(struct tm *const tm, unsigned *const usec);
 typedef void (*pid_cb)(int *const pid, int *const tid);
@@ -364,8 +376,7 @@ static void time_callback(struct tm *const tm, unsigned *const usec)
 #else
 	struct timeval tv;
 	gettimeofday(&tv, 0);
-	const time_t t = tv.tv_sec;
-	localtime_r(&t, tm);
+	localtime_r(&tv.tv_sec, tm);
 	*usec = tv.tv_usec;
 #endif
 }
@@ -429,21 +440,114 @@ static inline void put_nprintf(zf_log_output_ctx *const ctx, const int n)
 	}
 }
 
+#if !ZF_LOG_OPTIMIZE_SIZE
+static inline char *put_padding_r(const unsigned w, const char wc,
+								  char *p, char *e)
+{
+	for (char *const b = e - w; b < p; *--p = wc) {}
+	return p;
+}
+
+static char *put_integer_r(unsigned v, const int sign,
+						   const unsigned w, const char wc, char *const e)
+{
+	static const char _signs[] = {'-', '0', '+'};
+	static const char *const signs = _signs + 1;
+	char *p = e;
+	do { *--p = '0' + v % 10; } while (0 != (v /= 10));
+	if (0 == sign) return put_padding_r(w, wc, p, e);
+	if ('0' != wc)
+	{
+		*--p = signs[sign];
+		return put_padding_r(w, wc, p, e);
+	}
+	p = put_padding_r(w, wc, p, e + 1);
+	*--p = signs[sign];
+	return p;
+}
+
+static inline char *put_uint_r(const unsigned v, const unsigned w, const char wc,
+							   char *const e)
+{
+	return put_integer_r(v, 0, w, wc, e);
+}
+
+static inline char *put_int_r(const int v, const unsigned w, const char wc,
+							  char *const e)
+{
+	return 0 <= v? put_integer_r(v, 0, w, wc, e): put_integer_r(-v, -1, w, wc, e);
+}
+
+static inline char *put_string(const char *s, char *p, const char *const e)
+{
+	while (*s && p < e) { *p++ = *s++; }
+	return p;
+}
+
+static inline char *put_stringn(const char *const s_p, const char *const s_e,
+								char *const p, const char *const e)
+{
+	const ptrdiff_t m = e - p;
+	ptrdiff_t n = s_e - s_p;
+	if (n > m)
+	{
+		n = m;
+	}
+	memcpy(p, s_p, n);
+	return p + n;
+}
+
+static inline char *put_uint(unsigned v, const unsigned w, const char wc,
+							 char *const p, const char *const e)
+{
+	char buf[16];
+	char *const se = buf + _countof(buf);
+	char *sp = put_uint_r(v, w, wc, se);
+	return put_stringn(sp, se, p, e);
+}
+#endif
+
 static void put_ctx(zf_log_output_ctx *const ctx)
 {
-	int n;
 	struct tm tm;
 	unsigned usec;
 	int pid, tid;
 	g_time_cb(&tm, &usec);
 	g_pid_cb(&pid, &tid);
+
+#if ZF_LOG_OPTIMIZE_SIZE
+	int n;
 	n = snprintf(ctx->p, nprintf_size(ctx),
 				 "%02u-%02u %02u:%02u:%02u.%03u %5i %5i %c ",
-				 (unsigned)tm.tm_mon, (unsigned)tm.tm_mday,
+				 (unsigned)(tm.tm_mon + 1), (unsigned)tm.tm_mday,
 				 (unsigned)tm.tm_hour, (unsigned)tm.tm_min, (unsigned)tm.tm_sec,
 				 (unsigned)(usec / 1000),
 				 pid, tid, (char)lvl_char(ctx->lvl));
 	put_nprintf(ctx, n);
+#else
+	char buf[64];
+	char *const e = buf + sizeof(buf);
+	char *p = e;
+	*--p = ' ';
+	*--p = lvl_char(ctx->lvl);
+	*--p = ' ';
+	p = put_int_r(tid, 5, ' ', p);
+	*--p = ' ';
+	p = put_int_r(pid, 5, ' ', p);
+	*--p = ' ';
+	p = put_uint_r(usec / 1000, 3, '0', p);
+	*--p = '.';
+	p = put_uint_r(tm.tm_sec, 2, '0', p);
+	*--p = ':';
+	p = put_uint_r(tm.tm_min, 2, '0', p);
+	*--p = ':';
+	p = put_uint_r(tm.tm_hour, 2, '0', p);
+	*--p = ' ';
+	p = put_uint_r(tm.tm_mday, 2, '0', p);
+	*--p = '-';
+	p = put_uint_r(tm.tm_mon + 1, 2, '0', p);
+	ctx->p = put_stringn(p, e, ctx->p, ctx->e);
+#endif
 }
 
 static void put_tag(zf_log_output_ctx *const ctx, const char *const tag)
@@ -475,10 +579,19 @@ static void put_tag(zf_log_output_ctx *const ctx, const char *const tag)
 
 static void put_src(zf_log_output_ctx *const ctx, const src_location *const src)
 {
+#if ZF_LOG_OPTIMIZE_SIZE
 	int n;
 	n = snprintf(ctx->p, nprintf_size(ctx), "%s@%s:%u ",
 				 src->func, filename(src->file), src->line);
 	put_nprintf(ctx, n);
+#else
+	ctx->p = put_string(src->func, ctx->p, ctx->e);
+	if (ctx->p < ctx->e) *ctx->p++ = '@';
+	ctx->p = put_string(filename(src->file), ctx->p, ctx->e);
+	if (ctx->p < ctx->e) *ctx->p++ = ':';
+	ctx->p = put_uint(src->line, 0, '\0', ctx->p, ctx->e);
+	if (ctx->p < ctx->e) *ctx->p++ = ' ';
+#endif
 }
 
 static void put_msg(zf_log_output_ctx *const ctx,
