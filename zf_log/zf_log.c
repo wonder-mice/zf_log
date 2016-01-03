@@ -1,4 +1,4 @@
-/* When defined, Android log (android/log.h) will be used by default instead of
+/* If defined, Android log (android/log.h) will be used by default instead of
  * stderr (when available).
  */
 #ifdef ZF_LOG_USE_ANDROID_LOG
@@ -7,7 +7,7 @@
 #else
 	#define ZF_LOG_USE_ANDROID_LOG 0
 #endif
-/* When defined, NSLog() will be used instead of stderr when available. Doesn't
+/* When defined, NSLog will be used instead of stderr when available. Doesn't
  * use NSLog() directly, but piggybacks on non-public CFLog() function.
  */
 #ifdef ZF_LOG_USE_NSLOG

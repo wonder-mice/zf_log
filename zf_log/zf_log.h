@@ -311,6 +311,7 @@ typedef void (*zf_log_output_cb)(zf_log_output_ctx *ctx);
  * before callback function is invoked. Default mask value is ZF_LOG_PUT_STD.
  *
  * String inside buffer is UTF-8 encoded (no BOM mark).
+ * FIXME: rename to zf_log_set_output()
  */
 void zf_log_set_output_callback(const unsigned mask, const zf_log_output_cb cb);
 
@@ -616,7 +617,17 @@ static inline void _zf_log_unused(const int dummy, ...) {(void)dummy;}
 	#define ZF_LOGF_MEM_AUX(...) _ZF_LOG_UNUSED(__VA_ARGS__)
 #endif
 
-/* Output to standard error stream. */
+/* Output to standard error stream. Library uses it by default, though in few
+ * cases it could be required to specify it explicitly. For example, when
+ * library was compiled with ZF_LOG_EXTERN_GLOBAL_OUTPUT, application must
+ * define and initialize global output variable:
+ *
+ *   ZF_LOG_DEFINE_GLOBAL_OUTPUT = ZF_LOG_OUT_STDERR;
+ *
+ * Also it could be used to change
+ *   zf_log_set_output_callback(zf_log_out_stderr_callback,
+ *                              ZF_LOG_OUT_STDERR_MASK);
+ */
 enum { ZF_LOG_OUT_STDERR_MASK = ZF_LOG_PUT_STD };
 void zf_log_out_stderr_callback(zf_log_output_ctx *ctx);
 #define ZF_LOG_OUT_STDERR {ZF_LOG_OUT_STDERR_MASK, zf_log_out_stderr_callback}
