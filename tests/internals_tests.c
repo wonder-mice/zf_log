@@ -8,7 +8,7 @@
 static char *strcopy_r(const char *s, char *e)
 {
 	e -= strlen(s) + 1;
-	for (char *p = e; (*p++ = *s++);) {}
+	for (char *p = e; 0 != (*p++ = *s++);) {}
 	return e;
 }
 
