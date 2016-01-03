@@ -1,6 +1,8 @@
 Things to do
 ------------
 
+* Do not use snprintf() for context (time, pid, tid). Doing the same
+  thing manually will be 2x faster.
 * Print start address for each line of memory output?
 * Introduce private format_callback which probably will replace put_msg
   This will provide more modular structure and will point out where to
