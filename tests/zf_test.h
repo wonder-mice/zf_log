@@ -28,6 +28,16 @@ static inline bool _zf_test_bool(const bool v)
 		exit(1); \
 	}
 
+#define TEST_VERIFY_TRUE_MSG(a, ...) \
+	if (!_zf_test_bool(a)) { \
+		fprintf(stderr, "%s:%u: %s:\n", __FILE__, __LINE__, "not true"); \
+		fprintf(stderr, "    false: %s\n", _ZF_TEST_STRINGIFY(a)); \
+		fprintf(stderr, "    about: "); \
+		fprintf(stderr, __VA_ARGS__); \
+		fprintf(stderr, "\n"); \
+		exit(1); \
+	}
+
 #define TEST_VERIFY_FALSE(a) \
 	if (_zf_test_bool(a)) { \
 		fprintf(stderr, "%s:%u: %s:\n", __FILE__, __LINE__, "not false"); \
