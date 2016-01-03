@@ -529,14 +529,8 @@ static inline char *put_int_r(const int v, const unsigned w, const char wc,
 	return 0 <= v? put_integer_r(v, 0, w, wc, e): put_integer_r(-v, -1, w, wc, e);
 }
 
-static inline char *put_string(const char *s, char *p, const char *const e)
-{
-	while (*s && p < e) { *p++ = *s++; }
-	return p;
-}
-
 static inline char *put_stringn(const char *const s_p, const char *const s_e,
-								char *const p, const char *const e)
+								char *const p, char *const e)
 {
 	const ptrdiff_t m = e - p;
 	ptrdiff_t n = s_e - s_p;
@@ -546,6 +540,13 @@ static inline char *put_stringn(const char *const s_p, const char *const s_e,
 	}
 	memcpy(p, s_p, n);
 	return p + n;
+}
+
+static inline char *put_string(const char *s, char *p, char *const e)
+{
+	const ptrdiff_t n = e - p;
+	char *const c = (char *)memccpy(p, s, '\0', n);
+	return 0 != c? c - 1: e;
 }
 
 static inline char *put_uint(unsigned v, const unsigned w, const char wc,
@@ -650,6 +651,14 @@ static void put_msg(zf_log_output_ctx *const ctx,
 {
 	int n;
 	ctx->msg_b = ctx->p;
+#if !ZF_LOG_OPTIMIZE_SIZE
+	if ('%' == fmt[0] && 's' == fmt[1] && '\0' == fmt[2])
+	{
+		const char *const s = va_arg(va, const char *);
+		ctx->p = put_string(s, ctx->p, ctx->e);
+		return;
+	}
+#endif
 	n = vsnprintf(ctx->p, nprintf_size(ctx), fmt, va);
 	put_nprintf(ctx, n);
 }
