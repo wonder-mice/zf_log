@@ -5,7 +5,11 @@
  */
 #ifdef ZF_LOG_USE_ANDROID_LOG
 	#undef ZF_LOG_USE_ANDROID_LOG
-	#define ZF_LOG_USE_ANDROID_LOG (defined(__ANDROID__))
+	#if defined(__ANDROID__)
+		#define ZF_LOG_USE_ANDROID_LOG 1
+	#else
+		#define ZF_LOG_USE_ANDROID_LOG 0
+	#endif
 #else
 	#define ZF_LOG_USE_ANDROID_LOG 0
 #endif
@@ -18,7 +22,11 @@
  */
 #ifdef ZF_LOG_USE_NSLOG
 	#undef ZF_LOG_USE_NSLOG
-	#define ZF_LOG_USE_NSLOG (defined(__APPLE__) && defined(__MACH__))
+	#if defined(__APPLE__) && defined(__MACH__)
+		#define ZF_LOG_USE_NSLOG 1
+	#else
+		#define ZF_LOG_USE_NSLOG 0
+	#endif
 #else
 	#define ZF_LOG_USE_NSLOG 0
 #endif
