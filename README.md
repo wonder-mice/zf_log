@@ -4,13 +4,13 @@ zf_log
 ### Core logging library for C, Objective-C and C++
 
 Following the [Unix way](https://en.wikipedia.org/wiki/Unix_philosophy), this
-library provides the logging core which can be used directly or extended to
-achieve desired behavior. In essence, it's a thin wrapper around snprintf()
-function. By implementing less than 20% of functionality found in more
-sophisticated and feature reach libraries, it covers more than 80% of common
-use cases. Found to be particularly useful in cross-platform applications and on
-mobile/embedded platforms. Focus is made on simplicity, ease of use and
-performance (to be more precise - low overhead).
+library provides the logging core which can be used directly or extended. In
+essence, it's a thin wrapper around snprintf() function. By implementing less
+than 20% of functionality found in more sophisticated and feature reach
+libraries, it covers more than 80% of common use cases. Found to be
+particularly useful in cross-platform applications and on mobile/embedded
+platforms. Focus is made on simplicity, ease of use and performance (to be
+more precise - low overhead).
 
 Features:
 
@@ -43,32 +43,6 @@ Features:
   ZF_LOGD_MEM(pkg_ptr, pkg_sz, "Received network packet (%u bytes):", pkg_sz);
   ```
 
-* Custom output functions:
-
-  ```c
-  /* custom output function to redirect logs to syslogd */
-  static void syslog_output_callback(zf_log_message *msg)
-  {
-    *msg->p = 0;
-    syslog(syslog_level(msg->lvl), "%s", msg->tag_b);
-  }
-  zf_log_set_output_callback(syslog_output_callback);
-  ```
-
-* Compile time configuration of logging level:
-
-  ```c
-  /* disable verbose and debug logs */
-  #define ZF_LOG_LEVEL ZF_LOG_INFO
-  ```
-
-* Run time configuration of logging level:
-
-  ```c
-  /* turn off verbose log */
-  zf_log_set_output_level(ZF_LOG_DEBUG);
-  ```
-
 * Compiler warnings when format string and arguments don't match:
 
   ```c
@@ -76,13 +50,16 @@ Features:
   ZF_LOGI("This is int %s", 42);
   ```
 
+* Custom output functions
+* Compile time configuration of logging level
+* Run time configuration of logging level
 * Optional built-in support for Android log and Apple system log (iOS, OS X)
 * Reasonably cross-platform (OS X, iOS, Linux, Android, other Unix flavors,
   POSIX platforms and Windows)
 * No external dependencies
-* Compact call site
+* Compact call site (smaller executables)
 * Thread safe
-* Library size is under 8Kb (when compiled for x86_64)
+* Library size is under 10Kb (when compiled for x86_64)
 * Can be used privatly in libraries
 
 Examples
