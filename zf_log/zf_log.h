@@ -331,9 +331,22 @@ typedef struct zf_log_output
 }
 zf_log_output;
 
+/* Used with _AUX macros and allows to override global configuration. Use
+ * ZF_LOG_GLOBAL_FORMAT and ZF_LOG_GLOBAL_OUTPUT for values from global
+ * configuration. Example:
+ *
+ *   static const zf_log_output module_output = {
+ *       ZF_LOG_PUT_STD, module_output_callback
+ *   };
+ *   static const zf_log_spec module_spec = {
+ *       ZF_LOG_GLOBAL_FORMAT, &module_output
+ *   };
+ *
+ *   ZF_LOGI_AUX(&module_spec, "Position: %ix%i", x, y);
+ */
 typedef struct zf_log_spec
 {
-	const zf_log_format *format; /* Bytes per line in memory (ASCII-HEX) dump */
+	const zf_log_format *format;
 	const zf_log_output *output;
 }
 zf_log_spec;
