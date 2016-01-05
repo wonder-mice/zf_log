@@ -713,10 +713,10 @@ static void output_mem(const zf_log_spec *log, zf_log_message *const msg,
 		for (mem_cut = mem_width < mem_e - mem_p? mem_p + mem_width: mem_e;
 			 mem_cut != mem_p; ++mem_p)
 		{
-			const char ch = *mem_p;
+			const unsigned char ch = *mem_p;
 			*hex++ = c_hex[(0xf0 & ch) >> 4];
 			*hex++ = c_hex[(0x0f & ch)];
-			*ascii++ = isprint(ch)? ch: '?';
+			*ascii++ = isprint(ch)? (char)ch: '?';
 		}
 		while (hex != ascii_b)
 		{
