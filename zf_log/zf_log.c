@@ -145,7 +145,9 @@
 #endif
 
 #if defined(__linux__)
-	#define _XOPEN_SOURCE
+	#if !defined(__ANDROID__) && !defined(_GNU_SOURCE)
+		#define _GNU_SOURCE
+	#endif
 #endif
 #include <assert.h>
 #include <ctype.h>
@@ -172,11 +174,9 @@
 #if defined(__linux__)
 	#include <sys/prctl.h>
 	#include <sys/types.h>
-#endif
-#if defined(__linux__) && !defined(__ANDROID__)
-	#include <sys/syscall.h>
-	/* avoid defining _GNU_SOURCE */
-	int syscall(int number, ...);
+	#if !defined(__ANDROID__)
+		#include <sys/syscall.h>
+	#endif
 #endif
 #if defined(__MACH__)
 	#include <pthread.h>
