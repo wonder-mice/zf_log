@@ -32,18 +32,18 @@ static int syslog_level(const int lvl)
 }
 #endif
 
-static void custom_output_callback(zf_log_output_ctx *ctx)
+static void custom_output_callback(zf_log_message *msg)
 {
 	/* p points to the log message end. By default, message is not terminated
 	 * with 0, but it has some space allocated for EOL area, so there is always
 	 * some place for terminating zero in the end (see ZF_LOG_EOL_SZ define in
 	 * zf_log.c).
 	 */
-	*ctx->p = 0;
+	*msg->p = 0;
 #if defined(OUTPUT_DEBUG_STRING)
-	OutputDebugStringA(ctx->buf);
+	OutputDebugStringA(msg->buf);
 #elif defined(OUTPUT_SYSLOG)
-	syslog(syslog_level(ctx->lvl), "%s", ctx->tag_b);
+	syslog(syslog_level(msg->lvl), "%s", msg->tag_b);
 #else
 	#error Unsupported platform
 #endif

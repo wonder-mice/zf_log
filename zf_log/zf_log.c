@@ -202,7 +202,7 @@
 
 typedef void (*time_cb)(struct tm *const tm, unsigned *const usec);
 typedef void (*pid_cb)(int *const pid, int *const tid);
-typedef void (*buffer_cb)(zf_log_output_ctx *ctx, char *buf);
+typedef void (*buffer_cb)(zf_log_message *msg, char *buf);
 
 typedef struct src_location
 {
@@ -221,7 +221,7 @@ mem_block;
 
 static void time_callback(struct tm *const tm, unsigned *const usec);
 static void pid_callback(int *const pid, int *const tid);
-static void buffer_callback(zf_log_output_ctx *ctx, char *buf);
+static void buffer_callback(zf_log_message *msg, char *buf);
 
 STATIC_ASSERT(eol_fits_eol_sz, sizeof(ZF_LOG_EOL) <= ZF_LOG_EOL_SZ);
 STATIC_ASSERT(eol_sz_greater_than_zero, 0 < ZF_LOG_EOL_SZ);
@@ -261,16 +261,16 @@ static INSTRUMENTED_CONST buffer_cb g_buffer_cb = buffer_callback;
 		}
 	}
 
-	static void out_android_callback(zf_log_output_ctx *const ctx)
+	static void out_android_callback(zf_log_message *const msg)
 	{
-		*ctx->p = 0;
-		const char *tag = ctx->p;
-		if (ctx->tag_e != ctx->tag_b)
+		*msg->p = 0;
+		const char *tag = msg->p;
+		if (msg->tag_e != msg->tag_b)
 		{
-			tag = ctx->tag_b;
-			*ctx->tag_e = 0;
+			tag = msg->tag_b;
+			*msg->tag_e = 0;
 		}
-		__android_log_print(android_lvl(ctx->lvl), tag, "%s", ctx->msg_b);
+		__android_log_print(android_lvl(msg->lvl), tag, "%s", msg->msg_b);
 	}
 
 	enum { OUT_ANDROID_MASK = ZF_LOG_PUT_STD & ~ZF_LOG_PUT_CTX };
@@ -303,10 +303,10 @@ static INSTRUMENTED_CONST buffer_cb g_buffer_cb = buffer_callback;
 		}
 	}
 
-	void out_nslog_callback(zf_log_output_ctx *const ctx)
+	void out_nslog_callback(zf_log_message *const msg)
 	{
-		*ctx->p = 0;
-		CFLog(apple_lvl(ctx->lvl), CFSTR("%s"), ctx->tag_b);
+		*msg->p = 0;
+		CFLog(apple_lvl(msg->lvl), CFSTR("%s"), msg->tag_b);
 	}
 
 	enum { OUT_NSLOG_MASK = ZF_LOG_PUT_STD & ~ZF_LOG_PUT_CTX };
@@ -316,28 +316,28 @@ static INSTRUMENTED_CONST buffer_cb g_buffer_cb = buffer_callback;
 #if ZF_LOG_USE_DEBUGSTRING
 	#include <windows.h>
 
-	void out_debugstring_callback(zf_log_output_ctx *const ctx)
+	void out_debugstring_callback(zf_log_message *const msg)
 	{
-		*ctx->p = 0;
-		OutputDebugStringA(ctx->buf);
+		*msg->p = 0;
+		OutputDebugStringA(msg->buf);
 	}
 
 	enum { OUT_DEBUGSTRING_MASK = ZF_LOG_PUT_STD };
 	#define OUT_DEBUGSTRING {OUT_DEBUGSTRING_MASK, out_debugstring_callback}
 #endif
 
-void zf_log_out_stderr_callback(zf_log_output_ctx *const ctx)
+void zf_log_out_stderr_callback(zf_log_message *const msg)
 {
 	const unsigned eol_len = sizeof(ZF_LOG_EOL) - 1;
-	memcpy(ctx->p, ZF_LOG_EOL, eol_len);
+	memcpy(msg->p, ZF_LOG_EOL, eol_len);
 #if defined(_WIN32) || defined(_WIN64)
 	/* WriteFile() is atomic for local files opened with FILE_APPEND_DATA and
 	   without FILE_WRITE_DATA */
-	WriteFile(GetStdHandle(STD_ERROR_HANDLE), ctx->buf,
-			  (DWORD)(ctx->p - ctx->buf + eol_len), 0, 0);
+	WriteFile(GetStdHandle(STD_ERROR_HANDLE), msg->buf,
+			  (DWORD)(msg->p - msg->buf + eol_len), 0, 0);
 #else
 	/* write() is atomic for buffers less than or equal to PIPE_BUF. */
-	RETVAL_UNUSED(write(STDERR_FILENO, ctx->buf, ctx->p - ctx->buf + eol_len));
+	RETVAL_UNUSED(write(STDERR_FILENO, msg->buf, msg->p - msg->buf + eol_len));
 #endif
 }
 
@@ -486,9 +486,9 @@ static void pid_callback(int *const pid, int *const tid)
 #endif
 }
 
-static void buffer_callback(zf_log_output_ctx *ctx, char *buf)
+static void buffer_callback(zf_log_message *msg, char *buf)
 {
-	ctx->e = (ctx->p = ctx->buf = buf) + g_buf_sz;
+	msg->e = (msg->p = msg->buf = buf) + g_buf_sz;
 }
 
 static const char *filename(const char *file)
@@ -504,7 +504,7 @@ static const char *filename(const char *file)
 	return f;
 }
 
-static inline size_t nprintf_size(zf_log_output_ctx *const ctx)
+static inline size_t nprintf_size(zf_log_message *const msg)
 {
 	// *nprintf() always puts 0 in the end when input buffer is not empty. This
 	// 0 is not desired because its presence sets (ctx->p) to (ctx->e - 1) which
@@ -513,14 +513,14 @@ static inline size_t nprintf_size(zf_log_output_ctx *const ctx)
 	// have multiple (two) half-written parts which is confusing. To workaround
 	// that we allow *nprintf() to write its 0 in the eol area (which is always
 	// not empty).
-	return ctx->e - ctx->p + 1;
+	return msg->e - msg->p + 1;
 }
 
-static inline void put_nprintf(zf_log_output_ctx *const ctx, const int n)
+static inline void put_nprintf(zf_log_message *const msg, const int n)
 {
-	if (0 < n && ctx->e < (ctx->p += n))
+	if (0 < n && msg->e < (msg->p += n))
 	{
-		ctx->p = ctx->e;
+		msg->p = msg->e;
 	}
 }
 
@@ -592,7 +592,7 @@ static inline char *put_uint(unsigned v, const unsigned w, const char wc,
 }
 #endif
 
-static void put_ctx(zf_log_output_ctx *const ctx)
+static void put_ctx(zf_log_message *const msg)
 {
 	struct tm tm;
 	unsigned msec;
@@ -602,19 +602,19 @@ static void put_ctx(zf_log_output_ctx *const ctx)
 
 #if ZF_LOG_OPTIMIZE_SIZE
 	int n;
-	n = snprintf(ctx->p, nprintf_size(ctx),
+	n = snprintf(msg->p, nprintf_size(msg),
 				 "%02u-%02u %02u:%02u:%02u.%03u %5i %5i %c ",
 				 (unsigned)(tm.tm_mon + 1), (unsigned)tm.tm_mday,
 				 (unsigned)tm.tm_hour, (unsigned)tm.tm_min, (unsigned)tm.tm_sec,
 				 (unsigned)msec,
-				 pid, tid, (char)lvl_char(ctx->lvl));
-	put_nprintf(ctx, n);
+				 pid, tid, (char)lvl_char(msg->lvl));
+	put_nprintf(msg, n);
 #else
 	char buf[64];
 	char *const e = buf + sizeof(buf);
 	char *p = e;
 	*--p = ' ';
-	*--p = lvl_char(ctx->lvl);
+	*--p = lvl_char(msg->lvl);
 	*--p = ' ';
 	p = put_int_r(tid, 5, ' ', p);
 	*--p = ' ';
@@ -631,64 +631,64 @@ static void put_ctx(zf_log_output_ctx *const ctx)
 	p = put_uint_r(tm.tm_mday, 2, '0', p);
 	*--p = '-';
 	p = put_uint_r(tm.tm_mon + 1, 2, '0', p);
-	ctx->p = put_stringn(p, e, ctx->p, ctx->e);
+	msg->p = put_stringn(p, e, msg->p, msg->e);
 #endif
 }
 
-static void put_tag(zf_log_output_ctx *const ctx, const char *const tag)
+static void put_tag(zf_log_message *const msg, const char *const tag)
 {
 	const char *ch;
-	ctx->tag_b = ctx->p;
+	msg->tag_b = msg->p;
 	if (0 != (ch = _zf_log_tag_prefix))
 	{
-		for (;ctx->e != ctx->p && 0 != (*ctx->p = *ch); ++ctx->p, ++ch)
+		for (;msg->e != msg->p && 0 != (*msg->p = *ch); ++msg->p, ++ch)
 		{
 		}
 	}
 	if (0 != (ch = tag) && 0 != tag[0])
 	{
-		if (ctx->tag_b != ctx->p && ctx->e != ctx->p)
+		if (msg->tag_b != msg->p && msg->e != msg->p)
 		{
-			*ctx->p++ = '.';
+			*msg->p++ = '.';
 		}
-		for (;ctx->e != ctx->p && 0 != (*ctx->p = *ch); ++ctx->p, ++ch)
+		for (;msg->e != msg->p && 0 != (*msg->p = *ch); ++msg->p, ++ch)
 		{
 		}
 	}
-	ctx->tag_e = ctx->p;
-	if (ctx->tag_b != ctx->p && ctx->e != ctx->p)
+	msg->tag_e = msg->p;
+	if (msg->tag_b != msg->p && msg->e != msg->p)
 	{
-		*ctx->p++ = ' ';
+		*msg->p++ = ' ';
 	}
 }
 
-static void put_src(zf_log_output_ctx *const ctx, const src_location *const src)
+static void put_src(zf_log_message *const msg, const src_location *const src)
 {
 #if ZF_LOG_OPTIMIZE_SIZE
 	int n;
-	n = snprintf(ctx->p, nprintf_size(ctx), "%s@%s:%u ",
+	n = snprintf(msg->p, nprintf_size(msg), "%s@%s:%u ",
 				 src->func, filename(src->file), src->line);
-	put_nprintf(ctx, n);
+	put_nprintf(msg, n);
 #else
-	ctx->p = put_string(src->func, ctx->p, ctx->e);
-	if (ctx->p < ctx->e) *ctx->p++ = '@';
-	ctx->p = put_string(filename(src->file), ctx->p, ctx->e);
-	if (ctx->p < ctx->e) *ctx->p++ = ':';
-	ctx->p = put_uint(src->line, 0, '\0', ctx->p, ctx->e);
-	if (ctx->p < ctx->e) *ctx->p++ = ' ';
+	msg->p = put_string(src->func, msg->p, msg->e);
+	if (msg->p < msg->e) *msg->p++ = '@';
+	msg->p = put_string(filename(src->file), msg->p, msg->e);
+	if (msg->p < msg->e) *msg->p++ = ':';
+	msg->p = put_uint(src->line, 0, '\0', msg->p, msg->e);
+	if (msg->p < msg->e) *msg->p++ = ' ';
 #endif
 }
 
-static void put_msg(zf_log_output_ctx *const ctx,
+static void put_msg(zf_log_message *const msg,
 					const char *const fmt, va_list va)
 {
 	int n;
-	ctx->msg_b = ctx->p;
-	n = vsnprintf(ctx->p, nprintf_size(ctx), fmt, va);
-	put_nprintf(ctx, n);
+	msg->msg_b = msg->p;
+	n = vsnprintf(msg->p, nprintf_size(msg), fmt, va);
+	put_nprintf(msg, n);
 }
 
-static void output_mem(const zf_log_instance *log, zf_log_output_ctx *const ctx,
+static void output_mem(const zf_log_instance *log, zf_log_message *const msg,
 					   const mem_block *const mem)
 {
 	if (0 == mem->d || 0 == mem->d_sz)
@@ -699,10 +699,10 @@ static void output_mem(const zf_log_instance *log, zf_log_output_ctx *const ctx,
 	const unsigned char *const mem_e = mem_p + mem->d_sz;
 	const unsigned char *mem_cut;
 	const ptrdiff_t mem_width = log->format->mem_width;
-	char *const hex_b = ctx->msg_b;
+	char *const hex_b = msg->msg_b;
 	char *const ascii_b = hex_b + 2 * mem_width + 2;
 	char *const ascii_e = ascii_b + mem_width;
-	if (ctx->e < ascii_e)
+	if (msg->e < ascii_e)
 	{
 		return;
 	}
@@ -722,8 +722,8 @@ static void output_mem(const zf_log_instance *log, zf_log_output_ctx *const ctx,
 		{
 			*hex++ = ' ';
 		}
-		ctx->p = ascii;
-		log->output->output_cb(ctx);
+		msg->p = ascii;
+		log->output->output_cb(msg);
 	}
 }
 
@@ -753,32 +753,32 @@ static void _zf_log_write_imp(
 		const src_location *const src, const mem_block *const mem,
 		const int lvl, const char *const tag, const char *const fmt, va_list va)
 {
-	zf_log_output_ctx ctx;
+	zf_log_message msg;
 	char buf[ZF_LOG_BUF_SZ];
 	const unsigned put_mask = log->output->put_mask;
-	ctx.lvl = lvl;
-	ctx.tag = tag;
-	g_buffer_cb(&ctx, buf);
+	msg.lvl = lvl;
+	msg.tag = tag;
+	g_buffer_cb(&msg, buf);
 	if (ZF_LOG_PUT_CTX & put_mask)
 	{
-		put_ctx(&ctx);
+		put_ctx(&msg);
 	}
 	if (ZF_LOG_PUT_TAG & put_mask)
 	{
-		put_tag(&ctx, tag);
+		put_tag(&msg, tag);
 	}
 	if (0 != src && ZF_LOG_PUT_SRC & put_mask)
 	{
-		put_src(&ctx, src);
+		put_src(&msg, src);
 	}
 	if (ZF_LOG_PUT_MSG & put_mask)
 	{
-		put_msg(&ctx, fmt, va);
+		put_msg(&msg, fmt, va);
 	}
-	log->output->output_cb(&ctx);
+	log->output->output_cb(&msg);
 	if (0 != mem && ZF_LOG_PUT_MSG & put_mask)
 	{
-		output_mem(log, &ctx, mem);
+		output_mem(log, &msg, mem);
 	}
 }
 

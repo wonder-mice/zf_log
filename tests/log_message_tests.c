@@ -89,13 +89,13 @@ static void mock_pid_callback(int *const pid, int *const tid)
 	*tid = 5432;
 }
 
-static void mock_buffer_callback(zf_log_output_ctx *ctx, char *buf)
+static void mock_buffer_callback(zf_log_message *msg, char *buf)
 {
 	memset(buf, -1, ZF_LOG_BUF_SZ);
-	buffer_callback(ctx, buf);
+	buffer_callback(msg, buf);
 }
 
-static void mock_output_callback(zf_log_output_ctx *ctx)
+static void mock_output_callback(zf_log_message *msg)
 {
 	const size_t i = g_line++;
 	if (MAX_LINES <= i)
@@ -104,8 +104,8 @@ static void mock_output_callback(zf_log_output_ctx *ctx)
 		exit(1);
 	}
 	char *const line = g_lines[i];
-	memcpy(line, ctx->buf, ZF_LOG_BUF_SZ);
-	const size_t len = (size_t)(ctx->p - ctx->buf);
+	memcpy(line, msg->buf, ZF_LOG_BUF_SZ);
+	const size_t len = (size_t)(msg->p - msg->buf);
 	size_t null_pos;
 	for	(null_pos = 0; len > null_pos && 0 != line[null_pos]; ++null_pos) {}
 	g_len[i] = len;

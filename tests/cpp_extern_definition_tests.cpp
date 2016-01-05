@@ -11,7 +11,7 @@ ZF_LOG_DEFINE_GLOBAL_OUTPUT_LEVEL = ZF_LOG_INFO;
 
 namespace
 {
-	void mock_output_callback(zf_log_output_ctx *)
+	void mock_output_callback(zf_log_message *)
 	{
 	}
 }

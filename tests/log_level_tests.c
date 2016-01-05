@@ -34,11 +34,11 @@ static void reset()
 	zf_log_set_output_level(0);
 }
 
-static void mock_output_callback(zf_log_output_ctx *ctx)
+static void mock_output_callback(zf_log_message *msg)
 {
-	g_output_lvl_used = ctx->lvl;
-	g_msg_len = (unsigned)(ctx->p - ctx->buf);
-	memcpy(g_msg, ctx->buf, g_msg_len);
+	g_output_lvl_used = msg->lvl;
+	g_msg_len = (unsigned)(msg->p - msg->buf);
+	memcpy(g_msg, msg->buf, g_msg_len);
 	++g_output_called;
 }
 

@@ -7,10 +7,10 @@
 
 FILE *g_log_file;
 
-static void file_output_callback(zf_log_output_ctx *ctx)
+static void file_output_callback(zf_log_message *msg)
 {
-	*ctx->p = '\n';
-	fwrite(ctx->buf, ctx->p - ctx->buf + 1, 1, g_log_file);
+	*msg->p = '\n';
+	fwrite(msg->buf, msg->p - msg->buf + 1, 1, g_log_file);
 	fflush(g_log_file);
 }
 

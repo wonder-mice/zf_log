@@ -47,10 +47,10 @@ Features:
 
   ```c
   /* custom output function to redirect logs to syslogd */
-  static void syslog_output_callback(zf_log_output_ctx *ctx)
+  static void syslog_output_callback(zf_log_message *msg)
   {
-    *ctx->p = 0;
-    syslog(syslog_level(ctx->lvl), "%s", ctx->tag_b);
+    *msg->p = 0;
+    syslog(syslog_level(msg->lvl), "%s", msg->tag_b);
   }
   zf_log_set_output_callback(syslog_output_callback);
   ```

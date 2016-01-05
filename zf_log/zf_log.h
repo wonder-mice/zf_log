@@ -290,8 +290,7 @@ enum
 	ZF_LOG_PUT_STD = 0xffff, /* put everything by default */
 };
 
-//TODO: rename to zf_log_line or zf_log_message
-typedef struct zf_log_output_ctx
+typedef struct zf_log_message
 {
 	int lvl;
 	const char *tag;
@@ -302,9 +301,9 @@ typedef struct zf_log_output_ctx
 	char *tag_e; /* Prefixed tag end (if != tag_b, points to msg separator) */
 	char *msg_b; /* Message start (expanded format string) */
 }
-zf_log_output_ctx;
+zf_log_message;
 
-typedef void (*zf_log_output_cb)(zf_log_output_ctx *ctx);
+typedef void (*zf_log_output_cb)(zf_log_message *msg);
 
 /* Set output callback function. It will be called for each log line allowed
  * by both current log level and output log level (enabled and turned on).
@@ -654,7 +653,7 @@ static inline void _zf_log_unused(const int dummy, ...) {(void)dummy;}
  *                              ZF_LOG_OUT_STDERR_MASK);
  */
 enum { ZF_LOG_OUT_STDERR_MASK = ZF_LOG_PUT_STD };
-void zf_log_out_stderr_callback(zf_log_output_ctx *const ctx);
+void zf_log_out_stderr_callback(zf_log_message *const msg);
 #define ZF_LOG_OUT_STDERR {ZF_LOG_OUT_STDERR_MASK, zf_log_out_stderr_callback}
 
 #endif

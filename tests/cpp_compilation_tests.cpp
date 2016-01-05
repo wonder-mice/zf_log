@@ -2,7 +2,7 @@
 
 namespace
 {
-	void mock_output_callback(zf_log_output_ctx *)
+	void mock_output_callback(zf_log_message *)
 	{
 	}
 }
