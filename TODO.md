@@ -1,8 +1,6 @@
 Things to do
 ------------
 
-* Add test that zf_log.c could be compiled by C++ compiler as well.
-* Example how to use external format library (e.g. cppformat)
 * Print start address for each line of memory output?
 * Introduce private format_callback which probably will replace put_msg
   This will provide more modular structure and will point out where to
