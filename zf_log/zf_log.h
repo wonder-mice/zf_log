@@ -242,7 +242,6 @@
 	#define _zf_log_write_mem_aux _ZF_LOG_DECOR(_zf_log_write_mem_aux)
 #endif
 
-/* Runtime configuration */
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -251,7 +250,8 @@ extern "C" {
  * Use 0 or empty string to disable (default). Common use is to set it to
  * the process (or build target) name (e.g. to separate client and server
  * processes). Function will NOT copy provided prefix string, but will store the
- * pointer. Hence specified prefix string must remain valid until process exit.
+ * pointer. Hence specified prefix string must remain valid. See
+ * ZF_LOG_DEFINE_TAG_PREFIX for a way to set it before entering main() function.
  */
 void zf_log_set_tag_prefix(const char *const prefix);
 
@@ -268,22 +268,22 @@ void zf_log_set_mem_width(const unsigned w);
  *
  * Log messages that are turned off has low overhead of compare operation and
  * conditional jump. Format arguments are not evaluated. For log messages that
- * are turned on output callback function will be invoked.
+ * are turned on, output callback function will be invoked.
  *
  * Since all log messages that are disabled (below current log level) will be
  * compiled out, only log messages that are enabled will be affected by the
  * output log level.
- *
- * Output log level can be changed at any time during program execution.
  */
 void zf_log_set_output_level(const int lvl);
 
 /* Flags that control what information to include in each log line. Default
  * value is ZF_LOG_PUT_STD and other flags could be used to alter its behavior.
+ * Note on source location (ZF_LOG_PUT_SRC): it will be added only in debug
+ * builds (NDEBUG is not defined).
  */
 enum
 {
-	ZF_LOG_PUT_CTX = 1 << 0, /* put context (time, pid, tid) */
+	ZF_LOG_PUT_CTX = 1 << 0, /* put context (time, pid, tid, log level) */
 	ZF_LOG_PUT_TAG = 1 << 1, /* put tag (including tag prefix) */
 	ZF_LOG_PUT_SRC = 1 << 2, /* put source location (file, line, function) */
 	ZF_LOG_PUT_MSG = 1 << 3, /* put message text */
