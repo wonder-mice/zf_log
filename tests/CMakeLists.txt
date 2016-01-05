@@ -22,10 +22,15 @@ function(add_test_target target)
 	cmake_parse_arguments(arg
 		""
 		""
-		"SOURCES;STD;DEFINES"
+		"SOURCES;CSTD;CXXSTD;DEFINES"
 		${ARGN})
 	add_executable(${target} ${arg_SOURCES})
-	set_property(TARGET ${target} PROPERTY C_STANDARD "${arg_STD}")
+	if(arg_CSTD)
+		set_property(TARGET ${target} PROPERTY C_STANDARD "${arg_CSTD}")
+	endif()
+	if(arg_CXXSTD)
+		set_property(TARGET ${target} PROPERTY CXX_STANDARD "${arg_CXXSTD}")
+	endif()
 	set_property(TARGET ${target} PROPERTY COMPILE_DEFINITIONS "${arg_DEFINES}")
 	target_include_directories(${target} PRIVATE "${PROJECT_SOURCE_DIR}/zf_log")
 	target_link_libraries(${target}  zf_test)
@@ -33,8 +38,8 @@ function(add_test_target target)
 endfunction()
 
 function(add_test_target_group target)
-	add_test_target(${target}_c99 ${ARGN} STD 99)
-	add_test_target(${target}_c11 ${ARGN} STD 11)
+	add_test_target(${target}_c99 ${ARGN} CSTD 99)
+	add_test_target(${target}_c11 ${ARGN} CSTD 11)
 endfunction()
 
 add_test_target_group(log_level_tests_verbose SOURCES log_level_tests.c DEFINES ZF_LOG_LEVEL=ZF_LOG_VERBOSE)
@@ -49,6 +54,8 @@ add_test_target_group(extern_definition_tests SOURCES extern_definition_tests.c)
 add_test_target_group(internals_tests SOURCES internals_tests.c)
 add_test_target_group(log_message_tests SOURCES log_message_tests.c)
 add_test_target_group(decoration_test SOURCES decoration_module.c decoration_main.c)
+add_test_target(cpp_compilation_tests SOURCES cpp_compilation_tests.cpp CXXSTD 11)
+add_test_target(cpp_extern_definition_tests SOURCES cpp_extern_definition_tests.cpp CXXSTD 11)
 
 # generated code size tests
 add_executable(filesize_check filesize_check.c)
