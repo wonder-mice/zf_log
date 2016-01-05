@@ -314,7 +314,6 @@ typedef void (*zf_log_output_cb)(zf_log_message *msg);
  * before callback function is invoked. Default mask value is ZF_LOG_PUT_STD.
  *
  * String inside buffer is UTF-8 encoded (no BOM mark).
- * FIXME: rename to zf_log_set_output()
  */
 void zf_log_set_output_callback(const unsigned mask, const zf_log_output_cb cb);
 
