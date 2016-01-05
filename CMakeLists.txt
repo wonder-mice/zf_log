@@ -16,9 +16,10 @@ set(INSTALL_CMAKE_DIR lib/cmake/zf_log CACHE PATH
 option(ZF_LOG_CONFIGURE_INSTALL "Generate install target" ON)
 option(ZF_LOG_EXAMPLES "Build examples" OFF)
 option(ZF_LOG_TESTS "Build tests" OFF)
-option(ZF_LOG_USE_ANDROID_LOG "Android log support" OFF)
-option(ZF_LOG_USE_NSLOG "NSLog support (Apple platforms)" OFF)
-option(ZF_LOG_USE_DEBUGSTRING "OutputDebugString support (Windows)" OFF)
+option(ZF_LOG_USE_ANDROID_LOG "Use Android log by defaul when available" OFF)
+option(ZF_LOG_USE_NSLOG "Use NSLog (Apple System Log) by default when available" OFF)
+option(ZF_LOG_USE_DEBUGSTRING "Use OutputDebugString (Windows) by default when available" OFF)
+option(ZF_LOG_OPTIMIZE_SIZE "Optimize for size (prefer size over speed)" OFF)
 
 add_subdirectory(zf_log)
 
