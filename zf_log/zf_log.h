@@ -331,13 +331,12 @@ typedef struct zf_log_output
 }
 zf_log_output;
 
-//FIXME: rename to zf_log_spec
-typedef struct zf_log_instance
+typedef struct zf_log_spec
 {
 	const zf_log_format *format; /* Bytes per line in memory (ASCII-HEX) dump */
 	const zf_log_output *output;
 }
-zf_log_instance;
+zf_log_spec;
 
 #ifdef __cplusplus
 }
@@ -405,13 +404,13 @@ void _zf_log_write_d(
 		const char *const fmt, ...) _ZF_LOG_PRINTFLIKE(6, 7);
 void _zf_log_write_aux_d(
 		const char *const func, const char *const file, const unsigned line,
-		const zf_log_instance *const log, const int lvl, const char *const tag,
+		const zf_log_spec *const log, const int lvl, const char *const tag,
 		const char *const fmt, ...) _ZF_LOG_PRINTFLIKE(7, 8);
 void _zf_log_write(
 		const int lvl, const char *const tag,
 		const char *const fmt, ...) _ZF_LOG_PRINTFLIKE(3, 4);
 void _zf_log_write_aux(
-		const zf_log_instance *const log, const int lvl, const char *const tag,
+		const zf_log_spec *const log, const int lvl, const char *const tag,
 		const char *const fmt, ...) _ZF_LOG_PRINTFLIKE(4, 5);
 void _zf_log_write_mem_d(
 		const char *const func, const char *const file, const unsigned line,
@@ -420,7 +419,7 @@ void _zf_log_write_mem_d(
 		const char *const fmt, ...) _ZF_LOG_PRINTFLIKE(8, 9);
 void _zf_log_write_mem_aux_d(
 		const char *const func, const char *const file, const unsigned line,
-		const zf_log_instance *const log, const int lvl, const char *const tag,
+		const zf_log_spec *const log, const int lvl, const char *const tag,
 		const void *const d, const unsigned d_sz,
 		const char *const fmt, ...) _ZF_LOG_PRINTFLIKE(9, 10);
 void _zf_log_write_mem(
@@ -428,7 +427,7 @@ void _zf_log_write_mem(
 		const void *const d, const unsigned d_sz,
 		const char *const fmt, ...) _ZF_LOG_PRINTFLIKE(5, 6);
 void _zf_log_write_mem_aux(
-		const zf_log_instance *const log, const int lvl, const char *const tag,
+		const zf_log_spec *const log, const int lvl, const char *const tag,
 		const void *const d, const unsigned d_sz,
 		const char *const fmt, ...) _ZF_LOG_PRINTFLIKE(6, 7);
 

@@ -365,7 +365,7 @@ void zf_log_out_stderr_callback(zf_log_message *const msg)
 	ZF_LOG_DEFINE_GLOBAL_OUTPUT_LEVEL = 0;
 #endif
 
-static const zf_log_instance global_spec =
+static const zf_log_spec global_spec =
 {
 	ZF_LOG_GLOBAL_FORMAT,
 	ZF_LOG_GLOBAL_OUTPUT,
@@ -688,7 +688,7 @@ static void put_msg(zf_log_message *const msg,
 	put_nprintf(msg, n);
 }
 
-static void output_mem(const zf_log_instance *log, zf_log_message *const msg,
+static void output_mem(const zf_log_spec *log, zf_log_message *const msg,
 					   const mem_block *const mem)
 {
 	if (0 == mem->d || 0 == mem->d_sz)
@@ -749,7 +749,7 @@ void zf_log_set_output_callback(const unsigned mask, const zf_log_output_cb cb)
 }
 
 static void _zf_log_write_imp(
-		const zf_log_instance *log,
+		const zf_log_spec *log,
 		const src_location *const src, const mem_block *const mem,
 		const int lvl, const char *const tag, const char *const fmt, va_list va)
 {
@@ -796,7 +796,7 @@ void _zf_log_write_d(
 
 void _zf_log_write_aux_d(
 		const char *const func, const char *const file, const unsigned line,
-		const zf_log_instance *const log, const int lvl, const char *const tag,
+		const zf_log_spec *const log, const int lvl, const char *const tag,
 		const char *const fmt, ...)
 {
 	const src_location src = {func, file, line};
@@ -816,7 +816,7 @@ void _zf_log_write(const int lvl, const char *const tag,
 }
 
 void _zf_log_write_aux(
-		const zf_log_instance *const log, const int lvl, const char *const tag,
+		const zf_log_spec *const log, const int lvl, const char *const tag,
 		const char *const fmt, ...)
 {
 	va_list va;
@@ -841,7 +841,7 @@ void _zf_log_write_mem_d(
 
 void _zf_log_write_mem_aux_d(
 		const char *const func, const char *const file, const unsigned line,
-		const zf_log_instance *const log, const int lvl, const char *const tag,
+		const zf_log_spec *const log, const int lvl, const char *const tag,
 		const void *const d, const unsigned d_sz,
 		const char *const fmt, ...)
 {
@@ -865,7 +865,7 @@ void _zf_log_write_mem(const int lvl, const char *const tag,
 }
 
 void _zf_log_write_mem_aux(
-		const zf_log_instance *const log, const int lvl, const char *const tag,
+		const zf_log_spec *const log, const int lvl, const char *const tag,
 		const void *const d, const unsigned d_sz,
 		const char *const fmt, ...)
 {
