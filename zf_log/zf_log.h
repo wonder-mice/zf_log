@@ -531,7 +531,7 @@ void _zf_log_write_mem_aux(
 	#define _ZF_LOG_AUX_IMP(log, lvl, tag, ...) \
 			do { \
 				if (ZF_LOG_ON(lvl)) \
-					_zf_log_write_d(__FUNCTION__, __FILE__, __LINE__, \
+					_zf_log_write_aux_d(__FUNCTION__, __FILE__, __LINE__, \
 							log, lvl, tag, __VA_ARGS__); \
 			} while (0)
 	#define _ZF_LOG_MEM_AUX_IMP(log, lvl, tag, d, d_sz, ...) \
