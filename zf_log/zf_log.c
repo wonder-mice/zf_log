@@ -303,7 +303,7 @@ static INSTRUMENTED_CONST buffer_cb g_buffer_cb = buffer_callback;
 		}
 	}
 
-	void out_nslog_callback(zf_log_message *const msg)
+	static void out_nslog_callback(zf_log_message *const msg)
 	{
 		*msg->p = 0;
 		CFLog(apple_lvl(msg->lvl), CFSTR("%s"), msg->tag_b);
@@ -316,7 +316,7 @@ static INSTRUMENTED_CONST buffer_cb g_buffer_cb = buffer_callback;
 #if ZF_LOG_USE_DEBUGSTRING
 	#include <windows.h>
 
-	void out_debugstring_callback(zf_log_message *const msg)
+	static void out_debugstring_callback(zf_log_message *const msg)
 	{
 		*msg->p = 0;
 		OutputDebugStringA(msg->buf);
@@ -341,6 +341,8 @@ void zf_log_out_stderr_callback(zf_log_message *const msg)
 #endif
 }
 
+static const zf_log_output out_stderr = ZF_LOG_OUT_STDERR;
+
 #if !ZF_LOG_EXTERN_TAG_PREFIX
 	ZF_LOG_DEFINE_TAG_PREFIX = 0;
 #endif
@@ -364,6 +366,12 @@ void zf_log_out_stderr_callback(zf_log_message *const msg)
 #if !ZF_LOG_EXTERN_GLOBAL_OUTPUT_LEVEL
 	ZF_LOG_DEFINE_GLOBAL_OUTPUT_LEVEL = 0;
 #endif
+
+const zf_log_spec _zf_log_stderr_spec =
+{
+	ZF_LOG_GLOBAL_FORMAT,
+	&out_stderr,
+};
 
 static const zf_log_spec global_spec =
 {

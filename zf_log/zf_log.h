@@ -240,6 +240,7 @@
 	#define _zf_log_write_mem_aux_d _ZF_LOG_DECOR(_zf_log_write_mem_aux_d)
 	#define _zf_log_write_mem _ZF_LOG_DECOR(_zf_log_write_mem)
 	#define _zf_log_write_mem_aux _ZF_LOG_DECOR(_zf_log_write_mem_aux)
+	#define _zf_log_stderr_spec _ZF_LOG_DECOR(_zf_log_stderr_spec)
 #endif
 
 #ifdef __cplusplus
@@ -409,6 +410,7 @@ extern const char *_zf_log_tag_prefix;
 extern zf_log_format _zf_log_global_format;
 extern zf_log_output _zf_log_global_output;
 extern int _zf_log_global_output_lvl;
+extern const zf_log_spec _zf_log_stderr_spec;
 
 void _zf_log_write_d(
 		const char *const func, const char *const file, const unsigned line,
@@ -650,6 +652,10 @@ static inline void _zf_log_unused(const int dummy, ...) {(void)dummy;}
 #define ZF_LOGE_STR(s) ZF_LOGE("%s", (s))
 #define ZF_LOGF_STR(s) ZF_LOGF("%s", (s))
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* Output to standard error stream. Library uses it by default, though in few
  * cases it could be necessary to specify it explicitly. For example, when
  * zf_log library is compiled with ZF_LOG_EXTERN_GLOBAL_OUTPUT, application must
@@ -666,5 +672,17 @@ static inline void _zf_log_unused(const int dummy, ...) {(void)dummy;}
 enum { ZF_LOG_OUT_STDERR_MASK = ZF_LOG_PUT_STD };
 void zf_log_out_stderr_callback(zf_log_message *const msg);
 #define ZF_LOG_OUT_STDERR {ZF_LOG_OUT_STDERR_MASK, zf_log_out_stderr_callback}
+
+/* Predefined spec for stderr. Could be used to force output to stderr. Example:
+ *
+ *   f = fopen("foo.log", "w");
+ *   if (!f)
+ *       ZF_LOGE_AUX(ZF_LOG_STDERR, "Failed to open log file");
+ */
+#define ZF_LOG_STDERR (&_zf_log_stderr_spec)
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
