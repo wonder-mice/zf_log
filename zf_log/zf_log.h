@@ -38,7 +38,8 @@
  * - ZF_LOG_VERBOSE - all other events. Usually disabled in release builds.
  *
  * *Ideally*, log file of debugged, well tested, production ready application
- * should be empty or very small.
+ * should be empty or very small. Choosing a right log level is as important as
+ * providing short and self descriptive log message.
  */
 #define ZF_LOG_VERBOSE 1
 #define ZF_LOG_DEBUG   2
@@ -59,7 +60,7 @@
  * - ZF_LOG_LEVEL - overrides current log level. Only messages with that level
  *   and higher will be logged.
  *
- * Common pattern is to define ZF_LOG_DEF_LEVEL in the build script (e.g.
+ * Common practice is to define ZF_LOG_DEF_LEVEL in the build script (e.g.
  * Makefile, CMakeLists.txt) for the entire project/target:
  *
  *   CC_ARGS := -DZF_LOG_DEF_LEVEL=ZF_LOG_WARN
@@ -92,7 +93,7 @@
 /* Output log level override. For more details about output log level, see
  * zf_log_set_output_level() function. When defined, must evaluate to integral
  * value that corresponds to desired output log level. That doesn't have to be a
- * constant value. On the contrary, the intended usecase is to allow different
+ * constant value. On the contrary, the intended use case is to allow different
  * output log levels between modules. Use it only when module is required to
  * have different output log level configurable in runtime. For other cases,
  * consider defining ZF_LOG_LEVEL or using zf_log_set_output_level() function.
@@ -172,6 +173,9 @@
  * define and initialize zf_log variables outside of the library. Such
  * initialization will be performed at compile-time and will not have run-time
  * overhead. Also it allows to avoid initialization code inside main() function.
+ * That means that logging could be used even before entering main() function,
+ * for example in global object constructors or in global variable
+ * initialization functions (C++ features).
  * To use that, library must be compiled with following macros defined:
  * - ZF_LOG_EXTERN_TAG_PREFIX for ZF_LOG_DEFINE_TAG_PREFIX
  * - ZF_LOG_EXTERN_GLOBAL_FORMAT for ZF_LOG_DEFINE_GLOBAL_FORMAT
@@ -186,7 +190,7 @@
  *
  * When zf_log library compiled with one of ZF_LOG_EXTERN_XXX macros defined,
  * corresponding ZF_LOG_DEFINE_XXX macro MUST be used exactly once somewhere.
- * Otherwise it will result in link error.
+ * Otherwise it will result in link error (undefined symbol).
  */
 #define ZF_LOG_DEFINE_TAG_PREFIX const char *_zf_log_tag_prefix
 #define ZF_LOG_DEFINE_GLOBAL_FORMAT zf_log_format _zf_log_global_format
