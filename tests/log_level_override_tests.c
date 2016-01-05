@@ -3,10 +3,6 @@
 #include <zf_log.c>
 #include <zf_test.h>
 
-#ifndef _countof
-	#define _countof(xs) (sizeof(xs) / sizeof((xs)[0]))
-#endif
-
 static const int c_levels[] =
 {
 	ZF_LOG_VERBOSE,

@@ -9,10 +9,6 @@
 #include <stddef.h>
 #include <string.h>
 
-#ifndef _countof
-	#define _countof(a) (sizeof(a) / sizeof(*a))
-#endif
-
 #define ASSERT_FITS(s) \
 	((sizeof((s)) < ZF_LOG_BUF_SZ)? (s): ((char **)0)[0])
 

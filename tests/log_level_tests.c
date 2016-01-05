@@ -6,10 +6,6 @@
 #include <string.h>
 #include <stdbool.h>
 
-#ifndef _countof
-	#define _countof(xs) (sizeof(xs) / sizeof((xs)[0]))
-#endif
-
 static int g_output_lvl_used;
 static unsigned g_output_called;
 static unsigned g_arg_called;
