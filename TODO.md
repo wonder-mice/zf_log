@@ -1,6 +1,8 @@
 Things to do
 ------------
 
+* Add callback arg to output callback
+* Update README, it sucks now
 * Print start address for each line of memory output?
 * Introduce private format_callback which probably will replace put_msg
   This will provide more modular structure and will point out where to
