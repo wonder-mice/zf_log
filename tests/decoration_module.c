@@ -6,7 +6,7 @@
 
 static int module_called;
 
-static void module_output_callback(zf_log_message *msg)
+static void module_output_callback(const zf_log_message *msg)
 {
 	if (strncmp("module", msg->msg_b, (size_t)(msg->p - msg->msg_b)))
 	{
@@ -18,7 +18,7 @@ static void module_output_callback(zf_log_message *msg)
 
 void test_module()
 {
-	zf_log_set_output_callback(ZF_LOG_PUT_STD, module_output_callback);
+	zf_log_set_output_v(ZF_LOG_PUT_STD, module_output_callback, 0);
 	ZF_LOGI("module");
 	if (!module_called)
 	{

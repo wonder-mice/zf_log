@@ -274,7 +274,7 @@ static INSTRUMENTED_CONST buffer_cb g_buffer_cb = buffer_callback;
 	}
 
 	enum { OUT_ANDROID_MASK = ZF_LOG_PUT_STD & ~ZF_LOG_PUT_CTX };
-	#define OUT_ANDROID {OUT_ANDROID_MASK, out_android_callback}
+	#define OUT_ANDROID OUT_ANDROID_MASK, out_android_callback, 0
 #endif
 
 #if ZF_LOG_USE_NSLOG
@@ -310,7 +310,7 @@ static INSTRUMENTED_CONST buffer_cb g_buffer_cb = buffer_callback;
 	}
 
 	enum { OUT_NSLOG_MASK = ZF_LOG_PUT_STD & ~ZF_LOG_PUT_CTX };
-	#define OUT_NSLOG {OUT_NSLOG_MASK, out_nslog_callback}
+	#define OUT_NSLOG OUT_NSLOG_MASK, out_nslog_callback, 0
 #endif
 
 #if ZF_LOG_USE_DEBUGSTRING
@@ -323,10 +323,10 @@ static INSTRUMENTED_CONST buffer_cb g_buffer_cb = buffer_callback;
 	}
 
 	enum { OUT_DEBUGSTRING_MASK = ZF_LOG_PUT_STD };
-	#define OUT_DEBUGSTRING {OUT_DEBUGSTRING_MASK, out_debugstring_callback}
+	#define OUT_DEBUGSTRING OUT_DEBUGSTRING_MASK, out_debugstring_callback, 0
 #endif
 
-void zf_log_out_stderr_callback(zf_log_message *const msg)
+void zf_log_out_stderr_callback(const zf_log_message *const msg)
 {
 	const unsigned eol_len = sizeof(ZF_LOG_EOL) - 1;
 	memcpy(msg->p, ZF_LOG_EOL, eol_len);
@@ -341,7 +341,7 @@ void zf_log_out_stderr_callback(zf_log_message *const msg)
 #endif
 }
 
-static const zf_log_output out_stderr = ZF_LOG_OUT_STDERR;
+static const zf_log_output out_stderr = {ZF_LOG_OUT_STDERR};
 
 #if !ZF_LOG_EXTERN_TAG_PREFIX
 	ZF_LOG_DEFINE_TAG_PREFIX = 0;
@@ -353,13 +353,13 @@ static const zf_log_output out_stderr = ZF_LOG_OUT_STDERR;
 
 #if !ZF_LOG_EXTERN_GLOBAL_OUTPUT
 	#if ZF_LOG_USE_ANDROID_LOG
-		ZF_LOG_DEFINE_GLOBAL_OUTPUT = OUT_ANDROID;
+		ZF_LOG_DEFINE_GLOBAL_OUTPUT = {OUT_ANDROID};
 	#elif ZF_LOG_USE_NSLOG
-		ZF_LOG_DEFINE_GLOBAL_OUTPUT = OUT_NSLOG;
+		ZF_LOG_DEFINE_GLOBAL_OUTPUT = {OUT_NSLOG};
 	#elif ZF_LOG_USE_DEBUGSTRING
 		ZF_LOG_DEFINE_GLOBAL_OUTPUT = OUT_DEBUGSTRING;
 	#else
-		ZF_LOG_DEFINE_GLOBAL_OUTPUT = ZF_LOG_OUT_STDERR;
+		ZF_LOG_DEFINE_GLOBAL_OUTPUT = {ZF_LOG_OUT_STDERR};
 	#endif
 #endif
 
@@ -731,7 +731,7 @@ static void output_mem(const zf_log_spec *log, zf_log_message *const msg,
 			*hex++ = ' ';
 		}
 		msg->p = ascii;
-		log->output->output_cb(msg);
+		log->output->callback(msg);
 	}
 }
 
@@ -750,10 +750,12 @@ void zf_log_set_output_level(const int lvl)
 	_zf_log_global_output_lvl = lvl;
 }
 
-void zf_log_set_output_callback(const unsigned mask, const zf_log_output_cb cb)
+void zf_log_set_output_v(const unsigned mask, const zf_log_output_cb callback,
+						 void *const arg)
 {
-	_zf_log_global_output.put_mask = mask;
-	_zf_log_global_output.output_cb = cb;
+	_zf_log_global_output.mask = mask;
+	_zf_log_global_output.callback = callback;
+	_zf_log_global_output.arg = arg;
 }
 
 static void _zf_log_write_imp(
@@ -763,28 +765,29 @@ static void _zf_log_write_imp(
 {
 	zf_log_message msg;
 	char buf[ZF_LOG_BUF_SZ];
-	const unsigned put_mask = log->output->put_mask;
+	const unsigned mask = log->output->mask;
 	msg.lvl = lvl;
 	msg.tag = tag;
+	msg.arg = log->output->arg;
 	g_buffer_cb(&msg, buf);
-	if (ZF_LOG_PUT_CTX & put_mask)
+	if (ZF_LOG_PUT_CTX & mask)
 	{
 		put_ctx(&msg);
 	}
-	if (ZF_LOG_PUT_TAG & put_mask)
+	if (ZF_LOG_PUT_TAG & mask)
 	{
 		put_tag(&msg, tag);
 	}
-	if (0 != src && ZF_LOG_PUT_SRC & put_mask)
+	if (0 != src && ZF_LOG_PUT_SRC & mask)
 	{
 		put_src(&msg, src);
 	}
-	if (ZF_LOG_PUT_MSG & put_mask)
+	if (ZF_LOG_PUT_MSG & mask)
 	{
 		put_msg(&msg, fmt, va);
 	}
-	log->output->output_cb(&msg);
-	if (0 != mem && ZF_LOG_PUT_MSG & put_mask)
+	log->output->callback(&msg);
+	if (0 != mem && ZF_LOG_PUT_MSG & mask)
 	{
 		output_mem(log, &msg, mem);
 	}

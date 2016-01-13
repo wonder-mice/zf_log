@@ -91,7 +91,7 @@ static void mock_buffer_callback(zf_log_message *msg, char *buf)
 	buffer_callback(msg, buf);
 }
 
-static void mock_output_callback(zf_log_message *msg)
+static void mock_output_callback(const zf_log_message *msg)
 {
 	const size_t i = g_line++;
 	if (MAX_LINES <= i)
@@ -198,7 +198,7 @@ int main(int argc, char *argv[])
 	g_time_cb = mock_time_callback;
 	g_pid_cb = mock_pid_callback;
 	g_buffer_cb = mock_buffer_callback;
-	zf_log_set_output_callback(ZF_LOG_PUT_STD, mock_output_callback);
+	zf_log_set_output_v(ZF_LOG_PUT_STD, mock_output_callback, 0);
 	zf_log_set_tag_prefix("prefix");
 
 	test_msg_output();

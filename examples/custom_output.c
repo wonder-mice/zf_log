@@ -32,7 +32,7 @@ static int syslog_level(const int lvl)
 }
 #endif
 
-static void custom_output_callback(zf_log_message *msg)
+static void custom_output_callback(const zf_log_message *msg)
 {
 	/* p points to the log message end. By default, message is not terminated
 	 * with 0, but it has some space allocated for EOL area, so there is always
@@ -62,7 +62,7 @@ int main(int argc, char *argv[])
 			ZF_LOG_PUT_STD;
 #endif
 			;
-	zf_log_set_output_callback(put_mask, custom_output_callback);
+	zf_log_set_output_v(put_mask, custom_output_callback, 0);
 
 	ZF_LOGI("Number of arguments goes into custom output: %i", argc);
 	ZF_LOGI_MEM(argv, argc * sizeof(*argv), "and argv pointers as well:");

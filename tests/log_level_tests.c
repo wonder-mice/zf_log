@@ -30,7 +30,7 @@ static void reset()
 	zf_log_set_output_level(0);
 }
 
-static void mock_output_callback(zf_log_message *msg)
+static void mock_output_callback(const zf_log_message *msg)
 {
 	g_output_lvl_used = msg->lvl;
 	g_msg_len = (unsigned)(msg->p - msg->buf);
@@ -205,7 +205,7 @@ static void test_level_checks()
 
 int main(int argc, char *argv[])
 {
-	zf_log_set_output_callback(ZF_LOG_PUT_STD, mock_output_callback);
+	zf_log_set_output_v(ZF_LOG_PUT_STD, mock_output_callback, 0);
 	TEST_RUNNER_CREATE(argc, argv);
 
 	TEST_EXECUTE(test_current_level());

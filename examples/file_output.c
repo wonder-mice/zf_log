@@ -7,7 +7,7 @@
 
 FILE *g_log_file;
 
-static void file_output_callback(zf_log_message *msg)
+static void file_output_callback(const zf_log_message *msg)
 {
 	*msg->p = '\n';
 	fwrite(msg->buf, msg->p - msg->buf + 1, 1, g_log_file);
@@ -28,7 +28,7 @@ static void file_output_open(const char *const log_path)
 		return;
 	}
 	atexit(file_output_close);
-	zf_log_set_output_callback(ZF_LOG_PUT_STD, file_output_callback);
+	zf_log_set_output_v(ZF_LOG_PUT_STD, file_output_callback, 0);
 }
 
 int main(int argc, char *argv[])

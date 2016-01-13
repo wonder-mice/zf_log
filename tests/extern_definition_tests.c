@@ -6,7 +6,7 @@
 #include "zf_test.h"
 
 enum { MEM_WIDTH = 8 };
-static void mock_output_callback(zf_log_message *msg);
+static void mock_output_callback(const zf_log_message *msg);
 
 ZF_LOG_DEFINE_TAG_PREFIX = "MOCK_PREFIX";
 ZF_LOG_DEFINE_GLOBAL_FORMAT =
@@ -16,11 +16,12 @@ ZF_LOG_DEFINE_GLOBAL_FORMAT =
 ZF_LOG_DEFINE_GLOBAL_OUTPUT =
 {
 	0xcafebabe,
-	mock_output_callback
+	mock_output_callback,
+	(void *)0xfafacaca
 };
 ZF_LOG_DEFINE_GLOBAL_OUTPUT_LEVEL = 0xdeadbeef;
 
-static void mock_output_callback(zf_log_message *msg)
+static void mock_output_callback(const zf_log_message *msg)
 {
 	(void)msg;
 }
@@ -29,8 +30,9 @@ static void test_static_initialization()
 {
 	TEST_VERIFY_TRUE(0 == strcmp(_zf_log_tag_prefix, "MOCK_PREFIX"));
 	TEST_VERIFY_EQUAL(_zf_log_global_format.mem_width, 0xc0defade);
-	TEST_VERIFY_EQUAL(_zf_log_global_output.put_mask, 0xcafebabe);
-	TEST_VERIFY_EQUAL(_zf_log_global_output.output_cb, mock_output_callback);
+	TEST_VERIFY_EQUAL(_zf_log_global_output.mask, 0xcafebabe);
+	TEST_VERIFY_EQUAL(_zf_log_global_output.callback, mock_output_callback);
+	TEST_VERIFY_EQUAL(_zf_log_global_output.arg, (void *)0xfafacaca);
 	TEST_VERIFY_EQUAL(_zf_log_global_output_lvl, (int)0xdeadbeef);
 	TEST_VERIFY_EQUAL(ZF_LOG_GLOBAL_FORMAT, &_zf_log_global_format);
 	TEST_VERIFY_EQUAL(ZF_LOG_GLOBAL_OUTPUT, &_zf_log_global_output);
