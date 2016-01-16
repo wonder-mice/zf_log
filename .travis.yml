@@ -16,6 +16,23 @@ matrix:
   - os: linux
     dist: trusty
     sudo: required
+    compiler: clang
+    OPTIONS="-DZF_LOG_EXAMPLES:bool=ON -DZF_LOG_TESTS:bool=ON -DCMAKE_BUILD_TYPE:string=Debug"
+  - os: linux
+    dist: trusty
+    sudo: required
+    compiler: clang
+    OPTIONS="-DZF_LOG_EXAMPLES:bool=ON -DZF_LOG_TESTS:bool=ON -DCMAKE_BUILD_TYPE:string=Release"
+  - os: linux
+    dist: trusty
+    sudo: required
+    compiler: gcc
+    OPTIONS="-DZF_LOG_EXAMPLES:bool=ON -DZF_LOG_TESTS:bool=ON -DCMAKE_BUILD_TYPE:string=Debug"
+  - os: linux
+    dist: trusty
+    sudo: required
+    compiler: gcc
+    OPTIONS="-DZF_LOG_EXAMPLES:bool=ON -DZF_LOG_TESTS:bool=ON -DCMAKE_BUILD_TYPE:string=Release"
 
 install: true
 
