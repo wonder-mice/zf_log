@@ -268,7 +268,7 @@ void _zf_log_write_mem(const int lvl, const char *const tag,
 			} _ZF_LOG_ONCE
 #endif
 
-static inline void _zf_log_unused(const int dummy, ...) {(void)dummy;}
+static _ZF_LOG_INLINE void _zf_log_unused(const int dummy, ...) {(void)dummy;}
 
 #define _ZF_LOG_UNUSED(...) \
 		do { _ZF_LOG_NEVER _zf_log_unused(0, __VA_ARGS__); } _ZF_LOG_ONCE
