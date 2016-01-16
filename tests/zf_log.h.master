@@ -187,6 +187,24 @@ void zf_log_set_output_callback(const zf_log_output_cb cb);
 	#define _ZF_LOG_PRINTFLIKE(a, b)
 #endif
 
+#if defined(_MSC_VER) && !defined(__INTEL_COMPILER)
+	#define _ZF_LOG_INLINE __inline
+	#define _ZF_LOG_ONCE \
+		__pragma(warning(push)) \
+		__pragma(warning(disable:4127)) \
+		while(0) \
+		__pragma(warning(pop))
+	#define _ZF_LOG_NEVER \
+		__pragma(warning(push)) \
+		__pragma(warning(disable:4127)) \
+		if(0) \
+		__pragma(warning(pop))
+#else
+	#define _ZF_LOG_INLINE inline
+	#define _ZF_LOG_ONCE while(0)
+	#define _ZF_LOG_NEVER if(0)
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -229,31 +247,31 @@ void _zf_log_write_mem(const int lvl, const char *const tag,
 			do { \
 				if (ZF_LOG_OUTPUT(lvl)) \
 					_zf_log_write(lvl, tag, __VA_ARGS__); \
-			} while (0)
+			} _ZF_LOG_ONCE
 	#define _ZF_LOG_MEM_IMP(lvl, tag, d, d_sz, ...) \
 			do { \
 				if (ZF_LOG_OUTPUT(lvl)) \
 					_zf_log_write_mem(lvl, tag, d, d_sz, __VA_ARGS__); \
-			} while (0)
+			} _ZF_LOG_ONCE
 #else
 	#define _ZF_LOG_IMP(lvl, tag, ...) \
 			do { \
 				if (ZF_LOG_OUTPUT(lvl)) \
 					_zf_log_write_d(__FUNCTION__, __FILE__, __LINE__, \
 							lvl, tag, __VA_ARGS__); \
-			} while (0)
+			} _ZF_LOG_ONCE
 	#define _ZF_LOG_MEM_IMP(lvl, tag, d, d_sz, ...) \
 			do { \
 				if (ZF_LOG_OUTPUT(lvl)) \
 					_zf_log_write_mem_d(__FUNCTION__, __FILE__, __LINE__, \
 							lvl, tag, d, d_sz, __VA_ARGS__); \
-			} while (0)
+			} _ZF_LOG_ONCE
 #endif
 
 static inline void _zf_log_unused(const int dummy, ...) {(void)dummy;}
 
 #define _ZF_LOG_UNUSED(...) \
-		do { if (0) _zf_log_unused(0, __VA_ARGS__); } while (0)
+		do { _ZF_LOG_NEVER _zf_log_unused(0, __VA_ARGS__); } _ZF_LOG_ONCE
 
 #if ZF_LOG_ALLOW_VERBOSE
 	#define ZF_LOGV(...) \
