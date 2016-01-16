@@ -30,8 +30,10 @@ environment:
     OPTIONS: -DZF_LOG_EXAMPLES:bool=ON -DZF_LOG_TESTS:bool=ON -DZF_LOG_OPTIMIZE_SIZE:bool=ON
 
 build_script:
-  - cmake "-G%GENERATOR%" %OPTIONS% -Bbuild.msvc .
-  - cmake --build build.msvc --config "%CONFIG%"
+  - ps: mkdir build.msvc
+  - ps: cd build.msvc
+  - cmake "-G%GENERATOR%" %OPTIONS% ..
+  - cmake --build --config "%CONFIG%" .
 
 test_script:
   - ps: cd build.msvc
