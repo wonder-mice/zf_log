@@ -1,21 +1,38 @@
+version: 1.3.{build}
+
+build:
+  parallel: true
+
 environment:
   matrix:
   - GENERATOR: "Visual Studio 12"
     CONFIG: Debug
+    OPTIONS: -DZF_LOG_EXAMPLES -DZF_LOG_TESTS
 
   - GENERATOR: "Visual Studio 12"
     CONFIG: Release
+    OPTIONS: -DZF_LOG_EXAMPLES -DZF_LOG_TESTS
 
   - GENERATOR: "Visual Studio 12 Win64"
     CONFIG: Debug
+    OPTIONS: -DZF_LOG_EXAMPLES -DZF_LOG_TESTS
 
   - GENERATOR: "Visual Studio 12 Win64"
     CONFIG: Release
+    OPTIONS: -DZF_LOG_EXAMPLES -DZF_LOG_TESTS
+
+  - GENERATOR: "Visual Studio 12"
+    CONFIG: Release
+    OPTIONS: -DZF_LOG_EXAMPLES -DZF_LOG_TESTS -DZF_LOG_OPTIMIZE_SIZE
+
+  - GENERATOR: "Visual Studio 12 Win64"
+    CONFIG: Release
+    OPTIONS: -DZF_LOG_EXAMPLES -DZF_LOG_TESTS -DZF_LOG_OPTIMIZE_SIZE
 
 build_script:
-  - cmake "-G%GENERATOR%" -H. -B_builds
-  - cmake --build _builds --config "%CONFIG%"
+  - cmake "-G%GENERATOR%" %OPTIONS% -Bbuild.msvc
+  - cmake --build build.msvc --config "%CONFIG%"
 
 test_script:
-  - ps: cd _builds
-  - ctest -VV -C "%CONFIG%"
+  - ps: cd build.msvc
+  - ctest --output-on-failure -C "%CONFIG%"
