@@ -1,14 +1,21 @@
 language: c++
+
 compiler:
 - clang
 - gcc
+
 os:
 - osx
 
 env:
-  matrix:
-    - OPTIONS="-DZF_LOG_EXAMPLES:bool=ON -DZF_LOG_TESTS:bool=ON -DCMAKE_BUILD_TYPE:string=Debug"
-    - OPTIONS="-DZF_LOG_EXAMPLES:bool=ON -DZF_LOG_TESTS:bool=ON -DCMAKE_BUILD_TYPE:string=Release"
+  - OPTIONS="-DZF_LOG_EXAMPLES:bool=ON -DZF_LOG_TESTS:bool=ON -DCMAKE_BUILD_TYPE:string=Debug"
+  - OPTIONS="-DZF_LOG_EXAMPLES:bool=ON -DZF_LOG_TESTS:bool=ON -DCMAKE_BUILD_TYPE:string=Release"
+
+matrix:
+  include:
+  - os: linux
+    dist: trusty
+    sudo: required
 
 install: true
 
