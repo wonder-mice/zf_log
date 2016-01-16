@@ -3,15 +3,7 @@ version: 1.3.{build}
 environment:
   matrix:
   - GENERATOR: "Visual Studio 12"
-    CONFIG: Debug
-    OPTIONS: -DZF_LOG_EXAMPLES:bool=ON -DZF_LOG_TESTS:bool=ON
-
-  - GENERATOR: "Visual Studio 12"
     CONFIG: Release
-    OPTIONS: -DZF_LOG_EXAMPLES:bool=ON -DZF_LOG_TESTS:bool=ON
-
-  - GENERATOR: "Visual Studio 12 Win64"
-    CONFIG: Debug
     OPTIONS: -DZF_LOG_EXAMPLES:bool=ON -DZF_LOG_TESTS:bool=ON
 
   - GENERATOR: "Visual Studio 12 Win64"
