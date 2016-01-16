@@ -1,0 +1,20 @@
+language: c++
+compiler:
+- clang
+- gcc
+os:
+- linux
+- osx
+
+env:
+  matrix:
+    - OPTIONS="-DZF_LOG_EXAMPLES:bool=ON -DZF_LOG_TESTS:bool=ON -DCMAKE_BUILD_TYPE:string=Debug"
+    - OPTIONS="-DZF_LOG_EXAMPLES:bool=ON -DZF_LOG_TESTS:bool=ON -DCMAKE_BUILD_TYPE:string=Release"
+os:
+  - linux
+  - osx
+
+install: true
+
+script:
+  - mkdir build.make && cd build.make && cmake ${OPTIONS} .. && cmake --build . && ctest --output-on-failure
