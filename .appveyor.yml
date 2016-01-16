@@ -5,18 +5,30 @@ environment:
   - GENERATOR: "Visual Studio 12"
     CONFIG: Release
     OPTIONS: -DZF_LOG_EXAMPLES:bool=ON -DZF_LOG_TESTS:bool=ON
+  - GENERATOR: "Visual Studio 12"
+    CONFIG: Debug
+    OPTIONS: -DZF_LOG_EXAMPLES:bool=ON -DZF_LOG_TESTS:bool=ON
 
   - GENERATOR: "Visual Studio 12 Win64"
     CONFIG: Release
     OPTIONS: -DZF_LOG_EXAMPLES:bool=ON -DZF_LOG_TESTS:bool=ON
-
-  - GENERATOR: "Visual Studio 12"
-    CONFIG: Release
-    OPTIONS: -DZF_LOG_EXAMPLES:bool=ON -DZF_LOG_TESTS:bool=ON -DZF_LOG_OPTIMIZE_SIZE:bool=ON
-
   - GENERATOR: "Visual Studio 12 Win64"
+    CONFIG: Debug
+    OPTIONS: -DZF_LOG_EXAMPLES:bool=ON -DZF_LOG_TESTS:bool=ON
+
+  - GENERATOR: "Visual Studio 14"
     CONFIG: Release
-    OPTIONS: -DZF_LOG_EXAMPLES:bool=ON -DZF_LOG_TESTS:bool=ON -DZF_LOG_OPTIMIZE_SIZE:bool=ON
+    OPTIONS: -DZF_LOG_EXAMPLES:bool=ON -DZF_LOG_TESTS:bool=ON
+  - GENERATOR: "Visual Studio 14"
+    CONFIG: Debug
+    OPTIONS: -DZF_LOG_EXAMPLES:bool=ON -DZF_LOG_TESTS:bool=ON
+
+  - GENERATOR: "Visual Studio 14 Win64"
+    CONFIG: Release
+    OPTIONS: -DZF_LOG_EXAMPLES:bool=ON -DZF_LOG_TESTS:bool=ON
+  - GENERATOR: "Visual Studio 14 Win64"
+    CONFIG: Debug
+    OPTIONS: -DZF_LOG_EXAMPLES:bool=ON -DZF_LOG_TESTS:bool=ON
 
 build_script:
   - ps: mkdir build.msvc
