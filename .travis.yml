@@ -17,4 +17,5 @@ os:
 install: true
 
 script:
+  - find . -name "CMakeLists.txt" -exec sed -i .bak -e "s/VERSION 3.2/VERSION 2.8/g" {} \;
   - mkdir build.make && cd build.make && cmake ${OPTIONS} .. && cmake --build . && ctest --output-on-failure
