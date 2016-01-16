@@ -9,9 +9,15 @@
 #define _ZF_TEST_STRINGIFY(x) _ZF_TEST__STRINGIFY(x)
 #endif
 
+#if defined(_MSC_VER) && !defined(__INTEL_COMPILER)
+	#define _ZF_TEST_INLINE __inline
+#else
+	#define _ZF_TEST_INLINE inline
+#endif
+
 /* Workaround for MSVC warning 4127 about constant expression in if condition.
  */
-static inline bool _zf_test_bool(const bool v)
+static _ZF_TEST_INLINE bool _zf_test_bool(const bool v)
 {
 	return v;
 }
