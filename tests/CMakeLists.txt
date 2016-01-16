@@ -64,10 +64,18 @@ add_executable(filesize_check filesize_check.c)
 set(CODE_SIZE_SOURCE_DIR "${CMAKE_CURRENT_BINARY_DIR}/code_size_tests")
 
 # copy reference zf_log.h to compare with
-add_custom_command(OUTPUT "${CODE_SIZE_SOURCE_DIR}/zf_log.h"
+add_custom_command(OUTPUT "${CODE_SIZE_SOURCE_DIR}/prev/zf_log.h"
 	COMMAND "${CMAKE_COMMAND}" -E copy_if_different
 		"${CMAKE_CURRENT_SOURCE_DIR}/zf_log.h.master"
-		"${CODE_SIZE_SOURCE_DIR}/zf_log.h"
+		"${CODE_SIZE_SOURCE_DIR}/prev/zf_log.h"
+	DEPENDS
+		"${CMAKE_CURRENT_SOURCE_DIR}/zf_log.h.master")
+
+# copy current zf_log.h to compare with
+add_custom_command(OUTPUT "${CODE_SIZE_SOURCE_DIR}/curr/zf_log.h"
+	COMMAND "${CMAKE_COMMAND}" -E copy_if_different
+		"${CMAKE_CURRENT_SOURCE_DIR}/zf_log.h.master"
+		"${CODE_SIZE_SOURCE_DIR}/curr/zf_log.h"
 	DEPENDS
 		"${CMAKE_CURRENT_SOURCE_DIR}/zf_log.h.master")
 
@@ -103,15 +111,15 @@ function(add_code_size_test name)
 			"${CMAKE_CURRENT_SOURCE_DIR}/${name}.c")
 	# prev library
 	add_library(${name}-prev STATIC
-		"${CODE_SIZE_SOURCE_DIR}/zf_log.h"
+		"${CODE_SIZE_SOURCE_DIR}/prev/zf_log.h"
 		"${CODE_SIZE_SOURCE_DIR}/${name}-prev.c")
-	target_include_directories(${name}-prev PRIVATE "${CODE_SIZE_SOURCE_DIR}")
+	target_include_directories(${name}-prev PRIVATE "${CODE_SIZE_SOURCE_DIR}/prev")
 	save_preprocessor_output(${name}-prev)
 	# curr library
 	add_library(${name}-curr STATIC
-		"${PROJECT_SOURCE_DIR}/zf_log/zf_log.h"
+		"${CODE_SIZE_SOURCE_DIR}/curr/zf_log.h"
 		"${CODE_SIZE_SOURCE_DIR}/${name}-curr.c")
-	target_include_directories(${name}-curr PRIVATE "${PROJECT_SOURCE_DIR}/zf_log")
+	target_include_directories(${name}-curr PRIVATE "${CODE_SIZE_SOURCE_DIR}/curr")
 	save_preprocessor_output(${name}-curr)
 	# test case
 	add_dependencies(filesize_check ${name}-prev ${name}-curr)
