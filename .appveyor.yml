@@ -33,5 +33,4 @@ build_script:
   - cmake --build . --config "%CONFIG%"
 
 test_script:
-  - ps: cd build.msvc
   - ctest --output-on-failure -C "%CONFIG%"
