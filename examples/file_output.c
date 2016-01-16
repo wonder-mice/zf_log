@@ -7,8 +7,9 @@
 
 FILE *g_log_file;
 
-static void file_output_callback(const zf_log_message *msg)
+static void file_output_callback(const zf_log_message *msg, void *arg)
 {
+	(void)arg;
 	*msg->p = '\n';
 	fwrite(msg->buf, msg->p - msg->buf + 1, 1, g_log_file);
 	fflush(g_log_file);

@@ -6,8 +6,9 @@
 
 static int module_called;
 
-static void module_output_callback(const zf_log_message *msg)
+static void module_output_callback(const zf_log_message *msg, void *arg)
 {
+	(void)arg;
 	if (strncmp("module", msg->msg_b, (size_t)(msg->p - msg->msg_b)))
 	{
 		fprintf(stderr, "incorrect message in module\n");

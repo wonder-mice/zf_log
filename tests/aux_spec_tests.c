@@ -7,9 +7,9 @@ static const zf_log_spec g_spec =
 	ZF_LOG_GLOBAL_OUTPUT
 };
 
-static void mock_output_callback(const zf_log_message *msg)
+static void mock_output_callback(const zf_log_message *msg, void *arg)
 {
-	(void)msg;
+	(void)msg; (void)arg;
 }
 
 int main(int argc, char *argv[])

@@ -91,8 +91,9 @@ static void mock_buffer_callback(zf_log_message *msg, char *buf)
 	buffer_callback(msg, buf);
 }
 
-static void mock_output_callback(const zf_log_message *msg)
+static void mock_output_callback(const zf_log_message *msg, void *arg)
 {
+	(void)arg;
 	const size_t i = g_line++;
 	if (MAX_LINES <= i)
 	{

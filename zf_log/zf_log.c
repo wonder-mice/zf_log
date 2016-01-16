@@ -193,6 +193,8 @@
 	#define INSTRUMENTED_CONST const
 #endif
 
+#define INLINE _ZF_LOG_INLINE
+#define VAR_UNUSED(var) do { (void)var; } while(0)
 #define RETVAL_UNUSED(expr) do { while(expr) break; } while(0)
 #define STATIC_ASSERT(name, cond) \
 	typedef char assert_##name[(cond)? 1: -1]
@@ -239,7 +241,7 @@ static INSTRUMENTED_CONST buffer_cb g_buffer_cb = buffer_callback;
 #if ZF_LOG_USE_ANDROID_LOG
 	#include <android/log.h>
 
-	static inline int android_lvl(const int lvl)
+	static INLINE int android_lvl(const int lvl)
 	{
 		switch (lvl)
 		{
@@ -261,8 +263,9 @@ static INSTRUMENTED_CONST buffer_cb g_buffer_cb = buffer_callback;
 		}
 	}
 
-	static void out_android_callback(zf_log_message *const msg)
+	static void out_android_callback(zf_log_message *const msg, void *arg)
 	{
+		VAR_UNUSED(arg);
 		*msg->p = 0;
 		const char *tag = msg->p;
 		if (msg->tag_e != msg->tag_b)
@@ -281,7 +284,7 @@ static INSTRUMENTED_CONST buffer_cb g_buffer_cb = buffer_callback;
 	#include <CoreFoundation/CoreFoundation.h>
 	CF_EXPORT void CFLog(int32_t level, CFStringRef format, ...);
 
-	static inline int apple_lvl(const int lvl)
+	static INLINE int apple_lvl(const int lvl)
 	{
 		switch (lvl)
 		{
@@ -303,8 +306,9 @@ static INSTRUMENTED_CONST buffer_cb g_buffer_cb = buffer_callback;
 		}
 	}
 
-	static void out_nslog_callback(zf_log_message *const msg)
+	static void out_nslog_callback(zf_log_message *const msg, void *arg)
 	{
+		VAR_UNUSED(arg);
 		*msg->p = 0;
 		CFLog(apple_lvl(msg->lvl), CFSTR("%s"), msg->tag_b);
 	}
@@ -316,8 +320,9 @@ static INSTRUMENTED_CONST buffer_cb g_buffer_cb = buffer_callback;
 #if ZF_LOG_USE_DEBUGSTRING
 	#include <windows.h>
 
-	static void out_debugstring_callback(zf_log_message *const msg)
+	static void out_debugstring_callback(zf_log_message *const msg, void *arg)
 	{
+		VAR_UNUSED(arg);
 		*msg->p = 0;
 		OutputDebugStringA(msg->buf);
 	}
@@ -326,8 +331,9 @@ static INSTRUMENTED_CONST buffer_cb g_buffer_cb = buffer_callback;
 	#define OUT_DEBUGSTRING OUT_DEBUGSTRING_MASK, out_debugstring_callback, 0
 #endif
 
-void zf_log_out_stderr_callback(const zf_log_message *const msg)
+void zf_log_out_stderr_callback(const zf_log_message *const msg, void *arg)
 {
+	VAR_UNUSED(arg);
 	const unsigned eol_len = sizeof(ZF_LOG_EOL) - 1;
 	memcpy(msg->p, ZF_LOG_EOL, eol_len);
 #if defined(_WIN32) || defined(_WIN64)
@@ -409,7 +415,7 @@ static unsigned g_tcache_mode = TCACHE_STALE;
 static struct timeval g_tcache_tv = {0, 0};
 static struct tm g_tcache_tm = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
-static inline int tcache_get(const struct timeval *const tv, struct tm *const tm)
+static INLINE int tcache_get(const struct timeval *const tv, struct tm *const tm)
 {
 	unsigned mode;
 	mode = __atomic_load_n(&g_tcache_mode, __ATOMIC_RELAXED);
@@ -431,7 +437,7 @@ static inline int tcache_get(const struct timeval *const tv, struct tm *const tm
 	return 0;
 }
 
-static inline void tcache_set(const struct timeval *const tv, struct tm *const tm)
+static INLINE void tcache_set(const struct timeval *const tv, struct tm *const tm)
 {
 	unsigned stale = TCACHE_STALE;
 	if (__atomic_compare_exchange_n(&g_tcache_mode, &stale, TCACHE_FLUID,
@@ -512,7 +518,7 @@ static const char *filename(const char *file)
 	return f;
 }
 
-static inline size_t nprintf_size(zf_log_message *const msg)
+static INLINE size_t nprintf_size(zf_log_message *const msg)
 {
 	// *nprintf() always puts 0 in the end when input buffer is not empty. This
 	// 0 is not desired because its presence sets (ctx->p) to (ctx->e - 1) which
@@ -524,7 +530,7 @@ static inline size_t nprintf_size(zf_log_message *const msg)
 	return msg->e - msg->p + 1;
 }
 
-static inline void put_nprintf(zf_log_message *const msg, const int n)
+static INLINE void put_nprintf(zf_log_message *const msg, const int n)
 {
 	if (0 < n && msg->e < (msg->p += n))
 	{
@@ -533,7 +539,7 @@ static inline void put_nprintf(zf_log_message *const msg, const int n)
 }
 
 #if !ZF_LOG_OPTIMIZE_SIZE
-static inline char *put_padding_r(const unsigned w, const char wc,
+static INLINE char *put_padding_r(const unsigned w, const char wc,
 								  char *p, char *e)
 {
 	for (char *const b = e - w; b < p; *--p = wc) {}
@@ -558,19 +564,19 @@ static char *put_integer_r(unsigned v, const int sign,
 	return p;
 }
 
-static inline char *put_uint_r(const unsigned v, const unsigned w, const char wc,
+static INLINE char *put_uint_r(const unsigned v, const unsigned w, const char wc,
 							   char *const e)
 {
 	return put_integer_r(v, 0, w, wc, e);
 }
 
-static inline char *put_int_r(const int v, const unsigned w, const char wc,
+static INLINE char *put_int_r(const int v, const unsigned w, const char wc,
 							  char *const e)
 {
 	return 0 <= v? put_integer_r(v, 0, w, wc, e): put_integer_r(-v, -1, w, wc, e);
 }
 
-static inline char *put_stringn(const char *const s_p, const char *const s_e,
+static INLINE char *put_stringn(const char *const s_p, const char *const s_e,
 								char *const p, char *const e)
 {
 	const ptrdiff_t m = e - p;
@@ -583,14 +589,14 @@ static inline char *put_stringn(const char *const s_p, const char *const s_e,
 	return p + n;
 }
 
-static inline char *put_string(const char *s, char *p, char *const e)
+static INLINE char *put_string(const char *s, char *p, char *const e)
 {
 	const ptrdiff_t n = e - p;
 	char *const c = (char *)memccpy(p, s, '\0', n);
 	return 0 != c? c - 1: e;
 }
 
-static inline char *put_uint(unsigned v, const unsigned w, const char wc,
+static INLINE char *put_uint(unsigned v, const unsigned w, const char wc,
 							 char *const p, char *const e)
 {
 	char buf[16];
@@ -731,7 +737,7 @@ static void output_mem(const zf_log_spec *log, zf_log_message *const msg,
 			*hex++ = ' ';
 		}
 		msg->p = ascii;
-		log->output->callback(msg);
+		log->output->callback(msg, log->output->arg);
 	}
 }
 
@@ -768,7 +774,6 @@ static void _zf_log_write_imp(
 	const unsigned mask = log->output->mask;
 	msg.lvl = lvl;
 	msg.tag = tag;
-	msg.arg = log->output->arg;
 	g_buffer_cb(&msg, buf);
 	if (ZF_LOG_PUT_CTX & mask)
 	{
@@ -786,7 +791,7 @@ static void _zf_log_write_imp(
 	{
 		put_msg(&msg, fmt, va);
 	}
-	log->output->callback(&msg);
+	log->output->callback(&msg, log->output->arg);
 	if (0 != mem && ZF_LOG_PUT_MSG & mask)
 	{
 		output_mem(log, &msg, mem);

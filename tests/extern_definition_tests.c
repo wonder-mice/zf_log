@@ -6,7 +6,7 @@
 #include "zf_test.h"
 
 enum { MEM_WIDTH = 8 };
-static void mock_output_callback(const zf_log_message *msg);
+static void mock_output_callback(const zf_log_message *msg, void *arg);
 
 ZF_LOG_DEFINE_TAG_PREFIX = "MOCK_PREFIX";
 ZF_LOG_DEFINE_GLOBAL_FORMAT =
@@ -21,9 +21,9 @@ ZF_LOG_DEFINE_GLOBAL_OUTPUT =
 };
 ZF_LOG_DEFINE_GLOBAL_OUTPUT_LEVEL = 0xdeadbeef;
 
-static void mock_output_callback(const zf_log_message *msg)
+static void mock_output_callback(const zf_log_message *msg, void *arg)
 {
-	(void)msg;
+	(void)msg; (void)arg;
 }
 
 static void test_static_initialization()

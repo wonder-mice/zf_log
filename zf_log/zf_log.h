@@ -288,6 +288,18 @@
 	#define _zf_log_stderr_spec _ZF_LOG_DECOR(_zf_log_stderr_spec)
 #endif
 
+#if defined(__printflike)
+	#define _ZF_LOG_PRINTFLIKE(a, b) __printflike(a, b)
+#else
+	#define _ZF_LOG_PRINTFLIKE(a, b)
+#endif
+
+#if defined(_MSC_VER) && !defined(__INTEL_COMPILER)
+	#define _ZF_LOG_INLINE __inline
+#else
+	#define _ZF_LOG_INLINE inline
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -342,7 +354,6 @@ typedef struct zf_log_message
 	char *tag_b; /* Prefixed tag start */
 	char *tag_e; /* Prefixed tag end (if != tag_b, points to msg separator) */
 	char *msg_b; /* Message start (expanded format string) */
-	void *arg; /* User provided output callback argument */
 }
 zf_log_message;
 
@@ -352,7 +363,7 @@ zf_log_message;
  * msg, but it's not allowed to modify any of msg fields. Buffer pointed by msg
  * is UTF-8 encoded (no BOM mark).
  */
-typedef void (*zf_log_output_cb)(const zf_log_message *msg);
+typedef void (*zf_log_output_cb)(const zf_log_message *msg, void *arg);
 
 /* Format options. For more details see zf_log_set_mem_width().
  */
@@ -379,7 +390,7 @@ zf_log_output;
  */
 void zf_log_set_output_v(const unsigned mask, const zf_log_output_cb callback,
 						 void *const arg);
-static inline void zf_log_set_output_p(const zf_log_output *const output)
+static _ZF_LOG_INLINE void zf_log_set_output_p(const zf_log_output *const output)
 {
 	zf_log_set_output_v(output->mask, output->callback, output->arg);
 }
@@ -453,12 +464,6 @@ zf_log_spec;
 #define ZF_LOG_ON_WARN      ZF_LOG_ON(ZF_LOG_WARN)
 #define ZF_LOG_ON_ERROR     ZF_LOG_ON(ZF_LOG_ERROR)
 #define ZF_LOG_ON_FATAL     ZF_LOG_ON(ZF_LOG_FATAL)
-
-#ifdef __printflike
-	#define _ZF_LOG_PRINTFLIKE(a, b) __printflike(a, b)
-#else
-	#define _ZF_LOG_PRINTFLIKE(a, b)
-#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -602,7 +607,7 @@ void _zf_log_write_mem_aux(
 			} while (0)
 #endif
 
-static inline void _zf_log_unused(const int dummy, ...) {(void)dummy;}
+static _ZF_LOG_INLINE void _zf_log_unused(const int dummy, ...) {(void)dummy;}
 
 #define _ZF_LOG_UNUSED(...) \
 		do { if (0) _zf_log_unused(0, __VA_ARGS__); } while (0)
@@ -727,7 +732,7 @@ extern "C" {
  *   zf_log_set_output_v(ZF_LOG_OUT_STDERR);
  */
 enum { ZF_LOG_OUT_STDERR_MASK = ZF_LOG_PUT_STD };
-void zf_log_out_stderr_callback(const zf_log_message *const msg);
+void zf_log_out_stderr_callback(const zf_log_message *const msg, void *arg);
 #define ZF_LOG_OUT_STDERR ZF_LOG_OUT_STDERR_MASK, zf_log_out_stderr_callback, 0
 
 /* Predefined spec for stderr. Uses global format options (ZF_LOG_GLOBAL_FORMAT)

@@ -5,8 +5,9 @@
 
 static int main_called;
 
-static void main_output_callback(const zf_log_message *msg)
+static void main_output_callback(const zf_log_message *msg, void *arg)
 {
+	(void)arg;
 	if (strncmp("main", msg->msg_b, (size_t)(msg->p - msg->msg_b)))
 	{
 		fprintf(stderr, "incorrect message in main\n");

@@ -32,8 +32,9 @@ static int syslog_level(const int lvl)
 }
 #endif
 
-static void custom_output_callback(const zf_log_message *msg)
+static void custom_output_callback(const zf_log_message *msg, void *arg)
 {
+	(void)arg;
 	/* p points to the log message end. By default, message is not terminated
 	 * with 0, but it has some space allocated for EOL area, so there is always
 	 * some place for terminating zero in the end (see ZF_LOG_EOL_SZ define in
