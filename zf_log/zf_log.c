@@ -204,7 +204,7 @@
 	static int fake_vsnprintf(char *s, size_t sz, const char *fmt, va_list ap)
 	{
 		const int n = vsnprintf_s(s, sz, _TRUNCATE, fmt, ap);
-		return 0 < n? n: sz + 1; /* no need in _vscprintf() for now */
+		return 0 < n? n: (int)sz + 1; /* no need in _vscprintf() for now */
 	}
 #endif
 
