@@ -323,7 +323,7 @@ static INSTRUMENTED_CONST buffer_cb g_buffer_cb = buffer_callback;
 		}
 	}
 
-	static void out_nslog_callback(zf_log_message *const msg, void *arg)
+	static void out_nslog_callback(const zf_log_message *const msg, void *arg)
 	{
 		VAR_UNUSED(arg);
 		*msg->p = 0;
