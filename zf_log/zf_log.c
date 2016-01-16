@@ -206,6 +206,17 @@
 		const int n = vsnprintf_s(s, sz, _TRUNCATE, fmt, ap);
 		return 0 < n? n: (int)sz + 1; /* no need in _vscprintf() for now */
 	}
+	#if ZF_LOG_OPTIMIZE_SIZE
+	#define snprintf(s, sz, ...) fake_snprintf(s, sz, __VA_ARGS__)
+	static int fake_snprintf(char *s, size_t sz, const char *fmt, ...)
+	{
+		va_list va;
+		va_start(va, fmt);
+		const int n = fake_vsnprintf(s, sz, fmt, va);
+		va_end(va);
+		return n;
+	}
+	#endif
 #endif
 
 typedef void (*time_cb)(struct tm *const tm, unsigned *const usec);
