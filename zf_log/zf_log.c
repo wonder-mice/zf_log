@@ -182,10 +182,13 @@
 	#include <pthread.h>
 #endif
 
-#if defined(_MSC_VER) && !defined(__INTEL_COMPILER)
-	#define memccpy _memccpy
-	#define _CRT_SECURE_NO_WARNINGS
-	#pragma warning(disable:4204) /* nonstandard extension used: non-constant aggregate initializer */
+#define INLINE _ZF_LOG_INLINE
+#define VAR_UNUSED(var) (void)var
+#define RETVAL_UNUSED(expr) do { while(expr) break; } while(0)
+#define STATIC_ASSERT(name, cond) \
+	typedef char assert_##name[(cond)? 1: -1]
+#ifndef _countof
+	#define _countof(xs) (sizeof(xs) / sizeof((xs)[0]))
 #endif
 
 #if ZF_LOG_INSTRUMENTED
@@ -194,13 +197,15 @@
 	#define INSTRUMENTED_CONST const
 #endif
 
-#define INLINE _ZF_LOG_INLINE
-#define VAR_UNUSED(var) (void)var
-#define RETVAL_UNUSED(expr) do { while(expr) break; } while(0)
-#define STATIC_ASSERT(name, cond) \
-	typedef char assert_##name[(cond)? 1: -1]
-#ifndef _countof
-	#define _countof(xs) (sizeof(xs) / sizeof((xs)[0]))
+#if defined(_MSC_VER) && !defined(__INTEL_COMPILER)
+	#pragma warning(disable:4204) /* nonstandard extension used: non-constant aggregate initializer */
+	#define memccpy _memccpy
+	#define vsnprintf(s, sz, fmt, va) fake_vsnprintf(s, sz, fmt, va)
+	static int fake_vsnprintf(char *s, size_t sz, const char *fmt, va_list ap)
+	{
+		const int n = vsnprintf_s(s, sz, _TRUNCATE, fmt, ap);
+		return 0 < n? n: sz + 1; /* no need in _vscprintf() for now */
+	}
 #endif
 
 typedef void (*time_cb)(struct tm *const tm, unsigned *const usec);
@@ -533,9 +538,9 @@ static INLINE size_t nprintf_size(zf_log_message *const msg)
 
 static INLINE void put_nprintf(zf_log_message *const msg, const int n)
 {
-	if (0 < n && msg->e < (msg->p += n))
+	if (0 < n)
 	{
-		msg->p = msg->e;
+		msg->p = n < msg->e - msg->p? msg->p + n: msg->e;
 	}
 }
 
