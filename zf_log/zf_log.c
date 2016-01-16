@@ -184,6 +184,7 @@
 
 #if defined(_MSC_VER) && !defined(__INTEL_COMPILER)
 	#define memccpy _memccpy
+	#define _CRT_SECURE_NO_WARNINGS
 	#pragma warning(disable:4204) /* nonstandard extension used: non-constant aggregate initializer */
 #endif
 
