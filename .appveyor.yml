@@ -33,7 +33,7 @@ build_script:
   - ps: mkdir build.msvc
   - ps: cd build.msvc
   - cmake "-G%GENERATOR%" %OPTIONS% ..
-  - cmake --build --config "%CONFIG%" .
+  - cmake --build . --config "%CONFIG%"
 
 test_script:
   - ps: cd build.msvc
