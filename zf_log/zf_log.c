@@ -194,7 +194,7 @@
 #endif
 
 #define INLINE _ZF_LOG_INLINE
-#define VAR_UNUSED(var) do { (void)var; } while(0)
+#define VAR_UNUSED(var) (void)var
 #define RETVAL_UNUSED(expr) do { while(expr) break; } while(0)
 #define STATIC_ASSERT(name, cond) \
 	typedef char assert_##name[(cond)? 1: -1]
@@ -407,7 +407,7 @@ static char lvl_char(const int lvl)
 	}
 }
 
-#if !ZF_LOG_OPTIMIZE_SIZE && !defined(__WIN32) && !defined(_WIN64)
+#if !ZF_LOG_OPTIMIZE_SIZE && !defined(_WIN32) && !defined(_WIN64)
 #define TCACHE
 #define TCACHE_STALE (0x40000000)
 #define TCACHE_FLUID (0x40000000 | 0x80000000)
@@ -452,7 +452,7 @@ static INLINE void tcache_set(const struct timeval *const tv, struct tm *const t
 
 static void time_callback(struct tm *const tm, unsigned *const msec)
 {
-#if defined(__WIN32) || defined(_WIN64)
+#if defined(_WIN32) || defined(_WIN64)
 	SYSTEMTIME st;
 	GetLocalTime(&st);
 	tm->tm_year = st.wYear;
