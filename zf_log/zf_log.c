@@ -280,7 +280,7 @@ static INSTRUMENTED_CONST buffer_cb g_buffer_cb = buffer_callback;
 		}
 	}
 
-	static void out_android_callback(zf_log_message *const msg, void *arg)
+	static void out_android_callback(const zf_log_message *const msg, void *arg)
 	{
 		VAR_UNUSED(arg);
 		*msg->p = 0;
@@ -337,7 +337,7 @@ static INSTRUMENTED_CONST buffer_cb g_buffer_cb = buffer_callback;
 #if ZF_LOG_USE_DEBUGSTRING
 	#include <windows.h>
 
-	static void out_debugstring_callback(zf_log_message *const msg, void *arg)
+	static void out_debugstring_callback(const zf_log_message *const msg, void *arg)
 	{
 		VAR_UNUSED(arg);
 		*msg->p = 0;
