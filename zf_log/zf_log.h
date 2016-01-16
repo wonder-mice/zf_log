@@ -367,7 +367,7 @@ zf_log_format;
 typedef struct zf_log_output
 {
 	unsigned mask; /* What to put into log line buffer (see ZF_LOG_PUT_XXX) */
-	zf_log_output_cb callback; /* Output callback */
+	zf_log_output_cb callback; /* Output callback function */
 	void *arg; /* User provided output callback argument */
 }
 zf_log_output;
