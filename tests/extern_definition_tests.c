@@ -17,7 +17,7 @@ ZF_LOG_DEFINE_GLOBAL_OUTPUT =
 {
 	0xcafebabe,
 	mock_output_callback,
-	(void *)0xfafacaca
+	(void *)(ptrdiff_t)0xfafacaca
 };
 ZF_LOG_DEFINE_GLOBAL_OUTPUT_LEVEL = 0xdeadbeef;
 
@@ -32,7 +32,7 @@ static void test_static_initialization()
 	TEST_VERIFY_EQUAL(_zf_log_global_format.mem_width, 0xc0defade);
 	TEST_VERIFY_EQUAL(_zf_log_global_output.mask, 0xcafebabe);
 	TEST_VERIFY_EQUAL(_zf_log_global_output.callback, mock_output_callback);
-	TEST_VERIFY_EQUAL(_zf_log_global_output.arg, (void *)0xfafacaca);
+	TEST_VERIFY_EQUAL(_zf_log_global_output.arg, (void *)(ptrdiff_t)0xfafacaca);
 	TEST_VERIFY_EQUAL(_zf_log_global_output_lvl, (int)0xdeadbeef);
 	TEST_VERIFY_EQUAL(ZF_LOG_GLOBAL_FORMAT, &_zf_log_global_format);
 	TEST_VERIFY_EQUAL(ZF_LOG_GLOBAL_OUTPUT, &_zf_log_global_output);
