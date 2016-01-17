@@ -16,6 +16,6 @@ int main(int argc, char *argv[])
 {
 	zf_log_set_output_v(ZF_LOG_PUT_STD, mock_output_callback, 0);
 	ZF_LOGI_AUX(&g_spec, "aux log, argc=%i", argc);
-	ZF_LOGI_MEM_AUX(&g_spec, argv, argc * sizeof(*argv), "ayx log, argv pointers:");
+	ZF_LOGI_MEM_AUX(&g_spec, argv, argc * sizeof(*argv), "aux log, argv pointers:");
 	return 0;
 }
