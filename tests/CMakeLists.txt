@@ -20,11 +20,17 @@ add_custom_target(zf_test_headers SOURCES ${HEADERS})
 
 function(add_test_target target)
 	cmake_parse_arguments(arg
-		""
+		"COMPILE_ONLY"
 		""
 		"SOURCES;CSTD;CXXSTD;DEFINES"
 		${ARGN})
-	add_executable(${target} ${arg_SOURCES})
+	if(arg_COMPILE_ONLY)
+		add_library(${target} STATIC ${arg_SOURCES})
+	else()
+		add_executable(${target} ${arg_SOURCES})
+		target_link_libraries(${target} zf_test)
+		add_test(NAME ${target} COMMAND ${target})
+	endif()
 	if(arg_CSTD)
 		set_property(TARGET ${target} PROPERTY C_STANDARD "${arg_CSTD}")
 	endif()
@@ -33,8 +39,6 @@ function(add_test_target target)
 	endif()
 	set_property(TARGET ${target} PROPERTY COMPILE_DEFINITIONS "${arg_DEFINES}")
 	target_include_directories(${target} PRIVATE "${PROJECT_SOURCE_DIR}/zf_log")
-	target_link_libraries(${target}  zf_test)
-	add_test(NAME ${target} COMMAND ${target})
 endfunction()
 
 function(add_test_target_group target)
@@ -56,6 +60,7 @@ add_test_target_group(log_message_tests SOURCES log_message_tests.c)
 add_test_target_group(log_message_tests_Os SOURCES log_message_tests.c DEFINES ZF_LOG_OPTIMIZE_SIZE=1)
 add_test_target_group(aux_spec_tests SOURCES aux_spec_tests.c)
 add_test_target_group(decoration_test SOURCES decoration_module.c decoration_main.c)
+add_test_target_group(test_builtin_output_facilities SOURCES test_builtin_output_facilities.c COMPILE_ONLY)
 add_test_target(cpp_compilation_tests SOURCES cpp_compilation_tests.cpp CXXSTD 11)
 add_test_target(cpp_extern_definition_tests SOURCES cpp_extern_definition_tests.cpp CXXSTD 11)
 
