@@ -128,7 +128,7 @@ function(add_code_size_test name)
 	save_preprocessor_output(${name}-curr)
 	# test case
 	add_dependencies(filesize_check ${name}-prev ${name}-curr)
-	add_test(NAME ${name}_test
+	add_test(NAME ${name}_check
 		COMMAND filesize_check "$<TARGET_FILE:${name}-prev>" "$<TARGET_FILE:${name}-curr>")
 endfunction()
 
