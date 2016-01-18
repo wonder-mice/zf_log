@@ -9,6 +9,10 @@ else()
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra -Werror -pedantic-errors")
 endif()
 
+if(ZF_LOG_LIBRARY_PREFIX)
+	add_definitions("-DZF_LOG_LIBRARY_PREFIX=${ZF_LOG_LIBRARY_PREFIX}")
+endif()
+
 add_executable(hello_c hello.c)
 target_link_libraries(hello_c zf_log)
 

@@ -13,6 +13,8 @@ set(INSTALL_LIB_DIR lib CACHE PATH
 	"Installation directory for libraries")
 set(INSTALL_CMAKE_DIR lib/cmake/zf_log CACHE PATH
 	"Installation directory for CMake files")
+set(ZF_LOG_LIBRARY_PREFIX CACHE STRING
+	"Prefix for all linker symbols exported by the library")
 option(ZF_LOG_CONFIGURE_INSTALL "Generate install target" ON)
 option(ZF_LOG_EXAMPLES "Build examples" OFF)
 option(ZF_LOG_TESTS "Build tests" OFF)

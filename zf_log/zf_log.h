@@ -260,7 +260,35 @@
  * possible conflicts with other libraries / components that also could use
  * zf_log for logging). Value must be without quotes, for example:
  *
- *   CC_ARGS := -DZF_LOG_LIBRARY_PREFIX=my_lib
+ *   CC_ARGS := -DZF_LOG_LIBRARY_PREFIX=my_lib_
+ *
+ * Note, that in this mode ZF_LOG_LIBRARY_PREFIX must be defined when building
+ * zf_log library AND it also must be defined to the same value when building
+ * a library that uses it. For example, consider fictional KittyHttp library
+ * that wants to use zf_log for logging. First approach that could be taken is
+ * to add zf_log.h and zf_log.c to the KittyHttp's source code tree directly.
+ * In that case it will be enough just to define ZF_LOG_LIBRARY_PREFIX in
+ * KittyHttp's build script:
+ *
+ *   // KittyHttp/CMakeLists.txt
+ *   target_compile_definitions(KittyHttp PRIVATE
+ *                              "ZF_LOG_LIBRARY_PREFIX=KittyHttp_")
+ *
+ * If KittyHttp doesn't want to include zf_log source code in its source tree
+ * and wants to build zf_log as a separate library than zf_log library must be
+ * built with ZF_LOG_LIBRARY_PREFIX defined to KittyHttp_ AND KittyHttp library
+ * itself also needs to define ZF_LOG_LIBRARY_PREFIX to KittyHttp_. It can do
+ * so either in its build script, as in example above, or by providing a
+ * wrapper header that KittyHttp library will need to use instead of zf_log.h:
+ *
+ *   // KittyHttpLogging.h
+ *   #define ZF_LOG_LIBRARY_PREFIX KittyHttp_
+ *   #include <zf_log.h>
+ *
+ * Regardless of the method chosen, the end result is that zf_log symbols will
+ * be prefixed with "KittyHttp_", so if a user of KittyHttp (say DogeBrowser)
+ * also uses zf_log for logging, they will not interferer with each other. Both
+ * will have their own log level, output facility, format options etc.
  */
 #ifdef ZF_LOG_LIBRARY_PREFIX
 	#define _ZF_LOG_DECOR__(prefix, name) prefix ## name
