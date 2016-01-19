@@ -269,6 +269,25 @@ See [examples/custom_output.c] for an example of custom output function.
 [zf_log/zf_log.c]: zf_log/zf_log.c
 [examples/custom_output.c]: examples/custom_output.c
 
+Comparison
+--------
+
+This table is work in progress.
+```
++--------------------------------------------------------------------------------------------+
+|          -          | easylogging++ |  g3log   |   glog   |  spdlog  |  zf_log | zf_log_Os |
++--------------------------------------------------------------------------------------------+
+|    call_site_size   |         376b  |    360b  |    144b  |    352b  |    56b  |      56b  |
++--------------------------------------------------------------------------------------------+
+| min_executable_size |      201.93kb | 179.16kb | 137.35kb | 133.58kb | 18.30kb |   14.16kb |
++--------------------------------------------------------------------------------------------+
+```
+
+Details:
+
+* call_site_size - amount of code generated for each LOG() call
+* zf_log_Os - zf_log library built with ZF_LOG_OPTIMIZE_SIZE defined
+
 Why zf?
 --------
 
