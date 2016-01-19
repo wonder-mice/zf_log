@@ -272,7 +272,9 @@ See [examples/custom_output.c] for an example of custom output function.
 Comparison
 --------
 
-This table is work in progress.
+This table is work in progress. See [tests/perf](tests/perf) folder for how
+this table was generated.
+
 ```
 +--------------------------------------------------------------------------------------------+
 |          -          | easylogging++ |  g3log   |   glog   |  spdlog  |  zf_log | zf_log_Os |
