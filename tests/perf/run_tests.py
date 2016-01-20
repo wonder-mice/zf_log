@@ -5,6 +5,44 @@ import os
 import argparse
 import json
 
+def readable_test(test):
+	if "call_site_size" == test:
+		return "1. Call site size"
+	if "executable_size" == test:
+		return "2. Executable size"
+	if "compile_time" == test:
+		return "3. Compile time"
+	if "link_time" == test:
+		return "4. Link time"
+	return test
+
+def readable_subj(subj):
+	if "zf_log_n" == subj:
+		return "zf_log"
+	if "easylog" == subj:
+		return "Easylogging++"
+	return subj
+
+class data_test:
+	def __init__(self, value):
+		if type(value) is not str:
+			raise RuntimeError("Not a string")
+		self.value = value
+	def __str__(self):
+		return readable_test(self.value)
+	def __repr__(self):
+		return repr(self.value)
+
+class data_subj:
+	def __init__(self, value):
+		if type(value) is not str:
+			raise RuntimeError("Not a string")
+		self.value = value
+	def __str__(self):
+		return readable_subj(self.value)
+	def __repr__(self):
+		return repr(self.value)
+
 class data_bytes:
 	def __init__(self, value):
 		if type(value) is not int:
@@ -19,6 +57,16 @@ class data_bytes:
 	def __repr__(self):
 		return repr(self.value)
 
+class data_seconds:
+	def __init__(self, value):
+		if type(value) is not int and type(value) is not float:
+			raise RuntimeError("Not an int or float")
+		self.value = value
+	def __str__(self):
+		return "%.3fsec" % (self.value)
+	def __repr__(self):
+		return repr(self.value)
+
 def to_table_str(value, w=0):
 	if value is None:
 		return "-".center(w)
@@ -26,10 +74,17 @@ def to_table_str(value, w=0):
 		return '{0:\'}'.format(value).rjust(w)
 	elif type(value) is str:
 		return value.center(w)
+	elif isinstance(value, data_test):
+		return str(value).ljust(w)
+	elif isinstance(value, data_subj):
+		return str(value).center(w)
 	elif isinstance(value, data_bytes):
+		return str(value).rjust(w)
+	elif isinstance(value, data_seconds):
 		return str(value).rjust(w)
 	else:
 		raise RuntimeError("Type not supported: " + str(type(value)))
+
 
 def run_call_site_size(params):
 	ps = params["call_site_size"]
@@ -41,35 +96,55 @@ def run_call_site_size(params):
 	return result
 
 def run_min_executable_size(params):
-	ps = params["min_executable_size"]
+	ps = params["executable_size"]
 	result = dict()
 	for subj in ps.keys():
 		sz = os.path.getsize(ps[subj])
 		result[subj] = data_bytes(sz)
 	return result
 
+def run_compile_time(params):
+	ps = params["compile_time"]
+	result = dict()
+	for subj in ps.keys():
+		with open(ps[subj], "r") as f:
+			dt = json.load(f)["dt"]
+			result[subj] = data_seconds(dt)
+	return result
+
+def run_link_time(params):
+	ps = params["link_time"]
+	result = dict()
+	for subj in ps.keys():
+		with open(ps[subj], "r") as f:
+			dt = json.load(f)["dt"]
+			result[subj] = data_seconds(dt)
+	return result
+
 def run_tests(params):
 	result = dict()
 	result["call_site_size"] = run_call_site_size(params)
-	result["min_executable_size"] = run_min_executable_size(params)
+	result["executable_size"] = run_min_executable_size(params)
+	result["compile_time"] = run_compile_time(params)
+	result["link_time"] = run_link_time(params)
 	return result
 
 def write_table(result, out):
-	tests = result.keys()
+	tests = sorted(result.keys(), key=readable_test)
 	subjs = set()
 	# collect all subjects
 	for test in tests:
 		subjs.update(result[test].keys())
-	subjs = sorted(list(subjs))
+	subjs = sorted(list(subjs), key=readable_subj)
 	# create table
 	rows = len(tests) + 1
 	cols = len(subjs) + 1
 	table = [[None for _ in range(cols)] for _ in range(rows)]
 	# put names and captions
 	for i in range(1, rows):
-		table[i][0] = tests[i - 1]
+		table[i][0] = data_test(tests[i - 1])
 	for j in range(1, cols):
-		table[0][j] = subjs[j - 1]
+		table[0][j] = data_subj(subjs[j - 1])
 	# put data
 	for i in range(1, rows):
 		for j in range(1, cols):
@@ -121,12 +196,14 @@ def main(argv):
 			key = vs[i]
 			if key not in d:
 				d[key] = dict()
+	sys.stderr.write(json.dumps(params, indent=4, default=repr))
 	# run tests
 	result = run_tests(params)
 	# print results
 	out = sys.stdout
 	if args.out is not None:
 		out = open(args.out, 'w')
+	out.write(json.dumps(params, indent=4, default=repr))
 	out.write(json.dumps(result, indent=4, default=repr))
 	out.write("\n")
 	write_table(result, out)

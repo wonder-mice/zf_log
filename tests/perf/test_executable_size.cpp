@@ -1,9 +1,9 @@
-#include "library_switch.h"
+#include "test_switch.h"
 
 #define A_MESSAGE "A log message"
 
 #ifdef TEST_LIBRARY_ZF_LOG
-	#include <zf_log.c>
+	#include <zf_log.h>
 	#define ONE_STATEMENT() ZF_LOGI(A_MESSAGE)
 #endif
 #ifdef TEST_LIBRARY_SPDLOG

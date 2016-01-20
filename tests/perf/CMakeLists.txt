@@ -19,7 +19,7 @@ endif()
 function(add_target target)
 	cmake_parse_arguments(arg
 		"STATICLIB;EXECUTABLE"
-		""
+		"TIME_COMPILE;TIME_LINK"
 		"SOURCES;DEFINES;INCLUDES;LIBRARIES"
 		${ARGN})
 	if(arg_STATICLIB)
@@ -38,10 +38,25 @@ function(add_target target)
 	if(arg_LIBRARIES)
 		target_link_libraries(${target} ${arg_LIBRARIES})
 	endif()
+	if(arg_TIME_COMPILE)
+		set_property(TARGET ${target} PROPERTY RULE_LAUNCH_COMPILE
+			"\"${PYTHON_EXECUTABLE}\" \"${CMAKE_CURRENT_SOURCE_DIR}/time_it.py\" \"${arg_TIME_COMPILE}\"")
+		set_property(TARGET ${target} PROPERTY TIME_COMPILE "${arg_TIME_COMPILE}")
+	endif()
+	if(arg_TIME_LINK)
+		set_property(TARGET ${target} PROPERTY RULE_LAUNCH_LINK
+			"\"${PYTHON_EXECUTABLE}\" \"${CMAKE_CURRENT_SOURCE_DIR}/time_it.py\" \"${arg_TIME_LINK}\"")
+		set_property(TARGET ${target} PROPERTY TIME_LINK "${arg_TIME_LINK}")
+	endif()
 endfunction()
 
 # zf_log
 set(ZF_LOG_DIR "${PROJECT_SOURCE_DIR}/zf_log")
+add_library(zf_log_n STATIC "${ZF_LOG_DIR}/zf_log.h" "${ZF_LOG_DIR}/zf_log.c")
+target_include_directories(zf_log_n PUBLIC "${ZF_LOG_DIR}")
+add_library(zf_log_Os STATIC "${ZF_LOG_DIR}/zf_log.h" "${ZF_LOG_DIR}/zf_log.c")
+target_include_directories(zf_log_Os PUBLIC "${ZF_LOG_DIR}")
+set_property(TARGET zf_log_Os PROPERTY COMPILE_DEFINITIONS "ZF_LOG_OPTIMIZE_SIZE")
 
 # spdlog
 set(SPDLOG_DIR "${CMAKE_CURRENT_BINARY_DIR}/spdlog")
@@ -120,104 +135,57 @@ add_dependencies(glog glog_ep)
 set_target_properties(glog PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${GLOG_DIR}/include")
 set_target_properties(glog PROPERTIES INTERFACE_LINK_LIBRARIES "${GLOG_DIR}/lib/${GLOG_LIBRARY}")
 
-# call site size
-add_target(test_call_site_size.zf_log.1 STATICLIB
-	SOURCES test_call_site_size.cpp
-	DEFINES TEST_LIBRARY=zf_log
-	INCLUDES "${ZF_LOG_DIR}")
-add_target(test_call_site_size.zf_log.2 STATICLIB
-	SOURCES test_call_site_size.cpp
-	DEFINES TEST_LIBRARY=zf_log EXTRA_STATEMENT
-	INCLUDES "${ZF_LOG_DIR}")
-add_target(test_call_site_size.zf_log_Os.1 STATICLIB
-	SOURCES test_call_site_size.cpp
-	DEFINES TEST_LIBRARY=zf_log ZF_LOG_OPTIMIZE_SIZE=1
-	INCLUDES "${ZF_LOG_DIR}")
-add_target(test_call_site_size.zf_log_Os.2 STATICLIB
-	SOURCES test_call_site_size.cpp
-	DEFINES TEST_LIBRARY=zf_log EXTRA_STATEMENT ZF_LOG_OPTIMIZE_SIZE=1
-	INCLUDES "${ZF_LOG_DIR}")
-add_target(test_call_site_size.spdlog.1 STATICLIB
-	SOURCES test_call_site_size.cpp
-	DEFINES TEST_LIBRARY=spdlog
-	LIBRARIES spdlog)
-add_target(test_call_site_size.spdlog.2 STATICLIB
-	SOURCES test_call_site_size.cpp
-	DEFINES TEST_LIBRARY=spdlog EXTRA_STATEMENT
-	LIBRARIES spdlog)
-add_target(test_call_site_size.easylog.1 STATICLIB
-	SOURCES test_call_site_size.cpp
-	DEFINES TEST_LIBRARY=easylog
-	LIBRARIES easylog)
-add_target(test_call_site_size.easylog.2 STATICLIB
-	SOURCES test_call_site_size.cpp
-	DEFINES TEST_LIBRARY=easylog EXTRA_STATEMENT
-	LIBRARIES easylog)
-add_target(test_call_site_size.g3log.1 STATICLIB
-	SOURCES test_call_site_size.cpp
-	DEFINES TEST_LIBRARY=g3log
-	LIBRARIES g3log)
-add_target(test_call_site_size.g3log.2 STATICLIB
-	SOURCES test_call_site_size.cpp
-	DEFINES TEST_LIBRARY=g3log EXTRA_STATEMENT
-	LIBRARIES g3log)
-add_target(test_call_site_size.glog.1 STATICLIB
-	SOURCES test_call_site_size.cpp
-	DEFINES TEST_LIBRARY=glog
-	LIBRARIES glog)
-add_target(test_call_site_size.glog.2 STATICLIB
-	SOURCES test_call_site_size.cpp
-	DEFINES TEST_LIBRARY=glog EXTRA_STATEMENT
-	LIBRARIES glog)
+function(get_test_library lib var)
+	if((lib STREQUAL "zf_log_n") OR (lib STREQUAL "zf_log_Os"))
+		set(lib "zf_log")
+	endif()
+	set(${var} "${lib}" PARENT_SCOPE)
+endfunction()
 
-# min executable size
-add_target(test_min_executable_size.zf_log EXECUTABLE
-	SOURCES test_min_executable_size.cpp
-	DEFINES TEST_LIBRARY=zf_log
-	INCLUDES "${ZF_LOG_DIR}")
-add_target(test_min_executable_size.zf_log_Os EXECUTABLE
-	SOURCES test_min_executable_size.cpp
-	DEFINES TEST_LIBRARY=zf_log ZF_LOG_OPTIMIZE_SIZE=1
-	INCLUDES "${ZF_LOG_DIR}")
-add_target(test_min_executable_size.spdlog EXECUTABLE
-	SOURCES test_min_executable_size.cpp
-	DEFINES TEST_LIBRARY=spdlog
-	LIBRARIES spdlog)
-add_target(test_min_executable_size.easylog EXECUTABLE
-	SOURCES test_min_executable_size.cpp
-	DEFINES TEST_LIBRARY=easylog
-	LIBRARIES easylog)
-add_target(test_min_executable_size.g3log EXECUTABLE
-	SOURCES test_min_executable_size.cpp
-	DEFINES TEST_LIBRARY=g3log
-	LIBRARIES g3log)
-add_target(test_min_executable_size.glog EXECUTABLE
-	SOURCES test_min_executable_size.cpp
-	DEFINES TEST_LIBRARY=glog
-	LIBRARIES glog)
+function(add_call_site_size_test lib)
+	get_test_library("${lib}" test_library)
+	add_target(test_call_site_size.${lib}.1 STATICLIB
+		SOURCES test_executable_size.cpp
+		DEFINES "TEST_LIBRARY=${test_library}"
+		TIME_COMPILE "${CMAKE_CURRENT_BINARY_DIR}/compile_time.${lib}.json"
+		LIBRARIES "${lib}")
+	add_target(test_call_site_size.${lib}.2 STATICLIB
+		SOURCES test_executable_size.cpp
+		DEFINES "TEST_LIBRARY=${test_library}" "EXTRA_STATEMENT"
+		LIBRARIES "${lib}")
+	list(APPEND PARAMETERS "-p" "call_site_size:${lib}:1:$<TARGET_FILE:test_call_site_size.${lib}.1>")
+	list(APPEND PARAMETERS "-p" "call_site_size:${lib}:2:$<TARGET_FILE:test_call_site_size.${lib}.2>")
+	list(APPEND PARAMETERS "-p" "compile_time:${lib}:$<TARGET_PROPERTY:test_call_site_size.${lib}.1,TIME_COMPILE>")
+	set(PARAMETERS "${PARAMETERS}" PARENT_SCOPE)
+endfunction()
+add_call_site_size_test(zf_log_n)
+add_call_site_size_test(zf_log_Os)
+add_call_site_size_test(spdlog)
+add_call_site_size_test(easylog)
+add_call_site_size_test(g3log)
+add_call_site_size_test(glog)
+
+function(add_executable_size_test lib)
+	get_test_library("${lib}" test_library)
+	add_target(test_executable_size.${lib} EXECUTABLE
+		SOURCES test_executable_size.cpp
+		DEFINES "TEST_LIBRARY=${test_library}"
+		TIME_LINK "${CMAKE_CURRENT_BINARY_DIR}/link_time.${lib}.json"
+		LIBRARIES "${lib}")
+	list(APPEND PARAMETERS "-p" "executable_size:${lib}:$<TARGET_FILE:test_executable_size.${lib}>")
+	list(APPEND PARAMETERS "-p" "link_time:${lib}:$<TARGET_PROPERTY:test_executable_size.${lib},TIME_LINK>")
+	set(PARAMETERS "${PARAMETERS}" PARENT_SCOPE)
+endfunction()
+add_executable_size_test(zf_log_n)
+add_executable_size_test(zf_log_Os)
+add_executable_size_test(spdlog)
+add_executable_size_test(easylog)
+add_executable_size_test(g3log)
+add_executable_size_test(glog)
 
 # results
 add_test(NAME run_tests COMMAND "${PYTHON_EXECUTABLE}"
 	"${CMAKE_CURRENT_SOURCE_DIR}/run_tests.py"
 	-o "${CMAKE_CURRENT_BINARY_DIR}/results.txt"
 	-b "${CMAKE_BUILD_TYPE}"
-	# call size size
-	-p "call_site_size:zf_log:1:$<TARGET_FILE:test_call_site_size.zf_log.1>"
-	-p "call_site_size:zf_log:2:$<TARGET_FILE:test_call_site_size.zf_log.2>"
-	-p "call_site_size:zf_log_Os:1:$<TARGET_FILE:test_call_site_size.zf_log_Os.1>"
-	-p "call_site_size:zf_log_Os:2:$<TARGET_FILE:test_call_site_size.zf_log_Os.2>"
-	-p "call_site_size:spdlog:1:$<TARGET_FILE:test_call_site_size.spdlog.1>"
-	-p "call_site_size:spdlog:2:$<TARGET_FILE:test_call_site_size.spdlog.2>"
-	-p "call_site_size:easylogging++:1:$<TARGET_FILE:test_call_site_size.easylog.1>"
-	-p "call_site_size:easylogging++:2:$<TARGET_FILE:test_call_site_size.easylog.2>"
-	-p "call_site_size:g3log:1:$<TARGET_FILE:test_call_site_size.g3log.1>"
-	-p "call_site_size:g3log:2:$<TARGET_FILE:test_call_site_size.g3log.2>"
-	-p "call_site_size:glog:1:$<TARGET_FILE:test_call_site_size.glog.1>"
-	-p "call_site_size:glog:2:$<TARGET_FILE:test_call_site_size.glog.2>"
-	# min executable size
-	-p "min_executable_size:zf_log:$<TARGET_FILE:test_min_executable_size.zf_log>"
-	-p "min_executable_size:zf_log_Os:$<TARGET_FILE:test_min_executable_size.zf_log_Os>"
-	-p "min_executable_size:spdlog:$<TARGET_FILE:test_min_executable_size.spdlog>"
-	-p "min_executable_size:easylogging++:$<TARGET_FILE:test_min_executable_size.easylog>"
-	-p "min_executable_size:g3log:$<TARGET_FILE:test_min_executable_size.g3log>"
-	-p "min_executable_size:glog:$<TARGET_FILE:test_min_executable_size.glog>")
+	${PARAMETERS})
