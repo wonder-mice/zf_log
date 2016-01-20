@@ -18,7 +18,7 @@ set(ZF_LOG_LIBRARY_PREFIX CACHE STRING
 option(ZF_LOG_CONFIGURE_INSTALL "Generate install target" ON)
 option(ZF_LOG_EXAMPLES "Build examples" OFF)
 option(ZF_LOG_TESTS "Build tests" OFF)
-option(ZF_LOG_PERF_TESTS "Build performance tests" OFF)
+option(ZF_LOG_PERF_TESTS "Build performance tests (requires Python)" OFF)
 option(ZF_LOG_USE_ANDROID_LOG "Use Android log by defaul when available" OFF)
 option(ZF_LOG_USE_NSLOG "Use NSLog (Apple System Log) by default when available" OFF)
 option(ZF_LOG_USE_DEBUGSTRING "Use OutputDebugString (Windows) by default when available" OFF)
