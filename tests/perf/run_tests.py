@@ -180,6 +180,8 @@ def main(argv):
 			help="Input parameter")
 	parser.add_argument("-b", "--build", metavar="TYPE",
 			help="Input parameter")
+	parser.add_argument("-v", "--verbose", action="store_true",
+			help="Verbose output")
 	args = parser.parse_args(argv[1:])
 	# process parameters
 	params = dict()
@@ -196,16 +198,17 @@ def main(argv):
 			key = vs[i]
 			if key not in d:
 				d[key] = dict()
-	sys.stderr.write(json.dumps(params, indent=4, default=repr))
+	if args.verbose:
+		sys.stderr.write(json.dumps(params, indent=4, default=repr))
 	# run tests
 	result = run_tests(params)
 	# print results
 	out = sys.stdout
 	if args.out is not None:
 		out = open(args.out, 'w')
-	out.write(json.dumps(params, indent=4, default=repr))
-	out.write(json.dumps(result, indent=4, default=repr))
-	out.write("\n")
+	if args.verbose:
+		out.write(json.dumps(result, indent=4, default=repr))
+		out.write("\n")
 	write_table(result, out)
 	out.flush()
 	return 0
