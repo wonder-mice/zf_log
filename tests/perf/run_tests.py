@@ -5,43 +5,29 @@ import os
 import argparse
 import json
 
-def readable_test(test):
+def translate_test(test):
 	if "call_site_size" == test:
-		return "1. Call site size"
+		return 1, "Call site size"
 	if "executable_size" == test:
-		return "2. Executable size"
+		return 2, "Executable size"
 	if "compile_time" == test:
-		return "3. Compile time"
+		return 3, "Compile time"
 	if "link_time" == test:
-		return "4. Link time"
-	return test
+		return 4, "Link time"
+	return 2718, test
 
-def readable_subj(subj):
+def translate_subj(subj):
 	if "zf_log_n" == subj:
-		return "zf_log"
+		return 3142, "zf_log"
 	if "easylog" == subj:
-		return "Easylogging++"
-	return subj
+		return 3142, "Easylogging++"
+	return 3142, subj
 
-class data_test:
-	def __init__(self, value):
-		if type(value) is not str:
-			raise RuntimeError("Not a string")
-		self.value = value
-	def __str__(self):
-		return readable_test(self.value)
-	def __repr__(self):
-		return repr(self.value)
+def translation_sort_key(v):
+	return "[%04i] %s" % (v[0], v[1])
 
-class data_subj:
-	def __init__(self, value):
-		if type(value) is not str:
-			raise RuntimeError("Not a string")
-		self.value = value
-	def __str__(self):
-		return readable_subj(self.value)
-	def __repr__(self):
-		return repr(self.value)
+def translation_value(v):
+	return v[1]
 
 class data_bytes:
 	def __init__(self, value):
@@ -50,10 +36,10 @@ class data_bytes:
 		self.value = value
 	def __str__(self):
 		if self.value < 1024:
-			return "%ib " % (self.value)
+			return "%i B" % (self.value)
 		if self.value < 1024 * 1024:
-			return "%.2fkb" % (self.value / 1024.0)
-		return "%.2fmb" % (self.value / 1024.0 / 1024.0)
+			return "%.2f KiB" % (self.value / 1024.0)
+		return "%.2f MiB" % (self.value / 1024.0 / 1024.0)
 	def __repr__(self):
 		return repr(self.value)
 
@@ -63,28 +49,75 @@ class data_seconds:
 			raise RuntimeError("Not an int or float")
 		self.value = value
 	def __str__(self):
-		return "%.3fsec" % (self.value)
+		return "%.3f sec" % (self.value)
 	def __repr__(self):
 		return repr(self.value)
 
-def to_table_str(value, w=0):
-	if value is None:
-		return "-".center(w)
-	elif type(value) is int:
-		return '{0:\'}'.format(value).rjust(w)
-	elif type(value) is str:
-		return value.center(w)
-	elif isinstance(value, data_test):
-		return str(value).ljust(w)
-	elif isinstance(value, data_subj):
-		return str(value).center(w)
-	elif isinstance(value, data_bytes):
-		return str(value).rjust(w)
-	elif isinstance(value, data_seconds):
-		return str(value).rjust(w)
-	else:
-		raise RuntimeError("Type not supported: " + str(type(value)))
+def get_table_data(result):
+	# collect all tests
+	tests = result.keys()
+	tests = sorted(tests, key=lambda x: translation_sort_key(translate_test(x)))
+	# collect all subjects
+	subjs = set()
+	for test in tests:
+		subjs.update(result[test].keys())
+	subjs = sorted(subjs, key=lambda x: translation_sort_key(translate_subj(x)))
+	# create table
+	rows = len(tests) + 1
+	cols = len(subjs) + 1
+	table = [[None for _ in range(cols)] for _ in range(rows)]
+	# put names and captions
+	for i in range(1, rows):
+		table[i][0] = translation_value(translate_test(tests[i - 1]))
+	for j in range(1, cols):
+		table[0][j] = translation_value(translate_subj(subjs[j - 1]))
+	# put data
+	for i in range(1, rows):
+		for j in range(1, cols):
+			test = tests[i - 1]
+			subj = subjs[j - 1]
+			if subj in result[test]:
+				table[i][j] = result[test][subj]
+	return table, rows, cols
 
+def gen_table_ascii(result):
+	table, rows, cols = get_table_data(result)
+	# gen cells content
+	for i in range(0, rows):
+		for j in range(0, cols):
+			value = table[i][j]
+			if value is None:
+				value = "-"
+			elif type(value) is int:
+				value = '{0:\'}'.format(value)
+			elif type(value) is not str:
+				value = str(value)
+			table[i][j] = value
+	# find cols width
+	widths = [0 for _ in range(cols)]
+	for j in range(0, cols):
+		for i in range(0, rows):
+			s = table[i][j]
+			if widths[j] < len(s):
+				widths[j] = len(s)
+	# align cells
+	for i in range(1, rows):
+		table[i][0] = table[i][0].ljust(widths[0])
+	for j in range(0, cols):
+		table[0][j] = table[0][j].center(widths[j])
+	for i in range(1, rows):
+		for j in range(1, cols):
+			table[i][j] = table[i][j].rjust(widths[j])
+	# draw chart
+	margin = " "
+	line = "+" + "-" * (sum(widths) + (2 * len(margin) + 1) * len(widths) - 1) + "+\n"
+	chart = line
+	for row in table:
+		chart += "|"
+		for cell in row:
+			chart += "%s%s%s|" % (margin, cell, margin)
+		chart += "\n" + line
+	return chart
 
 def run_call_site_size(params):
 	ps = params["call_site_size"]
@@ -129,49 +162,6 @@ def run_tests(params):
 	result["link_time"] = run_link_time(params)
 	return result
 
-def write_table(result, out):
-	tests = sorted(result.keys(), key=readable_test)
-	subjs = set()
-	# collect all subjects
-	for test in tests:
-		subjs.update(result[test].keys())
-	subjs = sorted(list(subjs), key=readable_subj)
-	# create table
-	rows = len(tests) + 1
-	cols = len(subjs) + 1
-	table = [[None for _ in range(cols)] for _ in range(rows)]
-	# put names and captions
-	for i in range(1, rows):
-		table[i][0] = data_test(tests[i - 1])
-	for j in range(1, cols):
-		table[0][j] = data_subj(subjs[j - 1])
-	# put data
-	for i in range(1, rows):
-		for j in range(1, cols):
-			test = tests[i - 1]
-			subj = subjs[j - 1]
-			if subj in result[test]:
-				table[i][j] = result[test][subj]
-	# find cols width
-	widths = [0 for _ in range(cols)]
-	for j in range(0, cols):
-		for i in range(0, rows):
-			s = to_table_str(table[i][j])
-			if widths[j] < len(s):
-				widths[j] = len(s)
-	# draw chart
-	margins = 2
-	line = "+" + "-" * (sum(widths) + margins * len(widths) + len(widths) - 1) + "+"
-	chart = line + "\n"
-	for i in range(0, rows):
-		chart += "|"
-		for j in range(0, cols):
-			w = widths[j]
-			s = to_table_str(table[i][j], w)
-			chart += s.center(w + margins) + "|"
-		chart += "\n" + line + "\n"
-	out.write(chart)
-
 def main(argv):
 	parser = argparse.ArgumentParser()
 	parser.add_argument("-o", "--out", metavar="PATH",
@@ -209,7 +199,8 @@ def main(argv):
 	if args.verbose:
 		out.write(json.dumps(result, indent=4, default=repr))
 		out.write("\n")
-	write_table(result, out)
+	table = gen_table_ascii(result)
+	out.write(table)
 	out.flush()
 	return 0
 
