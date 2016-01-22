@@ -127,6 +127,7 @@ namespace
 }
 
 #define A_MESSAGE "A log message"
+int an_int;
 
 #ifdef TEST_LIBRARY_ZF_LOG
 	#include <zf_log.h>
@@ -136,7 +137,12 @@ namespace
 							0);
 		return 0;
 	}();
-	#define ONE_STATEMENT() ZF_LOGI(A_MESSAGE)
+	#if defined(TEST_FORMAT_INT)
+		#define ONE_STATEMENT() ZF_LOGI("vA: %i, vB: %i, vC: %i, vD: %i", \
+				an_int, an_int, an_int, an_int)
+	#else
+		#define ONE_STATEMENT() ZF_LOGI(A_MESSAGE)
+	#endif
 #endif
 #ifdef TEST_LIBRARY_SPDLOG
 	#include <spdlog/spdlog.h>
@@ -147,7 +153,50 @@ namespace
 		void flush() override {}
 	};
 	auto logger = spdlog::create<null_sink>("stderr");
-	#define ONE_STATEMENT() logger->info(A_MESSAGE)
+	#if defined(TEST_FORMAT_INT)
+		#define ONE_STATEMENT() logger->info("vA: %i, vB: %i, vC: %i, vD: %i", \
+				an_int, an_int, an_int, an_int)
+	#else
+		#define ONE_STATEMENT() logger->info(A_MESSAGE)
+	#endif
+#endif
+#ifdef TEST_LIBRARY_EASYLOG
+	class drain {
+	public:
+		template<typename T>
+		drain &operator<<(T) { return *this; }
+		drain &operator<<(std::ostream& (*)(std::ostream&)) { return *this; }
+	};
+	drain g_cout;
+	#define ELPP_THREAD_SAFE
+	#define ELPP_CUSTOM_COUT g_cout
+	#include <easylogging++.h>
+	INITIALIZE_EASYLOGGINGPP
+	#if defined(TEST_FORMAT_INT)
+		#define ONE_STATEMENT() LOG(INFO) << "vA: " << an_int << \
+				", vB: " << an_int << ", vC: " << an_int << ", vD: " << an_int
+	#else
+		#define ONE_STATEMENT() LOG(INFO) << A_MESSAGE
+	#endif
+	auto dummy = []() {
+		el::Loggers::reconfigureAllLoggers(el::ConfigurationType::ToFile, "false");
+		return 0;
+	}();
+#endif
+#ifdef TEST_LIBRARY_G3LOG
+	#include <g3log/g3log.hpp>
+	#include <g3log/logworker.hpp>
+	class null_sink
+	{
+	public:
+		void log(const std::string) {}
+	};
+	#if defined(TEST_FORMAT_INT)
+		#define ONE_STATEMENT() LOGF(INFO, "vA: %i, vB: %i, vC: %i, vD: %i", \
+				an_int, an_int, an_int, an_int)
+	#else
+		#define ONE_STATEMENT() LOGF(INFO, A_MESSAGE)
+	#endif
 #endif
 #ifdef TEST_LIBRARY_GLOG
 	#include <glog/logging.h>
@@ -163,11 +212,22 @@ namespace
 		google::InitGoogleLogging("test_speed.glog");
 		return 0;
 	}();
-	#define ONE_STATEMENT() LOG_TO_SINK_BUT_NOT_TO_LOGFILE(&g_sink, INFO) << A_MESSAGE
+	#if defined(TEST_FORMAT_INT)
+		#define ONE_STATEMENT() LOG(INFO) << "vA: " << an_int << \
+				", vB: " << an_int << ", vC: " << an_int << ", vD: " << an_int
+	#else
+		#define ONE_STATEMENT() LOG_TO_SINK_BUT_NOT_TO_LOGFILE(&g_sink, INFO) << A_MESSAGE
+	#endif
 #endif
 
 int main(int argc, char *argv[])
 {
+#ifdef TEST_LIBRARY_G3LOG
+	/* Crashes when done in file scope */
+	auto worker = g3::LogWorker::createLogWorker();
+	g3::initializeLogging(worker.get());
+	worker->addSink(std::unique_ptr<null_sink>(new null_sink), &null_sink::log);
+#endif
 	unsigned n = 1;
 	if (1 < argc)
 	{

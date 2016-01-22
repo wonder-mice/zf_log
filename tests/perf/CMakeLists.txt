@@ -196,16 +196,23 @@ add_executable_size_test(glog)
 
 function(add_speed_test lib)
 	get_test_library("${lib}" test_library)
-	add_target(test_speed.${lib} EXECUTABLE
+	add_target(test_speed.str.${lib} EXECUTABLE
 		SOURCES test_speed.cpp
 		DEFINES "TEST_LIBRARY=${test_library}"
 		LIBRARIES "${lib}")
-	list(APPEND PARAMETERS "-p" "speed:${lib}:$<TARGET_FILE:test_speed.${lib}>")
+	add_target(test_speed.fmti.${lib} EXECUTABLE
+		SOURCES test_speed.cpp
+		DEFINES "TEST_LIBRARY=${test_library}" "TEST_FORMAT_INT"
+		LIBRARIES "${lib}")
+	list(APPEND PARAMETERS "-p" "speed:str:${lib}:$<TARGET_FILE:test_speed.str.${lib}>")
+	list(APPEND PARAMETERS "-p" "speed:fmti:${lib}:$<TARGET_FILE:test_speed.fmti.${lib}>")
 	set(PARAMETERS "${PARAMETERS}" PARENT_SCOPE)
 endfunction()
 add_speed_test(zf_log_n)
 add_speed_test(zf_log_Os)
 add_speed_test(spdlog)
+add_speed_test(easylog)
+add_speed_test(g3log)
 add_speed_test(glog)
 
 # results

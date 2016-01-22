@@ -7,19 +7,35 @@ import subprocess
 import json
 
 def translate_test(test):
-	if "call_site_size.str" == test:
-		return 1, "Call site size (log a string)"
-	if "call_site_size.fmti" == test:
-		return 2, "Call site size (log 4 integers)"
-	if "call_site_size.fmtf" == test:
-		return 3, "Call site size (log 4 integer functions)"
-	if "executable_size" == test:
-		return 4, "Executable size"
-	if "compile_time" == test:
-		return 5, "Compile time"
-	if "link_time" == test:
-		return 6, "Link time"
-	return 2718, test
+	if type(test) is tuple:
+		name = test[0]
+	else:
+		name = test
+	if "call_site_size.str" == name:
+		return 100, "Call site size: string"
+	if "call_site_size.fmti" == name:
+		return 200, "Call site size: 4 integers"
+	if "call_site_size.fmtf" == name:
+		return 300, "Call site size: 4 int functions"
+	if "executable_size" == name:
+		return 400, "Executable size"
+	if "compile_time" == name:
+		return 500, "Compile time"
+	if "link_time" == name:
+		return 600, "Link time"
+	if "speed" == name:
+		threads = test[1]
+		mode = test[2]
+		dn = 2 * threads
+		if "str" == mode:
+			mode = "string"
+		elif "fmti" == mode:
+			mode = "4 integers"
+			dn += 1
+		return 700 + dn, "Performance: %i threads, %s" % (threads, mode)
+	if type(test) is tuple:
+		return 3142, ", ".join(test)
+	return 2718, ", ".test
 
 def translate_subj(subj):
 	if "zf_log_n" == subj:
@@ -57,6 +73,19 @@ class data_seconds:
 		return "%.3f sec" % (self.value)
 	def __repr__(self):
 		return repr(self.value)
+
+class data_freq:
+	def __init__(self, count, seconds):
+		if type(count) is not int and type(count) is not float:
+			raise RuntimeError("Not an int or float")
+		if type(seconds) is not int and type(seconds) is not float:
+			raise RuntimeError("Not an int or float")
+		self.count = count
+		self.seconds = seconds
+	def __str__(self):
+		return "{:,}".format(self.count / self.seconds)
+	def __repr__(self):
+		return repr((self.count, self.seconds))
 
 def get_table_data(result):
 	# collect all tests
@@ -139,50 +168,51 @@ def run_call_site_size(params, result):
 			values[subj] = data_bytes(sz2 - sz1)
 		result[name] = values
 
-def run_min_executable_size(params):
-	ps = params["executable_size"]
-	result = dict()
-	for subj in ps.keys():
-		sz = os.path.getsize(ps[subj])
-		result[subj] = data_bytes(sz)
-	return result
+def run_min_executable_size(params, result):
+	if type(result) is not dict:
+		raise RuntimeError("Not a dictionary")
+	id = "executable_size"
+	params = params[id]
+	values = dict()
+	for subj in params:
+		sz = os.path.getsize(params[subj])
+		values[subj] = data_bytes(sz)
+	result[id] = values
 
-def run_compile_time(params):
-	ps = params["compile_time"]
-	result = dict()
-	for subj in ps.keys():
-		with open(ps[subj], "r") as f:
+def run_build_time(params, result, id):
+	if type(result) is not dict:
+		raise RuntimeError("Not a dictionary")
+	params = params[id]
+	values = dict()
+	for subj in params:
+		with open(params[subj], "r") as f:
 			dt = json.load(f)["dt"]
-			result[subj] = data_seconds(dt)
-	return result
+			values[subj] = data_seconds(dt)
+	result[id] = values
 
-def run_link_time(params):
-	ps = params["link_time"]
-	result = dict()
-	for subj in ps.keys():
-		with open(ps[subj], "r") as f:
-			dt = json.load(f)["dt"]
-			result[subj] = data_seconds(dt)
-	return result
-
-def run_speed(params, n):
-	ps = params["speed"]
-	result = dict()
-	for subj in ps.keys():
-		path = ps[subj]
-		p = subprocess.Popen([path, str(n)], stdout=subprocess.PIPE)
-		stdout, stderr = p.communicate()
-		result[subj] = int(stdout)
-	return result
+def run_speed(params, result, threads, seconds=1):
+	if type(result) is not dict:
+		raise RuntimeError("Not a dictionary")
+	id = "speed"
+	params = params[id]
+	for mode in params:
+		name = (id, threads, mode)
+		values = dict()
+		for subj in params[mode]:
+			path = params[mode][subj]
+			p = subprocess.Popen([path, str(threads)], stdout=subprocess.PIPE)
+			stdout, stderr = p.communicate()
+			values[subj] = data_freq(int(stdout), seconds)
+		result[name] = values
 
 def run_tests(params):
 	result = dict()
 	run_call_site_size(params, result)
-	result["executable_size"] = run_min_executable_size(params)
-	result["compile_time"] = run_compile_time(params)
-	result["link_time"] = run_link_time(params)
-	result["speed-1"] = run_speed(params, 1)
-	result["speed-4"] = run_speed(params, 4)
+	run_min_executable_size(params, result)
+	run_build_time(params, result, "compile_time")
+	run_build_time(params, result, "link_time")
+	run_speed(params, result, 1)
+	run_speed(params, result, 4)
 	return result
 
 def main(argv):
