@@ -306,6 +306,8 @@ Details:
 * Call site size - amount of code generated for each LOG() statement when
   logging a string, format string with 4 integers or format string with 4
   integers where the function is used to get an integer.
+* Compile time - time to compile a source file that includes public API
+  header from the logging library.
 * Performance - log lines per second. Thread(s) call LOG() N times in a
   tight loop for T seconds. N/T is log lines per second.
 * zf_log_Os - zf_log library built with ZF_LOG_OPTIMIZE_SIZE defined.
