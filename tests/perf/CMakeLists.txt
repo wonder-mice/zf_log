@@ -142,37 +142,48 @@ function(get_test_library lib var)
 	set(${var} "${lib}" PARENT_SCOPE)
 endfunction()
 
-function(add_call_site_size_test lib)
+function(add_executable_size_test lib)
 	get_test_library("${lib}" test_library)
-	add_target(test_call_site_size.${lib}.1 STATICLIB
+	add_target(test_call_site_size.str.${lib}.1 STATICLIB
 		SOURCES test_executable_size.cpp
 		DEFINES "TEST_LIBRARY=${test_library}"
 		TIME_COMPILE "${CMAKE_CURRENT_BINARY_DIR}/compile_time.${lib}.json"
 		LIBRARIES "${lib}")
-	add_target(test_call_site_size.${lib}.2 STATICLIB
+	add_target(test_call_site_size.str.${lib}.2 STATICLIB
 		SOURCES test_executable_size.cpp
-		DEFINES "TEST_LIBRARY=${test_library}" "EXTRA_STATEMENT"
+		DEFINES "TEST_LIBRARY=${test_library}" "TEST_EXTRA_STATEMENT"
 		LIBRARIES "${lib}")
-	list(APPEND PARAMETERS "-p" "call_site_size:${lib}:1:$<TARGET_FILE:test_call_site_size.${lib}.1>")
-	list(APPEND PARAMETERS "-p" "call_site_size:${lib}:2:$<TARGET_FILE:test_call_site_size.${lib}.2>")
-	list(APPEND PARAMETERS "-p" "compile_time:${lib}:$<TARGET_PROPERTY:test_call_site_size.${lib}.1,TIME_COMPILE>")
-	set(PARAMETERS "${PARAMETERS}" PARENT_SCOPE)
-endfunction()
-add_call_site_size_test(zf_log_n)
-add_call_site_size_test(zf_log_Os)
-add_call_site_size_test(spdlog)
-add_call_site_size_test(easylog)
-add_call_site_size_test(g3log)
-add_call_site_size_test(glog)
-
-function(add_executable_size_test lib)
-	get_test_library("${lib}" test_library)
+	add_target(test_call_site_size.fmti.${lib}.1 STATICLIB
+		SOURCES test_executable_size.cpp
+		DEFINES "TEST_LIBRARY=${test_library}" "TEST_FORMAT_INT"
+		TIME_COMPILE "${CMAKE_CURRENT_BINARY_DIR}/compile_time.${lib}.json"
+		LIBRARIES "${lib}")
+	add_target(test_call_site_size.fmti.${lib}.2 STATICLIB
+		SOURCES test_executable_size.cpp
+		DEFINES "TEST_LIBRARY=${test_library}" "TEST_FORMAT_INT" "TEST_EXTRA_STATEMENT"
+		LIBRARIES "${lib}")
+	add_target(test_call_site_size.fmtf.${lib}.1 STATICLIB
+		SOURCES test_executable_size.cpp
+		DEFINES "TEST_LIBRARY=${test_library}" "TEST_FORMAT_FUNC"
+		TIME_COMPILE "${CMAKE_CURRENT_BINARY_DIR}/compile_time.${lib}.json"
+		LIBRARIES "${lib}")
+	add_target(test_call_site_size.fmtf.${lib}.2 STATICLIB
+		SOURCES test_executable_size.cpp
+		DEFINES "TEST_LIBRARY=${test_library}" "TEST_FORMAT_FUNC" "TEST_EXTRA_STATEMENT"
+		LIBRARIES "${lib}")
 	add_target(test_executable_size.${lib} EXECUTABLE
 		SOURCES test_executable_size.cpp
 		DEFINES "TEST_LIBRARY=${test_library}"
 		TIME_LINK "${CMAKE_CURRENT_BINARY_DIR}/link_time.${lib}.json"
 		LIBRARIES "${lib}")
+	list(APPEND PARAMETERS "-p" "call_site_size:str:${lib}:1:$<TARGET_FILE:test_call_site_size.str.${lib}.1>")
+	list(APPEND PARAMETERS "-p" "call_site_size:str:${lib}:2:$<TARGET_FILE:test_call_site_size.str.${lib}.2>")
+	list(APPEND PARAMETERS "-p" "call_site_size:fmti:${lib}:1:$<TARGET_FILE:test_call_site_size.fmti.${lib}.1>")
+	list(APPEND PARAMETERS "-p" "call_site_size:fmti:${lib}:2:$<TARGET_FILE:test_call_site_size.fmti.${lib}.2>")
+	list(APPEND PARAMETERS "-p" "call_site_size:fmtf:${lib}:1:$<TARGET_FILE:test_call_site_size.fmtf.${lib}.1>")
+	list(APPEND PARAMETERS "-p" "call_site_size:fmtf:${lib}:2:$<TARGET_FILE:test_call_site_size.fmtf.${lib}.2>")
 	list(APPEND PARAMETERS "-p" "executable_size:${lib}:$<TARGET_FILE:test_executable_size.${lib}>")
+	list(APPEND PARAMETERS "-p" "compile_time:${lib}:$<TARGET_PROPERTY:test_call_site_size.str.${lib}.1,TIME_COMPILE>")
 	list(APPEND PARAMETERS "-p" "link_time:${lib}:$<TARGET_PROPERTY:test_executable_size.${lib},TIME_LINK>")
 	set(PARAMETERS "${PARAMETERS}" PARENT_SCOPE)
 endfunction()
@@ -183,8 +194,22 @@ add_executable_size_test(easylog)
 add_executable_size_test(g3log)
 add_executable_size_test(glog)
 
+function(add_speed_test lib)
+	get_test_library("${lib}" test_library)
+	add_target(test_speed.${lib} EXECUTABLE
+		SOURCES test_speed.cpp
+		DEFINES "TEST_LIBRARY=${test_library}"
+		LIBRARIES "${lib}")
+	list(APPEND PARAMETERS "-p" "speed:${lib}:$<TARGET_FILE:test_speed.${lib}>")
+	set(PARAMETERS "${PARAMETERS}" PARENT_SCOPE)
+endfunction()
+add_speed_test(zf_log_n)
+add_speed_test(zf_log_Os)
+add_speed_test(spdlog)
+add_speed_test(glog)
+
 # results
-add_test(NAME run_tests COMMAND "${PYTHON_EXECUTABLE}"
+add_test(NAME perf_tests COMMAND "${PYTHON_EXECUTABLE}"
 	"${CMAKE_CURRENT_SOURCE_DIR}/run_tests.py"
 	-o "${CMAKE_CURRENT_BINARY_DIR}/results.txt"
 	-b "${CMAKE_BUILD_TYPE}"

@@ -18,7 +18,6 @@ def main(argv):
 	ret = subprocess.call(argv[2:])
 	t = time.time() - t
 	if 0 == ret:
-		sys.stdout.write("time_it: dt=%.3fsec\n" % t)
 		with open(argv[1], "w") as f:
 			json.dump({"dt":t}, f)
 	return ret

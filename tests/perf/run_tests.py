@@ -3,17 +3,22 @@
 import sys
 import os
 import argparse
+import subprocess
 import json
 
 def translate_test(test):
-	if "call_site_size" == test:
-		return 1, "Call site size"
+	if "call_site_size.str" == test:
+		return 1, "Call site size (log a string)"
+	if "call_site_size.fmti" == test:
+		return 2, "Call site size (log 4 integers)"
+	if "call_site_size.fmtf" == test:
+		return 3, "Call site size (log 4 integer functions)"
 	if "executable_size" == test:
-		return 2, "Executable size"
+		return 4, "Executable size"
 	if "compile_time" == test:
-		return 3, "Compile time"
+		return 5, "Compile time"
 	if "link_time" == test:
-		return 4, "Link time"
+		return 6, "Link time"
 	return 2718, test
 
 def translate_subj(subj):
@@ -89,7 +94,7 @@ def gen_table_ascii(result):
 			if value is None:
 				value = "-"
 			elif type(value) is int:
-				value = '{0:\'}'.format(value)
+				value = "{:,}".format(value)
 			elif type(value) is not str:
 				value = str(value)
 			table[i][j] = value
@@ -119,14 +124,20 @@ def gen_table_ascii(result):
 		chart += "\n" + line
 	return chart
 
-def run_call_site_size(params):
-	ps = params["call_site_size"]
-	result = dict()
-	for subj in ps:
-		sz1 = os.path.getsize(ps[subj]["1"])
-		sz2 = os.path.getsize(ps[subj]["2"])
-		result[subj] = data_bytes(sz2 - sz1)
-	return result
+def run_call_site_size(params, result):
+	if type(result) is not dict:
+		raise RuntimeError("Not a dictionary")
+	id = "call_site_size"
+	params = params[id]
+	for mode in params:
+		name = "%s.%s" % (id, mode)
+		values = dict()
+		for subj in params[mode]:
+			data = params[mode][subj]
+			sz1 = os.path.getsize(data["1"])
+			sz2 = os.path.getsize(data["2"])
+			values[subj] = data_bytes(sz2 - sz1)
+		result[name] = values
 
 def run_min_executable_size(params):
 	ps = params["executable_size"]
@@ -154,12 +165,24 @@ def run_link_time(params):
 			result[subj] = data_seconds(dt)
 	return result
 
+def run_speed(params, n):
+	ps = params["speed"]
+	result = dict()
+	for subj in ps.keys():
+		path = ps[subj]
+		p = subprocess.Popen([path, str(n)], stdout=subprocess.PIPE)
+		stdout, stderr = p.communicate()
+		result[subj] = int(stdout)
+	return result
+
 def run_tests(params):
 	result = dict()
-	result["call_site_size"] = run_call_site_size(params)
+	run_call_site_size(params, result)
 	result["executable_size"] = run_min_executable_size(params)
 	result["compile_time"] = run_compile_time(params)
 	result["link_time"] = run_link_time(params)
+	result["speed-1"] = run_speed(params, 1)
+	result["speed-4"] = run_speed(params, 4)
 	return result
 
 def main(argv):
@@ -188,14 +211,13 @@ def main(argv):
 			key = vs[i]
 			if key not in d:
 				d[key] = dict()
-	if args.verbose:
-		sys.stderr.write(json.dumps(params, indent=4, default=repr))
-	# run tests
-	result = run_tests(params)
-	# print results
 	out = sys.stdout
 	if args.out is not None:
 		out = open(args.out, 'w')
+	if args.verbose:
+		out.write(json.dumps(params, indent=4, default=repr))
+		out.write("\n")
+	result = run_tests(params)
 	if args.verbose:
 		out.write(json.dumps(result, indent=4, default=repr))
 		out.write("\n")
