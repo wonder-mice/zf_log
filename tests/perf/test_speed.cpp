@@ -4,6 +4,7 @@
 #include <vector>
 #include <string>
 #include <thread>
+#include <condition_variable>
 #include "test_switch.h"
 
 namespace
