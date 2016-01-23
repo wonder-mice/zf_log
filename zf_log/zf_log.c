@@ -294,7 +294,7 @@ static INSTRUMENTED_CONST buffer_cb g_buffer_cb = buffer_callback;
 	}
 
 	enum { OUT_ANDROID_MASK = ZF_LOG_PUT_STD & ~ZF_LOG_PUT_CTX };
-	#define OUT_ANDROID OUT_ANDROID_MASK, out_android_callback, 0
+	#define OUT_ANDROID OUT_ANDROID_MASK, 0, out_android_callback
 #endif
 
 #if ZF_LOG_USE_NSLOG
@@ -331,7 +331,7 @@ static INSTRUMENTED_CONST buffer_cb g_buffer_cb = buffer_callback;
 	}
 
 	enum { OUT_NSLOG_MASK = ZF_LOG_PUT_STD & ~ZF_LOG_PUT_CTX };
-	#define OUT_NSLOG OUT_NSLOG_MASK, out_nslog_callback, 0
+	#define OUT_NSLOG OUT_NSLOG_MASK, 0, out_nslog_callback
 #endif
 
 #if ZF_LOG_USE_DEBUGSTRING
@@ -345,7 +345,7 @@ static INSTRUMENTED_CONST buffer_cb g_buffer_cb = buffer_callback;
 	}
 
 	enum { OUT_DEBUGSTRING_MASK = ZF_LOG_PUT_STD };
-	#define OUT_DEBUGSTRING OUT_DEBUGSTRING_MASK, out_debugstring_callback, 0
+	#define OUT_DEBUGSTRING OUT_DEBUGSTRING_MASK, 0, out_debugstring_callback
 #endif
 
 void zf_log_out_stderr_callback(const zf_log_message *const msg, void *arg)
@@ -773,12 +773,12 @@ void zf_log_set_output_level(const int lvl)
 	_zf_log_global_output_lvl = lvl;
 }
 
-void zf_log_set_output_v(const unsigned mask, const zf_log_output_cb callback,
-						 void *const arg)
+void zf_log_set_output_v(const unsigned mask, void *const arg,
+						 const zf_log_output_cb callback)
 {
 	_zf_log_global_output.mask = mask;
-	_zf_log_global_output.callback = callback;
 	_zf_log_global_output.arg = arg;
+	_zf_log_global_output.callback = callback;
 }
 
 static void _zf_log_write_imp(

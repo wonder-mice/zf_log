@@ -20,7 +20,7 @@ void test_module();
 
 void test_main()
 {
-	zf_log_set_output_v(ZF_LOG_PUT_STD, main_output_callback, 0);
+	zf_log_set_output_v(ZF_LOG_PUT_STD, 0, main_output_callback);
 	ZF_LOGI("main");
 	if (!main_called)
 	{
@@ -32,7 +32,7 @@ void test_main()
 int main(int argc, char *argv[])
 {
 	(void)argc; (void)argv;
-	zf_log_set_output_v(ZF_LOG_PUT_STD, main_output_callback, 0);
+	zf_log_set_output_v(ZF_LOG_PUT_STD, 0, main_output_callback);
 
 	test_module();
 	test_main();

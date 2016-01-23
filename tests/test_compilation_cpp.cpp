@@ -9,7 +9,7 @@ namespace
 
 int main(int argc, char *argv[])
 {
-	zf_log_set_output_v(ZF_LOG_PUT_STD, mock_output_callback, 0);
+	zf_log_set_output_v(ZF_LOG_PUT_STD, 0, mock_output_callback);
 	ZF_LOGI("log from cpp, argc=%i", argc);
 	ZF_LOGI_MEM(argv, argc * sizeof(*argv), "log from cpp, argv pointers:");
 	return 0;

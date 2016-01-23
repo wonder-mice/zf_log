@@ -7,12 +7,12 @@
  * the current value of ZF_LOG_VERSION before including this file (or via
  * compiler command line):
  *
- *   #define ZF_LOG_VERSION_REQUIRED 3
+ *   #define ZF_LOG_VERSION_REQUIRED 4
  *   #include <zf_log.h>
  *
  * Compilation will fail when included file has different version.
  */
-#define ZF_LOG_VERSION 3
+#define ZF_LOG_VERSION 4
 #if defined(ZF_LOG_VERSION_REQUIRED)
 	#if ZF_LOG_VERSION_REQUIRED != ZF_LOG_VERSION
 		#error different zf_log version required
@@ -418,8 +418,8 @@ zf_log_format;
 typedef struct zf_log_output
 {
 	unsigned mask; /* What to put into log line buffer (see ZF_LOG_PUT_XXX) */
-	zf_log_output_cb callback; /* Output callback function */
 	void *arg; /* User provided output callback argument */
+	zf_log_output_cb callback; /* Output callback function */
 }
 zf_log_output;
 
@@ -428,11 +428,11 @@ zf_log_output;
  * Mask allows to control what information will be added to the log line buffer
  * before callback function is invoked. Default mask value is ZF_LOG_PUT_STD.
  */
-void zf_log_set_output_v(const unsigned mask, const zf_log_output_cb callback,
-						 void *const arg);
+void zf_log_set_output_v(const unsigned mask, void *const arg,
+						 const zf_log_output_cb callback);
 static _ZF_LOG_INLINE void zf_log_set_output_p(const zf_log_output *const output)
 {
-	zf_log_set_output_v(output->mask, output->callback, output->arg);
+	zf_log_set_output_v(output->mask, output->arg, output->callback);
 }
 
 /* Used with _AUX macros and allows to override global format and output
@@ -440,7 +440,7 @@ static _ZF_LOG_INLINE void zf_log_set_output_p(const zf_log_output *const output
  * global configuration. Example:
  *
  *   static const zf_log_output module_output = {
- *       ZF_LOG_PUT_STD, custom_output_callback, 0
+ *       ZF_LOG_PUT_STD, 0, custom_output_callback
  *   };
  *   static const zf_log_spec module_spec = {
  *       ZF_LOG_GLOBAL_FORMAT, &module_output
@@ -773,7 +773,7 @@ extern "C" {
  */
 enum { ZF_LOG_OUT_STDERR_MASK = ZF_LOG_PUT_STD };
 void zf_log_out_stderr_callback(const zf_log_message *const msg, void *arg);
-#define ZF_LOG_OUT_STDERR ZF_LOG_OUT_STDERR_MASK, zf_log_out_stderr_callback, 0
+#define ZF_LOG_OUT_STDERR ZF_LOG_OUT_STDERR_MASK, 0, zf_log_out_stderr_callback
 
 /* Predefined spec for stderr. Uses global format options (ZF_LOG_GLOBAL_FORMAT)
  * and ZF_LOG_OUT_STDERR. Could be used to force output to stderr for a

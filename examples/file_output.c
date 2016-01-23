@@ -29,7 +29,7 @@ static void file_output_open(const char *const log_path)
 		return;
 	}
 	atexit(file_output_close);
-	zf_log_set_output_v(ZF_LOG_PUT_STD, file_output_callback, 0);
+	zf_log_set_output_v(ZF_LOG_PUT_STD, 0, file_output_callback);
 }
 
 int main(int argc, char *argv[])

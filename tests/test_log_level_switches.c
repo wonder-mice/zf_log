@@ -206,7 +206,7 @@ static void test_level_checks()
 
 int main(int argc, char *argv[])
 {
-	zf_log_set_output_v(ZF_LOG_PUT_STD, mock_output_callback, 0);
+	zf_log_set_output_v(ZF_LOG_PUT_STD, 0, mock_output_callback);
 	TEST_RUNNER_CREATE(argc, argv);
 
 	TEST_EXECUTE(test_current_level());

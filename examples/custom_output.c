@@ -63,7 +63,7 @@ int main(int argc, char *argv[])
 			ZF_LOG_PUT_STD;
 #endif
 			;
-	zf_log_set_output_v(put_mask, custom_output_callback, 0);
+	zf_log_set_output_v(put_mask, 0, custom_output_callback);
 
 	ZF_LOGI("Number of arguments goes into custom output: %i", argc);
 	ZF_LOGI_MEM(argv, argc * sizeof(*argv), "and argv pointers as well:");
