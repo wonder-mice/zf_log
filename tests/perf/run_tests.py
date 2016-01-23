@@ -14,11 +14,9 @@ def translate_test(test):
 	if "call_site_size.str" == name:
 		return 100, "Call site size: string"
 	if "call_site_size.fmti" == name:
-		return 200, "Call site size: 4 integers"
-	if "call_site_size.fmtf" == name:
-		return 300, "Call site size: 4 int functions"
-	if "executable_size" == name:
-		return 400, "Executable size"
+		return 200, "Call site size: 3 integers"
+	if "executable_size.m1" == name:
+		return 400, "Executable size: 1 module"
 	if "compile_time" == name:
 		return 500, "Compile time"
 	if "link_time" == name:
@@ -35,7 +33,7 @@ def translate_test(test):
 		return 700 + dn, "Performance: %i threads, %s" % (threads, mode)
 	if type(test) is tuple:
 		return 3142, ", ".join(test)
-	return 2718, ", ".test
+	return 2718, test
 
 def translate_subj(subj):
 	if "zf_log_n" == subj:
@@ -168,16 +166,18 @@ def run_call_site_size(params, result):
 			values[subj] = data_bytes(sz2 - sz1)
 		result[name] = values
 
-def run_min_executable_size(params, result):
+def run_executable_size(params, result):
 	if type(result) is not dict:
 		raise RuntimeError("Not a dictionary")
 	id = "executable_size"
 	params = params[id]
-	values = dict()
-	for subj in params:
-		sz = os.path.getsize(params[subj])
-		values[subj] = data_bytes(sz)
-	result[id] = values
+	for mode in params:
+		name = "%s.%s" % (id, mode)
+		values = dict()
+		for subj in params[mode]:
+			sz = os.path.getsize(params[mode][subj])
+			values[subj] = data_bytes(sz)
+		result[name] = values
 
 def run_build_time(params, result, id):
 	if type(result) is not dict:
@@ -208,7 +208,7 @@ def run_speed(params, result, threads, seconds=1):
 def run_tests(params):
 	result = dict()
 	run_call_site_size(params, result)
-	run_min_executable_size(params, result)
+	run_executable_size(params, result)
 	run_build_time(params, result, "compile_time")
 	run_build_time(params, result, "link_time")
 	run_speed(params, result, 1)

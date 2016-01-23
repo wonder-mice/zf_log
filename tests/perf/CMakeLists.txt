@@ -20,7 +20,7 @@ function(add_target target)
 	cmake_parse_arguments(arg
 		"STATICLIB;EXECUTABLE"
 		"TIME_COMPILE;TIME_LINK"
-		"SOURCES;DEFINES;INCLUDES;LIBRARIES"
+		"SOURCES;DEFINES;INCLUDES;COMPILE_OPTIONS;LIBRARIES"
 		${ARGN})
 	if(arg_STATICLIB)
 		add_library(${target} STATIC ${arg_SOURCES})
@@ -34,6 +34,9 @@ function(add_target target)
 	endif()
 	if(arg_INCLUDES)
 		target_include_directories(${target} PRIVATE ${arg_INCLUDES})
+	endif()
+	if(arg_COMPILE_OPTIONS)
+		target_compile_options(${target} PRIVATE ${arg_COMPILE_OPTIONS})
 	endif()
 	if(arg_LIBRARIES)
 		target_link_libraries(${target} ${arg_LIBRARIES})
@@ -70,6 +73,9 @@ ExternalProject_Add(spdlog_ep
 		"-DCMAKE_TOOLCHAIN_FILE:filepath=${CMAKE_TOOLCHAIN_FILE}"
 		"-DCMAKE_INSTALL_PREFIX:path=<INSTALL_DIR>"
 		"-DCMAKE_BUILD_TYPE:string=${CMAKE_BUILD_TYPE}"
+		"-DCMAKE_OSX_ARCHITECTURES:string=${CMAKE_OSX_ARCHITECTURES}"
+		"-DCMAKE_OSX_DEPLOYMENT_TARGET:string=${CMAKE_OSX_DEPLOYMENT_TARGET}"
+		"-DCMAKE_OSX_SYSROOT:path=${CMAKE_OSX_SYSROOT}"
 )
 add_library(spdlog INTERFACE)
 add_dependencies(spdlog spdlog_ep)
@@ -105,6 +111,9 @@ ExternalProject_Add(g3log_ep
 		"-DCMAKE_TOOLCHAIN_FILE:filepath=${CMAKE_TOOLCHAIN_FILE}"
 		"-DCMAKE_INSTALL_PREFIX:path=<INSTALL_DIR>"
 		"-DCMAKE_BUILD_TYPE:string=${CMAKE_BUILD_TYPE}"
+		"-DCMAKE_OSX_ARCHITECTURES:string=${CMAKE_OSX_ARCHITECTURES}"
+		"-DCMAKE_OSX_DEPLOYMENT_TARGET:string=${CMAKE_OSX_DEPLOYMENT_TARGET}"
+		"-DCMAKE_OSX_SYSROOT:path=${CMAKE_OSX_SYSROOT}"
 	INSTALL_COMMAND "${CMAKE_COMMAND}" -E copy_directory
 		"<SOURCE_DIR>/src/g3log" "<INSTALL_DIR>/include/g3log"
 		COMMAND "${CMAKE_COMMAND}" -E copy_if_different
@@ -129,6 +138,9 @@ ExternalProject_Add(glog_ep
 		"-DCMAKE_TOOLCHAIN_FILE:filepath=${CMAKE_TOOLCHAIN_FILE}"
 		"-DCMAKE_INSTALL_PREFIX:path=<INSTALL_DIR>"
 		"-DCMAKE_BUILD_TYPE:string=${CMAKE_BUILD_TYPE}"
+		"-DCMAKE_OSX_ARCHITECTURES:string=${CMAKE_OSX_ARCHITECTURES}"
+		"-DCMAKE_OSX_DEPLOYMENT_TARGET:string=${CMAKE_OSX_DEPLOYMENT_TARGET}"
+		"-DCMAKE_OSX_SYSROOT:path=${CMAKE_OSX_SYSROOT}"
 )
 add_library(glog INTERFACE)
 add_dependencies(glog glog_ep)
@@ -144,47 +156,34 @@ endfunction()
 
 function(add_executable_size_test lib)
 	get_test_library("${lib}" test_library)
-	add_target(test_call_site_size.str.${lib}.1 STATICLIB
+	add_target(test_call_site_size.str.${lib}.1 STATICLIB LIBRARIES "${lib}"
+		TIME_COMPILE "${CMAKE_CURRENT_BINARY_DIR}/compile_time.${lib}.json"
 		SOURCES test_executable_size.cpp
 		DEFINES "TEST_LIBRARY=${test_library}"
-		TIME_COMPILE "${CMAKE_CURRENT_BINARY_DIR}/compile_time.${lib}.json"
-		LIBRARIES "${lib}")
-	add_target(test_call_site_size.str.${lib}.2 STATICLIB
-		SOURCES test_executable_size.cpp
-		DEFINES "TEST_LIBRARY=${test_library}" "TEST_EXTRA_STATEMENT"
-		LIBRARIES "${lib}")
-	add_target(test_call_site_size.fmti.${lib}.1 STATICLIB
-		SOURCES test_executable_size.cpp
-		DEFINES "TEST_LIBRARY=${test_library}" "TEST_FORMAT_INT"
-		TIME_COMPILE "${CMAKE_CURRENT_BINARY_DIR}/compile_time.${lib}.json"
-		LIBRARIES "${lib}")
-	add_target(test_call_site_size.fmti.${lib}.2 STATICLIB
-		SOURCES test_executable_size.cpp
-		DEFINES "TEST_LIBRARY=${test_library}" "TEST_FORMAT_INT" "TEST_EXTRA_STATEMENT"
-		LIBRARIES "${lib}")
-	add_target(test_call_site_size.fmtf.${lib}.1 STATICLIB
-		SOURCES test_executable_size.cpp
-		DEFINES "TEST_LIBRARY=${test_library}" "TEST_FORMAT_FUNC"
-		TIME_COMPILE "${CMAKE_CURRENT_BINARY_DIR}/compile_time.${lib}.json"
-		LIBRARIES "${lib}")
-	add_target(test_call_site_size.fmtf.${lib}.2 STATICLIB
-		SOURCES test_executable_size.cpp
-		DEFINES "TEST_LIBRARY=${test_library}" "TEST_FORMAT_FUNC" "TEST_EXTRA_STATEMENT"
-		LIBRARIES "${lib}")
-	add_target(test_executable_size.${lib} EXECUTABLE
+			"TEST_SEVERAL_STATEMENTS")
+	add_target(test_call_site_size.str.${lib}.2 STATICLIB LIBRARIES "${lib}"
 		SOURCES test_executable_size.cpp
 		DEFINES "TEST_LIBRARY=${test_library}"
+			"TEST_SEVERAL_STATEMENTS" "TEST_EXTRA_STATEMENT")
+	add_target(test_call_site_size.fmti.${lib}.1 STATICLIB LIBRARIES "${lib}"
+		SOURCES test_executable_size.cpp
+		DEFINES "TEST_LIBRARY=${test_library}"
+			"TEST_FORMAT_INTS" "TEST_SEVERAL_STATEMENTS")
+	add_target(test_call_site_size.fmti.${lib}.2 STATICLIB LIBRARIES "${lib}"
+		SOURCES test_executable_size.cpp
+		DEFINES "TEST_LIBRARY=${test_library}"
+			"TEST_FORMAT_INTS" "TEST_SEVERAL_STATEMENTS" "TEST_EXTRA_STATEMENT")
+	add_target(test_executable_size.m1.${lib} EXECUTABLE LIBRARIES "${lib}"
 		TIME_LINK "${CMAKE_CURRENT_BINARY_DIR}/link_time.${lib}.json"
-		LIBRARIES "${lib}")
+		SOURCES test_executable_size.cpp
+		DEFINES "TEST_LIBRARY=${test_library}")
 	list(APPEND PARAMETERS "-p" "call_site_size:str:${lib}:1:$<TARGET_FILE:test_call_site_size.str.${lib}.1>")
 	list(APPEND PARAMETERS "-p" "call_site_size:str:${lib}:2:$<TARGET_FILE:test_call_site_size.str.${lib}.2>")
 	list(APPEND PARAMETERS "-p" "call_site_size:fmti:${lib}:1:$<TARGET_FILE:test_call_site_size.fmti.${lib}.1>")
 	list(APPEND PARAMETERS "-p" "call_site_size:fmti:${lib}:2:$<TARGET_FILE:test_call_site_size.fmti.${lib}.2>")
-	list(APPEND PARAMETERS "-p" "call_site_size:fmtf:${lib}:1:$<TARGET_FILE:test_call_site_size.fmtf.${lib}.1>")
-	list(APPEND PARAMETERS "-p" "call_site_size:fmtf:${lib}:2:$<TARGET_FILE:test_call_site_size.fmtf.${lib}.2>")
-	list(APPEND PARAMETERS "-p" "executable_size:${lib}:$<TARGET_FILE:test_executable_size.${lib}>")
+	list(APPEND PARAMETERS "-p" "executable_size:m1:${lib}:$<TARGET_FILE:test_executable_size.m1.${lib}>")
 	list(APPEND PARAMETERS "-p" "compile_time:${lib}:$<TARGET_PROPERTY:test_call_site_size.str.${lib}.1,TIME_COMPILE>")
-	list(APPEND PARAMETERS "-p" "link_time:${lib}:$<TARGET_PROPERTY:test_executable_size.${lib},TIME_LINK>")
+	list(APPEND PARAMETERS "-p" "link_time:${lib}:$<TARGET_PROPERTY:test_executable_size.m1.${lib},TIME_LINK>")
 	set(PARAMETERS "${PARAMETERS}" PARENT_SCOPE)
 endfunction()
 add_executable_size_test(zf_log_n)
@@ -198,11 +197,11 @@ function(add_speed_test lib)
 	get_test_library("${lib}" test_library)
 	add_target(test_speed.str.${lib} EXECUTABLE
 		SOURCES test_speed.cpp
-		DEFINES "TEST_LIBRARY=${test_library}"
+		DEFINES "TEST_LIBRARY=${test_library}" "TEST_NULL_SINK"
 		LIBRARIES "${lib}")
 	add_target(test_speed.fmti.${lib} EXECUTABLE
 		SOURCES test_speed.cpp
-		DEFINES "TEST_LIBRARY=${test_library}" "TEST_FORMAT_INT"
+		DEFINES "TEST_LIBRARY=${test_library}" "TEST_NULL_SINK" "TEST_FORMAT_INTS"
 		LIBRARIES "${lib}")
 	list(APPEND PARAMETERS "-p" "speed:str:${lib}:$<TARGET_FILE:test_speed.str.${lib}>")
 	list(APPEND PARAMETERS "-p" "speed:fmti:${lib}:$<TARGET_FILE:test_speed.fmti.${lib}>")
