@@ -18,6 +18,8 @@ else()
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra -Werror -pedantic-errors")
 endif()
 
+option(ZF_LOG_PERF_TEST_ZF_LOG_OS "Add zf_log built with ZF_LOG_OPTIMIZE_SIZE to performance tests" OFF)
+
 function(add_target target)
 	cmake_parse_arguments(arg
 		"STATICLIB;EXECUTABLE;NO_THREADS"
@@ -191,8 +193,11 @@ function(add_executable_size_test lib)
 	list(APPEND PARAMETERS "-p" "link_time:${lib}:$<TARGET_PROPERTY:test_executable_size.m1.${lib},TIME_LINK>")
 	set(PARAMETERS "${PARAMETERS}" PARENT_SCOPE)
 endfunction()
+
+if(ZF_LOG_PERF_TEST_ZF_LOG_OS)
+	add_executable_size_test(zf_log_Os)
+endif()
 add_executable_size_test(zf_log_n)
-add_executable_size_test(zf_log_Os)
 add_executable_size_test(spdlog)
 add_executable_size_test(easylog)
 add_executable_size_test(g3log)
@@ -212,8 +217,11 @@ function(add_speed_test lib)
 	list(APPEND PARAMETERS "-p" "speed:fmti:${lib}:$<TARGET_FILE:test_speed.fmti.${lib}>")
 	set(PARAMETERS "${PARAMETERS}" PARENT_SCOPE)
 endfunction()
+
+if(ZF_LOG_PERF_TEST_ZF_LOG_OS)
+	add_speed_test(zf_log_Os)
+endif()
 add_speed_test(zf_log_n)
-add_speed_test(zf_log_Os)
 add_speed_test(spdlog)
 add_speed_test(easylog)
 add_speed_test(g3log)
@@ -222,6 +230,8 @@ add_speed_test(glog)
 # results
 add_test(NAME perf_tests COMMAND "${PYTHON_EXECUTABLE}"
 	"${CMAKE_CURRENT_SOURCE_DIR}/run_tests.py"
-	-o "${CMAKE_CURRENT_BINARY_DIR}/results.txt"
+	-t "${CMAKE_CURRENT_BINARY_DIR}/results.txt"
+	-m "${CMAKE_CURRENT_BINARY_DIR}/results.md"
 	-b "${CMAKE_BUILD_TYPE}"
+	-v
 	${PARAMETERS})
