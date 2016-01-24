@@ -6,41 +6,55 @@ import argparse
 import subprocess
 import json
 
+def take_first(value):
+	if type(value) is tuple or type(value) is list:
+		return value[0]
+	return value
+
+def take_order(value, order):
+	for i in range(len(order)):
+		if value == order[i]:
+			return i
+	raise RuntimeError("Value \"%s\" is not in \"%s\"" % value, order)
+
+def take_map(value, keys, vals):
+	if len(keys) != len(vals):
+		raise RuntimeError("Length of keys and vals must match")
+	for i in range(len(keys)):
+		if value == keys[i]:
+			return vals[i]
+	raise RuntimeError("Value \"%s\" is not in \"%s\"" % value, keys)
+
 def translate_test(test):
-	if type(test) is tuple:
-		name = test[0]
-	else:
-		name = test
+	name = take_first(test)
 	if "call_site_size.str" == name:
-		return 100, "Call site size: string"
+		return 1000, "Call site size: string"
 	if "call_site_size.fmti" == name:
-		return 200, "Call site size: 3 integers"
+		return 2000, "Call site size: 3 integers"
 	if "executable_size.m1" == name:
-		return 400, "Executable size: 1 module"
+		return 3000, "Executable size: 1 module"
 	if "compile_time" == name:
-		return 500, "Compile time"
+		return 4000, "Compile time"
 	if "link_time" == name:
-		return 600, "Link time"
+		return 5000, "Link time"
 	if "speed" == name:
 		threads = test[1]
 		mode = test[2]
-		dn = 2 * threads
-		if "str" == mode:
-			mode = "string"
-		elif "fmti" == mode:
-			mode = "4 integers"
-			dn += 1
-		return 700 + dn, "Performance: %i threads, %s" % (threads, mode)
-	if type(test) is tuple:
-		return 3142, ", ".join(test)
-	return 2718, test
+		mode_keys = ["str",    "fmti"]
+		mode_vals = ["string", "3 integers"]
+		tr_mode = take_map(mode, mode_keys, mode_vals)
+		order = 10 * threads + take_order(mode, mode_keys)
+		return 6000 + order, "Performance: %i threads, %s" % (threads, tr_mode)
+	if type(test) is tuple or type(test) is list:
+		return 31416, ", ".join(test)
+	return 27183, test
 
 def translate_subj(subj):
 	if "zf_log_n" == subj:
-		return 3142, "zf_log"
+		return 31416, "zf_log"
 	if "easylog" == subj:
-		return 3142, "Easylogging++"
-	return 3142, subj
+		return 31416, "Easylogging++"
+	return 31416, subj
 
 def translation_sort_key(v):
 	return "[%04i] %s" % (v[0], v[1])
