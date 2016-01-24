@@ -275,17 +275,19 @@ Comparison
 This table is work in progress. See [tests/perf](tests/perf) folder for how
 this table was generated (fully automated).
 
-|                                      |  Easylogging++  |    g3log    |     glog    |    spdlog   |    zf_log   |
-| ------------------------------------ | ---------------:| -----------:| -----------:| -----------:| -----------:|
-|  Call site size: string              |          304 B  |      384 B  |      160 B  |      352 B  |     **48 B**|
-|  Call site size: 3 integers          |          856 B  |      392 B  |      320 B  |      312 B  |     **72 B**|
-|  Executable size: 1 module           |      208.84 KB  |  178.94 KB  |  137.37 KB  |  133.69 KB  | **18.33 KB**|
-|  Module compile time                 |      7.471 sec  |  1.027 sec  |  0.636 sec  |  5.430 sec  |**0.031 sec**|
-|  Executable link time                |      0.042 sec  |**0.038 sec**|  0.050 sec  |**0.040 sec**|**0.037 sec**|
-|  Speed: 1 threads, string            |        390,398  |    431,348  |    401,211  |  2,104,390  |**5,436,987**|
-|  Speed: 1 threads, 3 integers        |        294,678  |    331,091  |    313,763  |  1,475,986  |**3,014,373**|
-|  Speed: 4 threads, string            |        129,344  |    131,281  |    198,582  |    218,818  |**9,889,183**|
-|  Speed: 4 threads, 3 integers        |        117,566  |    133,371  |    237,070  |    170,713  |**5,611,164**|
+|                                     |  Easylogging++  |    g3log     |     glog    |     spdlog    |      zf_log     |
+| ----------------------------------- | ---------------:| ------------:| -----------:| -------------:| ---------------:|
+|  Call site size: string             |          304 B  |       360 B  |      160 B  |        352 B  |         **48 B**|
+|  Call site size: 3 integers         |          856 B  |       384 B  |      320 B  |        312 B  |         **72 B**|
+|  Executable size: 1 module          |      208.84 KB  |   183.73 KB  |  137.37 KB  |    133.69 KB  |     **18.33 KB**|
+|  Module compile time                |      8.680 sec  |   1.095 sec  |  0.813 sec  |    7.229 sec  |    **0.038 sec**|
+|  Executable link time               |      0.049 sec  |   0.082 sec  |**0.046 sec**|  **0.040 sec**|    **0.043 sec**|
+|  Speed: 1 threads, string           |        395,650  |   1,350,441  |    411,522  |    2,102,440  |    **5,374,985**|
+|  Speed: 1 threads, 3 integers       |        305,635  |     786,197  |    331,176  |    1,506,431  |    **3,256,415**|
+|  Speed: 1 threads, 3 integers, off  |      4,280,356  |  60,710,146  |    353,269  |   68,716,306  |  **517,332,998**|
+|  Speed: 4 threads, string           |        133,534  |   2,474,822  |    201,613  |      182,096  |    **9,788,809**|
+|  Speed: 4 threads, 3 integers       |        115,224  |   1,930,410  |    236,196  |      184,056  |    **5,603,209**|
+|  Speed: 4 threads, 3 integers, off  |        248,661  |  90,069,640  |    244,567  |  126,879,629  |**1,212,330,959**|
 
 Details:
 
@@ -294,9 +296,10 @@ Details:
   integers where the function is used to get an integer.
 * Compile time - time to compile a source file that includes public API
   header from the logging library.
-* Performance - log lines per second. Thread(s) call LOG() N times in a
+* Speed - log lines per second. Thread(s) call LOG() N times in a
   tight loop for T seconds. N/T is log lines per second.
-* zf_log_Os - zf_log library built with ZF_LOG_OPTIMIZE_SIZE defined.
+* When it says "off", it means that log level was turned off. Expecting
+  very low overhead in this mode.
 
 Why zf?
 --------
