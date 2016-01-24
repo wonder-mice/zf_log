@@ -277,15 +277,15 @@ this table was generated (fully automated).
 
 |                                      |  Easylogging++  |    g3log    |     glog    |    spdlog   |    zf_log   |
 | ------------------------------------ | ---------------:| -----------:| -----------:| -----------:| -----------:|
-|  Call site size: string              |          304 B  |      384 B  |      160 B  |      352 B  |**     48 B**|
-|  Call site size: 3 integers          |          856 B  |      392 B  |      320 B  |      312 B  |**     72 B**|
-|  Executable size: 1 module           |      208.84 KB  |  178.94 KB  |  137.37 KB  |  133.69 KB  |** 18.33 KB**|
-|  Compile time                        |      7.471 sec  |  1.027 sec  |  0.636 sec  |  5.430 sec  |**0.031 sec**|
-|  Link time                           |      0.042 sec  |**0.038 sec**|  0.050 sec  |**0.040 sec**|**0.037 sec**|
-|  Performance: 1 threads, string      |        404,508  |    352,151  |    396,406  |  1,858,790  |**5,041,100**|
-|  Performance: 1 threads, 3 integers  |        313,216  |    362,398  |    309,690  |  1,475,091  |**3,042,831**|
-|  Performance: 4 threads, string      |        122,228  |    138,817  |    191,557  |    166,127  |**8,975,249**|
-|  Performance: 4 threads, 3 integers  |        119,360  |    127,396  |    236,307  |    172,451  |**5,437,483**|
+|  Call site size: string              |          304 B  |      384 B  |      160 B  |      352 B  |     **48 B**|
+|  Call site size: 3 integers          |          856 B  |      392 B  |      320 B  |      312 B  |     **72 B**|
+|  Executable size: 1 module           |      208.84 KB  |  178.94 KB  |  137.37 KB  |  133.69 KB  | **18.33 KB**|
+|  Module compile time                 |      7.471 sec  |  1.027 sec  |  0.636 sec  |  5.430 sec  |**0.031 sec**|
+|  Executable link time                |      0.042 sec  |**0.038 sec**|  0.050 sec  |**0.040 sec**|**0.037 sec**|
+|  Speed: 1 threads, string            |        390,398  |    431,348  |    401,211  |  2,104,390  |**5,436,987**|
+|  Speed: 1 threads, 3 integers        |        294,678  |    331,091  |    313,763  |  1,475,986  |**3,014,373**|
+|  Speed: 4 threads, string            |        129,344  |    131,281  |    198,582  |    218,818  |**9,889,183**|
+|  Speed: 4 threads, 3 integers        |        117,566  |    133,371  |    237,070  |    170,713  |**5,611,164**|
 
 Details:
 
