@@ -54,9 +54,9 @@ def translate_test(test):
 	if "executable_size.m1" == name:
 		return 3000, "Executable size: 1 module"
 	if "compile_time" == name:
-		return 4000, "Compile time"
+		return 4000, "Module compile time"
 	if "link_time" == name:
-		return 5000, "Link time"
+		return 5000, "Executable link time"
 	if "speed" == name:
 		threads = test[1]
 		mode = test[2]
@@ -64,7 +64,7 @@ def translate_test(test):
 		mode_vals = ["string", "3 integers"]
 		tr_mode = take_map(mode, mode_keys, mode_vals)
 		order = 10 * threads + take_order(mode, mode_keys)
-		return 6000 + order, "Performance: %i threads, %s" % (threads, tr_mode)
+		return 6000 + order, "Speed: %i threads, %s" % (threads, tr_mode)
 	if type(test) is tuple or type(test) is list:
 		return 31416, ", ".join(test)
 	return 27183, test
