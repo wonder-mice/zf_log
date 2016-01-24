@@ -2,7 +2,9 @@ cmake_minimum_required(VERSION 3.2)
 
 include(ExternalProject)
 include(CMakeParseArguments)
-find_package(PythonInterp 2.7)
+set(THREADS_PREFER_PTHREAD_FLAG ON)
+find_package(Threads REQUIRED)
+find_package(PythonInterp 2.7 REQUIRED)
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
@@ -18,7 +20,7 @@ endif()
 
 function(add_target target)
 	cmake_parse_arguments(arg
-		"STATICLIB;EXECUTABLE"
+		"STATICLIB;EXECUTABLE;NO_THREADS"
 		"TIME_COMPILE;TIME_LINK"
 		"SOURCES;DEFINES;INCLUDES;COMPILE_OPTIONS;LIBRARIES"
 		${ARGN})
@@ -26,6 +28,9 @@ function(add_target target)
 		add_library(${target} STATIC ${arg_SOURCES})
 	elseif(arg_EXECUTABLE)
 		add_executable(${target} ${arg_SOURCES})
+		if(NOT NO_THREADS)
+			target_link_libraries(${target} Threads::Threads)
+		endif()
 	else()
 		message(FATAL_ERROR "Test target type is not specified.")
 	endif()
@@ -173,7 +178,7 @@ function(add_executable_size_test lib)
 		SOURCES test_executable_size.cpp
 		DEFINES "TEST_LIBRARY=${test_library}"
 			"TEST_FORMAT_INTS" "TEST_SEVERAL_STATEMENTS" "TEST_EXTRA_STATEMENT")
-	add_target(test_executable_size.m1.${lib} EXECUTABLE LIBRARIES "${lib}"
+	add_target(test_executable_size.m1.${lib} EXECUTABLE LIBRARIES "${lib}" NO_THREADS
 		TIME_LINK "${CMAKE_CURRENT_BINARY_DIR}/link_time.${lib}.json"
 		SOURCES test_executable_size.cpp
 		DEFINES "TEST_LIBRARY=${test_library}")
