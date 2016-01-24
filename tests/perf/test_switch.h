@@ -214,8 +214,7 @@ extern int XLOG_INT_VALUE;
 		#define _XLOG_LOG(lvl) LOG(lvl)
 	#endif
 	#ifdef TEST_LOG_OFF
-		/* Looks like there is no support for such thing */
-		#define _XLOG_INIT_LEVEL()
+		#define _XLOG_INIT_LEVEL() FLAGS_minloglevel = google::ERROR
 	#else
 		#define _XLOG_INIT_LEVEL()
 	#endif
