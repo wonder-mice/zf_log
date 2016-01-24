@@ -60,8 +60,8 @@ def translate_test(test):
 	if "speed" == name:
 		threads = test[1]
 		mode = test[2]
-		mode_keys = ["str",    "fmti"]
-		mode_vals = ["string", "3 integers"]
+		mode_keys = ["str",    "fmti",       "fmti-off"]
+		mode_vals = ["string", "3 integers", "3 integers, off"]
 		tr_mode = take_map(mode, mode_keys, mode_vals)
 		order = 10 * threads + take_order(mode, mode_keys)
 		return 6000 + order, "Speed: %i threads, %s" % (threads, tr_mode)
