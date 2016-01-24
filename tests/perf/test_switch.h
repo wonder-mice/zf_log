@@ -54,14 +54,23 @@ extern int XLOG_INT_VALUE;
 #ifdef TEST_LIBRARY_ZF_LOG
 	#include <zf_log.h>
 	#ifdef TEST_NULL_SINK
-		static void XLOG_INIT()
-		{
-			zf_log_set_output_v(ZF_LOG_PUT_STD, 0,
-								[](const zf_log_message *, void *){});
-		}
+		#define _XLOG_INIT_SINK() \
+			zf_log_set_output_v(ZF_LOG_PUT_STD, 0, \
+								[](const zf_log_message *, void *){})
 	#else
-		#define XLOG_INIT()
+		#define _XLOG_INIT_SINK()
 	#endif
+	#ifdef TEST_LOG_OFF
+		#define _XLOG_INIT_LEVEL() \
+			zf_log_set_output_level(ZF_LOG_ERROR)
+	#else
+		#define _XLOG_INIT_LEVEL()
+	#endif
+	static void XLOG_INIT()
+	{
+		_XLOG_INIT_SINK();
+		_XLOG_INIT_LEVEL();
+	}
 
 	#if defined(TEST_FORMAT_INTS)
 		#define XLOG_STATEMENT() ZF_LOGI(XLOG_MESSAGE_3INT_VALUES_PRINTF)
@@ -88,7 +97,15 @@ extern int XLOG_INT_VALUE;
 			const std::shared_ptr<spdlog::logger> g_logger = spdlog::stderr_logger_st("stderr");
 		#endif
 	#endif
-	#define XLOG_INIT()
+	#ifdef TEST_LOG_OFF
+		#define _XLOG_INIT_LEVEL() spdlog::set_level(spdlog::level::err)
+	#else
+		#define _XLOG_INIT_LEVEL()
+	#endif
+	static void XLOG_INIT()
+	{
+		_XLOG_INIT_LEVEL();
+	}
 
 	#if defined(TEST_FORMAT_INTS)
 		#define XLOG_STATEMENT() g_logger->info(XLOG_MESSAGE_3INT_VALUES_CPPFMT)
@@ -110,16 +127,28 @@ extern int XLOG_INT_VALUE;
 			null_stream g_null;
 		#endif
 		#define ELPP_CUSTOM_COUT g_null
-		#define XLOG_INIT() \
-				el::Loggers::reconfigureAllLoggers(el::ConfigurationType::ToFile, "false")
+		#define _XLOG_INIT_SINK() \
+			el::Loggers::reconfigureAllLoggers(el::ConfigurationType::ToFile, "false")
 	#else
-		#define XLOG_INIT()
+		#define _XLOG_INIT_SINK()
+	#endif
+	#ifdef TEST_LOG_OFF
+		#define _XLOG_INIT_LEVEL() \
+			el::Loggers::reconfigureAllLoggers(el::ConfigurationType::Enabled, "false")
+	#else
+		#define _XLOG_INIT_LEVEL()
 	#endif
 	#define ELPP_THREAD_SAFE
 	#include <easylogging++.h>
 	#ifndef TEST_SWITCH_MODULE
 		INITIALIZE_EASYLOGGINGPP
 	#endif
+	static void XLOG_INIT()
+	{
+		_XLOG_INIT_SINK();
+		_XLOG_INIT_LEVEL();
+	}
+
 
 	#if defined(TEST_FORMAT_INTS)
 		#define XLOG_STATEMENT() LOG(INFO) << XLOG_MESSAGE_3INT_VALUES_STREAM
@@ -137,16 +166,27 @@ extern int XLOG_INT_VALUE;
 		public:
 			void log(const std::string) {}
 		};
-		#define XLOG_INIT() \
+		#define _XLOG_INIT_SINK() \
 			auto worker = g3::LogWorker::createLogWorker(); \
 			g3::initializeLogging(worker.get()); \
 			worker->addSink(std::unique_ptr<null_sink>(new null_sink), &null_sink::log);
 	#else
-		#define XLOG_INIT() \
+		#define _XLOG_INIT_SINK() \
 			auto worker = g3::LogWorker::createLogWorker(); \
 			g3::initializeLogging(worker.get()); \
 			worker->addDefaultLogger("g3log", "g3log.log");
 	#endif
+	#ifdef TEST_LOG_OFF
+		#define _XLOG_INIT_LEVEL() \
+			g3::only_change_at_initialization::setLogLevel(INFO, false)
+	#else
+		#define _XLOG_INIT_LEVEL()
+	#endif
+	static void XLOG_INIT()
+	{
+		_XLOG_INIT_SINK();
+		_XLOG_INIT_LEVEL();
+	}
 
 	#if defined(TEST_FORMAT_INTS)
 		#define XLOG_STATEMENT() LOGF(INFO, XLOG_MESSAGE_3INT_VALUES_PRINTF)
@@ -173,7 +213,17 @@ extern int XLOG_INT_VALUE;
 	#else
 		#define _XLOG_LOG(lvl) LOG(lvl)
 	#endif
-	#define XLOG_INIT() google::InitGoogleLogging("glog")
+	#ifdef TEST_LOG_OFF
+		/* Looks like there is no support for such thing */
+		#define _XLOG_INIT_LEVEL()
+	#else
+		#define _XLOG_INIT_LEVEL()
+	#endif
+	static void XLOG_INIT()
+	{
+		google::InitGoogleLogging("glog");
+		_XLOG_INIT_LEVEL();
+	}
 
 	#if defined(TEST_FORMAT_INTS)
 		#define XLOG_STATEMENT() _XLOG_LOG(INFO) << XLOG_MESSAGE_3INT_VALUES_STREAM

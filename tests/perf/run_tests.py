@@ -16,7 +16,7 @@ def take_order(value, order):
 	for i in range(len(order)):
 		if value == order[i]:
 			return i
-	raise RuntimeError("Value \"%s\" is not in \"%s\"" % value, order)
+	return len(order)
 
 def take_map(value, keys, vals):
 	if len(keys) != len(vals):
@@ -24,7 +24,7 @@ def take_map(value, keys, vals):
 	for i in range(len(keys)):
 		if value == keys[i]:
 			return vals[i]
-	raise RuntimeError("Value \"%s\" is not in \"%s\"" % value, keys)
+	return value
 
 def take_best(values, key, compare, reverse=False):
 	if 0 == len(values):

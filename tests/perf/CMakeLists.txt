@@ -121,6 +121,7 @@ ExternalProject_Add(g3log_ep
 		"-DCMAKE_OSX_ARCHITECTURES:string=${CMAKE_OSX_ARCHITECTURES}"
 		"-DCMAKE_OSX_DEPLOYMENT_TARGET:string=${CMAKE_OSX_DEPLOYMENT_TARGET}"
 		"-DCMAKE_OSX_SYSROOT:path=${CMAKE_OSX_SYSROOT}"
+		"-DUSE_DYNAMIC_LOGGING_LEVELS:bool=ON"
 	INSTALL_COMMAND "${CMAKE_COMMAND}" -E copy_directory
 		"<SOURCE_DIR>/src/g3log" "<INSTALL_DIR>/include/g3log"
 		COMMAND "${CMAKE_COMMAND}" -E copy_if_different
@@ -213,8 +214,13 @@ function(add_speed_test lib)
 		SOURCES test_speed.cpp
 		DEFINES "TEST_LIBRARY=${test_library}" "TEST_NULL_SINK" "TEST_FORMAT_INTS"
 		LIBRARIES "${lib}")
+	add_target(test_speed.fmti-off.${lib} EXECUTABLE
+		SOURCES test_speed.cpp
+		DEFINES "TEST_LIBRARY=${test_library}" "TEST_NULL_SINK" "TEST_FORMAT_INTS" "TEST_LOG_OFF"
+		LIBRARIES "${lib}")
 	list(APPEND PARAMETERS "-p" "speed:str:${lib}:$<TARGET_FILE:test_speed.str.${lib}>")
 	list(APPEND PARAMETERS "-p" "speed:fmti:${lib}:$<TARGET_FILE:test_speed.fmti.${lib}>")
+	list(APPEND PARAMETERS "-p" "speed:fmti-off:${lib}:$<TARGET_FILE:test_speed.fmti-off.${lib}>")
 	set(PARAMETERS "${PARAMETERS}" PARENT_SCOPE)
 endfunction()
 
