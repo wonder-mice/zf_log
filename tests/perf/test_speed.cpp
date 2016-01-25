@@ -1,3 +1,5 @@
+#include <cstdint>
+#include <cinttypes>
 #include <atomic>
 #include <functional>
 #include <memory>
@@ -55,12 +57,12 @@ namespace
 	public:
 		thread_group(const thread_latch &latch, const unsigned n);
 		void start(const std::function<void(void)> f);
-		unsigned join();
+		uint64_t join();
 	private:
 		void run();
 		const thread_latch &_latch;
 		const unsigned _n;
-		std::atomic<unsigned> _count;
+		std::atomic<uint64_t> _count;
 		std::function<void(void)> _f;
 		std::vector<std::thread> _ths;
 	};
@@ -79,7 +81,7 @@ namespace
 		}
 	}
 
-	unsigned thread_group::join()
+	uint64_t thread_group::join()
 	{
 		for (auto &th : _ths)
 		{
@@ -91,7 +93,7 @@ namespace
 
 	void thread_group::run()
 	{
-		unsigned count = 0;
+		uint64_t count = 0;
 		while (!_latch.halted())
 		{
 			_f();
@@ -154,7 +156,7 @@ int main(int argc, char *argv[])
 	b.setup([](){
 		XLOG_STATEMENT();
 	});
-	const unsigned k = b.run(n, seconds);
-	fprintf(stdout, "%u\n", k);
+	const uint64_t k = b.run(n, seconds);
+	fprintf(stdout, "%" PRIu64 "\n", static_cast<uint64_t>(k));
 	return 0;
 }
