@@ -18,7 +18,7 @@ else()
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra -Werror -pedantic-errors")
 endif()
 
-option(ZF_LOG_PERF_SAVE_TEMPS "Save preprocessor and disassembler output" OFF)
+option(ZF_LOG_PERF_TEST_SAVE_TEMPS "Save preprocessor and disassembler output" OFF)
 option(ZF_LOG_PERF_TEST_ZF_LOG_OS "Add zf_log built with ZF_LOG_OPTIMIZE_SIZE to performance tests" OFF)
 
 function(add_target target)
@@ -27,17 +27,20 @@ function(add_target target)
 		"TIME_COMPILE;TIME_LINK"
 		"SOURCES;DEFINES;INCLUDES;COMPILE_OPTIONS;LIBRARIES"
 		${ARGN})
-	if(ZF_LOG_PERF_SAVE_TEMPS)
+	if(ZF_LOG_PERF_TEST_SAVE_TEMPS)
 		set(SOURCES "")
-		foreach(src ${arg_SOURCES})
-			set(dst "${CMAKE_CURRENT_BINARY_DIR}/${target}-${src}")
+		foreach(source ${arg_SOURCES})
+			if(IS_ABSOLUTE source)
+				set(src "${source}")
+			else()
+				set(src "${CMAKE_CURRENT_SOURCE_DIR}/${source}")
+			endif()
+			get_filename_component(src_name "${source}" NAME)
+			set(dst "${CMAKE_CURRENT_BINARY_DIR}/sources/${target}-${src_name}")
 			add_custom_command(OUTPUT "${dst}"
-				COMMAND "${CMAKE_COMMAND}" -E copy_if_different
-					"${CMAKE_CURRENT_SOURCE_DIR}/${src}"
-					"${dst}"
-				DEPENDS
-					"${CMAKE_CURRENT_SOURCE_DIR}/${src}")
-				list(APPEND SOURCES "${dst}")
+				COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${src}" "${dst}"
+				DEPENDS "${src}")
+			list(APPEND SOURCES "${dst}")
 		endforeach()
 	else()
 		set(SOURCES ${arg_SOURCES})

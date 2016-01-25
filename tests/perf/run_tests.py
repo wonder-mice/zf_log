@@ -295,7 +295,7 @@ def run_build_time(params, result, id):
 						  compare=cmp_percentage(0.2, key=lambda x: x.value)):
 		best.set_best()
 
-def run_speed(params, result, threads, seconds=4):
+def run_speed(params, result, threads, seconds=1):
 	if type(result) is not dict:
 		raise RuntimeError("Not a dictionary")
 	id = "speed"
