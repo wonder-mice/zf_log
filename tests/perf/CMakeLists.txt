@@ -18,6 +18,7 @@ else()
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra -Werror -pedantic-errors")
 endif()
 
+option(ZF_LOG_PERF_SAVE_TEMPS "Save preprocessor and disassembler output" OFF)
 option(ZF_LOG_PERF_TEST_ZF_LOG_OS "Add zf_log built with ZF_LOG_OPTIMIZE_SIZE to performance tests" OFF)
 
 function(add_target target)
@@ -26,15 +27,34 @@ function(add_target target)
 		"TIME_COMPILE;TIME_LINK"
 		"SOURCES;DEFINES;INCLUDES;COMPILE_OPTIONS;LIBRARIES"
 		${ARGN})
+	if(ZF_LOG_PERF_SAVE_TEMPS)
+		set(SOURCES "")
+		foreach(src ${arg_SOURCES})
+			set(dst "${CMAKE_CURRENT_BINARY_DIR}/${target}-${src}")
+			add_custom_command(OUTPUT "${dst}"
+				COMMAND "${CMAKE_COMMAND}" -E copy_if_different
+					"${CMAKE_CURRENT_SOURCE_DIR}/${src}"
+					"${dst}"
+				DEPENDS
+					"${CMAKE_CURRENT_SOURCE_DIR}/${src}")
+				list(APPEND SOURCES "${dst}")
+		endforeach()
+	else()
+		set(SOURCES ${arg_SOURCES})
+	endif()
 	if(arg_STATICLIB)
-		add_library(${target} STATIC ${arg_SOURCES})
+		add_library(${target} STATIC ${SOURCES})
 	elseif(arg_EXECUTABLE)
-		add_executable(${target} ${arg_SOURCES})
+		add_executable(${target} ${SOURCES})
 		if(NOT NO_THREADS)
 			target_link_libraries(${target} Threads::Threads)
 		endif()
 	else()
 		message(FATAL_ERROR "Test target type is not specified.")
+	endif()
+	if(ZF_LOG_PERF_SAVE_TEMPS)
+		target_include_directories(${target} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+		target_compile_options(${target} PRIVATE "-save-temps")
 	endif()
 	if(arg_DEFINES)
 		set_property(TARGET ${target} PROPERTY COMPILE_DEFINITIONS "${arg_DEFINES}")
@@ -218,9 +238,14 @@ function(add_speed_test lib)
 		SOURCES test_speed.cpp
 		DEFINES "TEST_LIBRARY=${test_library}" "TEST_NULL_SINK" "TEST_FORMAT_INTS" "TEST_LOG_OFF"
 		LIBRARIES "${lib}")
+	add_target(test_speed.slowf-off.${lib} EXECUTABLE
+		SOURCES test_speed.cpp
+		DEFINES "TEST_LIBRARY=${test_library}" "TEST_NULL_SINK" "TEST_FORMAT_SLOW_FUNC" "TEST_LOG_OFF"
+		LIBRARIES "${lib}")
 	list(APPEND PARAMETERS "-p" "speed:str:${lib}:$<TARGET_FILE:test_speed.str.${lib}>")
 	list(APPEND PARAMETERS "-p" "speed:fmti:${lib}:$<TARGET_FILE:test_speed.fmti.${lib}>")
 	list(APPEND PARAMETERS "-p" "speed:fmti-off:${lib}:$<TARGET_FILE:test_speed.fmti-off.${lib}>")
+	list(APPEND PARAMETERS "-p" "speed:slowf-off:${lib}:$<TARGET_FILE:test_speed.slowf-off.${lib}>")
 	set(PARAMETERS "${PARAMETERS}" PARENT_SCOPE)
 endfunction()
 

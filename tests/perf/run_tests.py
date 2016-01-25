@@ -295,7 +295,7 @@ def run_build_time(params, result, id):
 						  compare=cmp_percentage(0.2, key=lambda x: x.value)):
 		best.set_best()
 
-def run_speed(params, result, threads, seconds=1):
+def run_speed(params, result, threads, seconds=4):
 	if type(result) is not dict:
 		raise RuntimeError("Not a dictionary")
 	id = "speed"
@@ -305,7 +305,7 @@ def run_speed(params, result, threads, seconds=1):
 		values = dict()
 		for subj in params[mode]:
 			path = params[mode][subj]
-			p = subprocess.Popen([path, str(threads)], stdout=subprocess.PIPE)
+			p = subprocess.Popen([path, str(threads), str(seconds)], stdout=subprocess.PIPE)
 			stdout, stderr = p.communicate()
 			values[subj] = data_freq(int(stdout), seconds)
 		result[name] = values

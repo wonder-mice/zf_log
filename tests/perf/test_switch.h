@@ -1,7 +1,5 @@
 #pragma once
 
-#include <time.h>
-
 #define TEST_LIBRARY_ID_zf_log 1
 #define TEST_LIBRARY_ID_spdlog 2
 #define TEST_LIBRARY_ID_easylog 3
@@ -36,6 +34,15 @@ extern int XLOG_INT_VALUE;
 	const char *XLOG_STRING_VALUE = XLOG_STRING_LITERAL;
 	int XLOG_INT_VALUE = XLOG_INT_LITERAL;
 #endif
+#ifdef TEST_FORMAT_SLOW_FUNC
+	#include <chrono>
+	#include <thread>
+	static int XLOG_SLOW_FUNC()
+	{
+		std::this_thread::sleep_for(std::chrono::milliseconds(1));
+		return (int)std::hash<std::thread::id>()(std::this_thread::get_id());
+	}
+#endif
 
 #define XLOG_MESSAGE_STR_LITERAL_PRINTF XLOG_STRING_LITERAL
 #define XLOG_MESSAGE_STR_LITERAL_CPPFMT XLOG_STRING_LITERAL
@@ -50,6 +57,10 @@ extern int XLOG_INT_VALUE;
 #define XLOG_MESSAGE_3INT_VALUES_STREAM \
 		"vA: " << XLOG_INT_VALUE << ", vB: " << XLOG_INT_VALUE << \
 		", vC: " << XLOG_INT_VALUE
+
+#define XLOG_MESSAGE_SLOW_FUNC_PRINTF "%i", XLOG_SLOW_FUNC()
+#define XLOG_MESSAGE_SLOW_FUNC_CPPFMT "{}", XLOG_SLOW_FUNC()
+#define XLOG_MESSAGE_SLOW_FUNC_STREAM XLOG_SLOW_FUNC()
 
 #ifdef TEST_LIBRARY_ZF_LOG
 	#include <zf_log.h>
@@ -74,6 +85,8 @@ extern int XLOG_INT_VALUE;
 
 	#if defined(TEST_FORMAT_INTS)
 		#define XLOG_STATEMENT() ZF_LOGI(XLOG_MESSAGE_3INT_VALUES_PRINTF)
+	#elif defined(TEST_FORMAT_SLOW_FUNC)
+		#define XLOG_STATEMENT() ZF_LOGI(XLOG_MESSAGE_SLOW_FUNC_PRINTF)
 	#else
 		#define XLOG_STATEMENT() ZF_LOGI(XLOG_MESSAGE_STR_LITERAL_PRINTF)
 	#endif
@@ -109,6 +122,8 @@ extern int XLOG_INT_VALUE;
 
 	#if defined(TEST_FORMAT_INTS)
 		#define XLOG_STATEMENT() g_logger->info(XLOG_MESSAGE_3INT_VALUES_CPPFMT)
+	#elif defined(TEST_FORMAT_SLOW_FUNC)
+		#define XLOG_STATEMENT() g_logger->info(XLOG_MESSAGE_SLOW_FUNC_CPPFMT)
 	#else
 		#define XLOG_STATEMENT() g_logger->info(XLOG_MESSAGE_STR_LITERAL_CPPFMT)
 	#endif
@@ -152,6 +167,8 @@ extern int XLOG_INT_VALUE;
 
 	#if defined(TEST_FORMAT_INTS)
 		#define XLOG_STATEMENT() LOG(INFO) << XLOG_MESSAGE_3INT_VALUES_STREAM
+	#elif defined(TEST_FORMAT_SLOW_FUNC)
+		#define XLOG_STATEMENT() LOG(INFO) << XLOG_MESSAGE_SLOW_FUNC_STREAM
 	#else
 		#define XLOG_STATEMENT() LOG(INFO) << XLOG_MESSAGE_STR_LITERAL_STREAM
 	#endif
@@ -177,6 +194,9 @@ extern int XLOG_INT_VALUE;
 			worker->addDefaultLogger("g3log", "g3log.log");
 	#endif
 	#ifdef TEST_LOG_OFF
+		#ifndef G3_DYNAMIC_LOGGING
+			#error g3log must be built with G3_DYNAMIC_LOGGING defined
+		#endif
 		#define _XLOG_INIT_LEVEL() \
 			g3::only_change_at_initialization::setLogLevel(INFO, false)
 	#else
@@ -190,6 +210,8 @@ extern int XLOG_INT_VALUE;
 
 	#if defined(TEST_FORMAT_INTS)
 		#define XLOG_STATEMENT() LOGF(INFO, XLOG_MESSAGE_3INT_VALUES_PRINTF)
+	#elif defined(TEST_FORMAT_SLOW_FUNC)
+		#define XLOG_STATEMENT() LOGF(INFO, XLOG_MESSAGE_SLOW_FUNC_PRINTF)
 	#else
 		#define XLOG_STATEMENT() LOGF(INFO, XLOG_MESSAGE_STR_LITERAL_PRINTF)
 	#endif
@@ -226,6 +248,8 @@ extern int XLOG_INT_VALUE;
 
 	#if defined(TEST_FORMAT_INTS)
 		#define XLOG_STATEMENT() _XLOG_LOG(INFO) << XLOG_MESSAGE_3INT_VALUES_STREAM
+	#elif defined(TEST_FORMAT_SLOW_FUNC)
+		#define XLOG_STATEMENT() _XLOG_LOG(INFO) << XLOG_MESSAGE_SLOW_FUNC_STREAM
 	#else
 		#define XLOG_STATEMENT() _XLOG_LOG(INFO) << XLOG_MESSAGE_STR_LITERAL_STREAM
 	#endif
