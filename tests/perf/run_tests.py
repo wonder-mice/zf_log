@@ -4,6 +4,7 @@ import sys
 import os
 import argparse
 import subprocess
+import multiprocessing
 import json
 import pprint
 
@@ -35,6 +36,24 @@ def take_best(values, key, compare, reverse=False):
 			return values[0:i]
 	return values
 
+def take_plural(count, base, suffix):
+	if 1 == abs(count):
+		return base
+	return base + suffix
+
+def take_threads_variants():
+	# single thread
+	variants = [1]
+	cpus = multiprocessing.cpu_count()
+	if 1 > cpus:
+		cpus = 1
+	# load all CPUs
+	if 1 < cpus:
+		variants.append(cpus)
+	# overcommit
+	variants.append(2 * cpus)
+	return variants
+
 def _cmp_percentage(p, key, a, b):
 	if key(a) == key(b):
 		return True
@@ -60,11 +79,11 @@ def translate_test(test):
 	if "speed" == name:
 		threads = test[1]
 		mode = test[2]
-		mode_keys = ["str",    "fmti",       "fmti-off",        "slowf-off"]
-		mode_vals = ["string", "3 integers", "3 integers, off", "slow function, off"]
+		mode_keys = ["str",    "fmti",       "str-off",        "slowf-off"]
+		mode_vals = ["string", "3 integers", "string, off", "slow function, off"]
 		tr_mode = take_map(mode, mode_keys, mode_vals)
 		order = 10 * threads + take_order(mode, mode_keys)
-		return 6000 + order, "Speed: %i threads, %s" % (threads, tr_mode)
+		return 6000 + order, "Speed: %i %s, %s" % (threads, take_plural(threads, "thread", "s"), tr_mode)
 	if type(test) is tuple or type(test) is list:
 		return 31416, ", ".join(test)
 	return 27183, test
@@ -295,24 +314,25 @@ def run_build_time(params, result, id):
 						  compare=cmp_percentage(0.2, key=lambda x: x.value)):
 		best.set_best()
 
-def run_speed(params, result, threads, seconds=1):
+def run_speed(params, result, threads_variants, seconds=1):
 	if type(result) is not dict:
 		raise RuntimeError("Not a dictionary")
 	id = "speed"
 	params = params[id]
-	for mode in params:
-		name = (id, threads, mode)
-		values = dict()
-		for subj in params[mode]:
-			path = params[mode][subj]
-			p = subprocess.Popen([path, str(threads), str(seconds)], stdout=subprocess.PIPE)
-			stdout, stderr = p.communicate()
-			values[subj] = data_freq(int(stdout), seconds)
-		result[name] = values
-		for best in take_best(values.values(),
-							  key=lambda x: x.freq(), reverse=True,
-							  compare=cmp_percentage(0.1, key=lambda x: x.freq())):
-			best.set_best()
+	for threads in threads_variants:
+		for mode in params:
+			name = (id, threads, mode)
+			values = dict()
+			for subj in params[mode]:
+				path = params[mode][subj]
+				p = subprocess.Popen([path, str(threads), str(seconds)], stdout=subprocess.PIPE)
+				stdout, stderr = p.communicate()
+				values[subj] = data_freq(int(stdout), seconds)
+			result[name] = values
+			for best in take_best(values.values(),
+								  key=lambda x: x.freq(), reverse=True,
+								  compare=cmp_percentage(0.1, key=lambda x: x.freq())):
+				best.set_best()
 
 def run_tests(params):
 	result = dict()
@@ -320,8 +340,7 @@ def run_tests(params):
 	run_executable_size(params, result)
 	run_build_time(params, result, "compile_time")
 	run_build_time(params, result, "link_time")
-	run_speed(params, result, 1)
-	run_speed(params, result, 4)
+	run_speed(params, result, take_threads_variants())
 	return result
 
 def main(argv):

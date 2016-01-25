@@ -237,9 +237,9 @@ function(add_speed_test lib)
 		SOURCES test_speed.cpp
 		DEFINES "TEST_LIBRARY=${test_library}" "TEST_NULL_SINK" "TEST_FORMAT_INTS"
 		LIBRARIES "${lib}")
-	add_target(test_speed.fmti-off.${lib} EXECUTABLE
+	add_target(test_speed.str-off.${lib} EXECUTABLE
 		SOURCES test_speed.cpp
-		DEFINES "TEST_LIBRARY=${test_library}" "TEST_NULL_SINK" "TEST_FORMAT_INTS" "TEST_LOG_OFF"
+		DEFINES "TEST_LIBRARY=${test_library}" "TEST_NULL_SINK" "TEST_LOG_OFF"
 		LIBRARIES "${lib}")
 	add_target(test_speed.slowf-off.${lib} EXECUTABLE
 		SOURCES test_speed.cpp
@@ -247,7 +247,7 @@ function(add_speed_test lib)
 		LIBRARIES "${lib}")
 	list(APPEND PARAMETERS "-p" "speed:str:${lib}:$<TARGET_FILE:test_speed.str.${lib}>")
 	list(APPEND PARAMETERS "-p" "speed:fmti:${lib}:$<TARGET_FILE:test_speed.fmti.${lib}>")
-	list(APPEND PARAMETERS "-p" "speed:fmti-off:${lib}:$<TARGET_FILE:test_speed.fmti-off.${lib}>")
+	list(APPEND PARAMETERS "-p" "speed:str-off:${lib}:$<TARGET_FILE:test_speed.str-off.${lib}>")
 	list(APPEND PARAMETERS "-p" "speed:slowf-off:${lib}:$<TARGET_FILE:test_speed.slowf-off.${lib}>")
 	set(PARAMETERS "${PARAMETERS}" PARENT_SCOPE)
 endfunction()
