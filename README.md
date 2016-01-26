@@ -275,19 +275,25 @@ Comparison
 This table is work in progress. See [tests/perf](tests/perf) folder for how
 this table was generated (fully automated).
 
-|                                     |  Easylogging++  |    g3log     |     glog    |     spdlog    |      zf_log     |
-| ----------------------------------- | ---------------:| ------------:| -----------:| -------------:| ---------------:|
-|  Call site size: string             |          304 B  |       360 B  |      160 B  |        352 B  |         **48 B**|
-|  Call site size: 3 integers         |          856 B  |       384 B  |      320 B  |        312 B  |         **72 B**|
-|  Executable size: 1 module          |      208.84 KB  |   183.73 KB  |  137.37 KB  |    133.69 KB  |     **18.33 KB**|
-|  Module compile time                |      8.680 sec  |   1.095 sec  |  0.813 sec  |    7.229 sec  |    **0.038 sec**|
-|  Executable link time               |      0.049 sec  |   0.082 sec  |**0.046 sec**|  **0.040 sec**|    **0.043 sec**|
-|  Speed: 1 threads, string           |        395,650  |   1,350,441  |    411,522  |    2,102,440  |    **5,374,985**|
-|  Speed: 1 threads, 3 integers       |        305,635  |     786,197  |    331,176  |    1,506,431  |    **3,256,415**|
-|  Speed: 1 threads, 3 integers, off  |      4,280,356  |  60,710,146  |    353,269  |   68,716,306  |  **517,332,998**|
-|  Speed: 4 threads, string           |        133,534  |   2,474,822  |    201,613  |      182,096  |    **9,788,809**|
-|  Speed: 4 threads, 3 integers       |        115,224  |   1,930,410  |    236,196  |      184,056  |    **5,603,209**|
-|  Speed: 4 threads, 3 integers, off  |        248,661  |  90,069,640  |    244,567  |  126,879,629  |**1,212,330,959**|
+|                                        |  Easylogging++  |     g3log     |     glog    |     spdlog    |      zf_log     |
+| -------------------------------------- | ---------------:| -------------:| -----------:| -------------:| ---------------:|
+|  Call site size: string                |          304 B  |        360 B  |      160 B  |        352 B  |         **48 B**|
+|  Call site size: 3 integers            |          856 B  |        384 B  |      320 B  |        312 B  |         **72 B**|
+|  Executable size: 1 module             |      208.84 KB  |    183.73 KB  |  137.37 KB  |    133.69 KB  |     **18.33 KB**|
+|  Module compile time                   |      3.182 sec  |    0.511 sec  |  0.374 sec  |    2.163 sec  |    **0.024 sec**|
+|  Executable link time                  |      0.025 sec  |    0.022 sec  |  0.026 sec  |  **0.020 sec**|    **0.017 sec**|
+|  Speed: 1 thread, string               |        378,722  |    1,257,168  |    385,098  |    1,909,253  |    **5,296,201**|
+|  Speed: 1 thread, 3 integers           |        311,690  |    1,023,108  |    321,507  |    1,470,271  |    **3,173,097**|
+|  Speed: 1 thread, string, off          |      4,199,431  |   55,297,247  |    411,960  |   78,675,820  |  **482,713,041**|
+|  Speed: 1 thread, slow function, off   |            743  |   54,877,221  |        732  |          750  |  **423,658,146**|
+|  Speed: 4 threads, string              |        132,836  |    2,353,169  |    196,950  |      196,930  |    **9,690,216**|
+|  Speed: 4 threads, 3 integers          |        116,696  |    1,896,178  |    235,141  |      172,880  |    **5,545,075**|
+|  Speed: 4 threads, string, off         |        244,448  |  106,600,866  |    186,233  |  164,582,184  |**1,229,398,467**|
+|  Speed: 4 threads, slow function, off  |            733  |  111,685,033  |      2,887  |        2,976  |**1,106,166,551**|
+|  Speed: 8 threads, string              |        131,691  |    2,447,058  |    172,824  |      183,277  |    **9,731,434**|
+|  Speed: 8 threads, 3 integers          |        115,991  |    1,936,270  |    176,594  |      177,950  |    **5,596,045**|
+|  Speed: 8 threads, string, off         |        240,538  |  104,424,749  |    182,465  |  164,632,729  |**1,228,058,986**|
+|  Speed: 8 threads, slow function, off  |            774  |  116,354,224  |      5,815  |        5,976  |**1,127,173,552**|
 
 Details:
 
