@@ -28,6 +28,9 @@ function(add_target target)
 		"SOURCES;DEFINES;INCLUDES;COMPILE_OPTIONS;LIBRARIES"
 		${ARGN})
 	if(ZF_LOG_PERF_TEST_SAVE_TEMPS)
+		# Clang writes *.s and *.ii files into its current working directory.
+		# Since the same source files are used in multiple targets, need to
+		# copy them, so they will have different names for different targets.
 		set(SOURCES "")
 		foreach(source ${arg_SOURCES})
 			if(IS_ABSOLUTE source)
