@@ -424,6 +424,22 @@ static char lvl_char(const int lvl)
 	}
 }
 
+#define GCCVER_LESS(MAJOR, MINOR, PATCH) \
+	(__GNUC__ < MAJOR || \
+		(__GNUC__ == MAJOR && (__GNUC_MINOR__ < MINOR || \
+			(__GNUC_MINOR__ == MINOR && __GNUC_PATCHLEVEL__ < PATCH))))
+
+#if !defined(__clang__) && defined(__GNUC__) && GCCVER_LESS(4,7,0)
+	#define __atomic_load_n(vp, model) __sync_fetch_and_add(vp, 0)
+	#define __atomic_fetch_add(vp, n, model) __sync_fetch_and_add(vp, n)
+	#define __atomic_sub_fetch(vp, n, model) __sync_sub_and_fetch(vp, n)
+	#define __atomic_or_fetch(vp, n, model) __sync_or_and_fetch(vp, n)
+	#define __atomic_and_fetch(vp, n, model) __sync_and_and_fetch(vp, n)
+	/* Note: will not store old value of *vp in *ep (non-standard behaviour) */
+	#define __atomic_compare_exchange_n(vp, ep, d, weak, smodel, fmodel) \
+		__sync_bool_compare_and_swap(vp, *(ep), d)
+#endif
+
 #if !ZF_LOG_OPTIMIZE_SIZE && !defined(_WIN32) && !defined(_WIN64)
 #define TCACHE
 #define TCACHE_STALE (0x40000000)
