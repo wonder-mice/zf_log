@@ -351,7 +351,7 @@ static INSTRUMENTED_CONST buffer_cb g_buffer_cb = buffer_callback;
 void zf_log_out_stderr_callback(const zf_log_message *const msg, void *arg)
 {
 	VAR_UNUSED(arg);
-	const unsigned eol_len = sizeof(ZF_LOG_EOL) - 1;
+	const size_t eol_len = sizeof(ZF_LOG_EOL) - 1;
 	memcpy(msg->p, ZF_LOG_EOL, eol_len);
 #if defined(_WIN32) || defined(_WIN64)
 	/* WriteFile() is atomic for local files opened with FILE_APPEND_DATA and
@@ -360,7 +360,8 @@ void zf_log_out_stderr_callback(const zf_log_message *const msg, void *arg)
 			  (DWORD)(msg->p - msg->buf + eol_len), 0, 0);
 #else
 	/* write() is atomic for buffers less than or equal to PIPE_BUF. */
-	RETVAL_UNUSED(write(STDERR_FILENO, msg->buf, msg->p - msg->buf + eol_len));
+	RETVAL_UNUSED(write(STDERR_FILENO, msg->buf,
+						(size_t)(msg->p - msg->buf) + eol_len));
 #endif
 }
 
@@ -508,7 +509,7 @@ static void time_callback(struct tm *const tm, unsigned *const msec)
 			tcache_set(&tv, tm);
 		}
 	#endif
-	*msec = tv.tv_usec / 1000;
+	*msec = (unsigned)tv.tv_usec / 1000;
 #endif
 }
 
@@ -527,7 +528,7 @@ static void pid_callback(int *const pid, int *const tid)
 #elif defined(__linux__)
 	*tid = syscall(SYS_gettid);
 #elif defined(__MACH__)
-	*tid = pthread_mach_thread_np(pthread_self());
+	*tid = (int)pthread_mach_thread_np(pthread_self());
 #else
 	#define Platform not supported
 #endif
@@ -560,7 +561,7 @@ static INLINE size_t nprintf_size(zf_log_message *const msg)
 	// have multiple (two) half-written parts which is confusing. To workaround
 	// that we allow *nprintf() to write its 0 in the eol area (which is always
 	// not empty).
-	return msg->e - msg->p + 1;
+	return (size_t)(msg->e - msg->p + 1);
 }
 
 static INLINE void put_nprintf(zf_log_message *const msg, const int n)
@@ -606,7 +607,8 @@ static INLINE char *put_uint_r(const unsigned v, const unsigned w, const char wc
 static INLINE char *put_int_r(const int v, const unsigned w, const char wc,
 							  char *const e)
 {
-	return 0 <= v? put_integer_r(v, 0, w, wc, e): put_integer_r(-v, -1, w, wc, e);
+	return 0 <= v? put_integer_r((unsigned)v, 0, w, wc, e)
+				 : put_integer_r((unsigned)-v, -1, w, wc, e);
 }
 
 static INLINE char *put_stringn(const char *const s_p, const char *const s_e,
@@ -669,15 +671,15 @@ static void put_ctx(zf_log_message *const msg)
 	*--p = ' ';
 	p = put_uint_r(msec, 3, '0', p);
 	*--p = '.';
-	p = put_uint_r(tm.tm_sec, 2, '0', p);
+	p = put_uint_r((unsigned)tm.tm_sec, 2, '0', p);
 	*--p = ':';
-	p = put_uint_r(tm.tm_min, 2, '0', p);
+	p = put_uint_r((unsigned)tm.tm_min, 2, '0', p);
 	*--p = ':';
-	p = put_uint_r(tm.tm_hour, 2, '0', p);
+	p = put_uint_r((unsigned)tm.tm_hour, 2, '0', p);
 	*--p = ' ';
-	p = put_uint_r(tm.tm_mday, 2, '0', p);
+	p = put_uint_r((unsigned)tm.tm_mday, 2, '0', p);
 	*--p = '-';
-	p = put_uint_r(tm.tm_mon + 1, 2, '0', p);
+	p = put_uint_r((unsigned)tm.tm_mon + 1, 2, '0', p);
 	msg->p = put_stringn(p, e, msg->p, msg->e);
 #endif
 }
@@ -745,7 +747,7 @@ static void output_mem(const zf_log_spec *log, zf_log_message *const msg,
 	const unsigned char *mem_p = (const unsigned char *)mem->d;
 	const unsigned char *const mem_e = mem_p + mem->d_sz;
 	const unsigned char *mem_cut;
-	const ptrdiff_t mem_width = log->format->mem_width;
+	const ptrdiff_t mem_width = (ptrdiff_t)log->format->mem_width;
 	char *const hex_b = msg->msg_b;
 	char *const ascii_b = hex_b + 2 * mem_width + 2;
 	char *const ascii_e = ascii_b + mem_width;
