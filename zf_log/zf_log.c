@@ -340,7 +340,8 @@ static INSTRUMENTED_CONST buffer_cb g_buffer_cb = buffer_callback;
 	static void out_debugstring_callback(const zf_log_message *const msg, void *arg)
 	{
 		VAR_UNUSED(arg);
-		*msg->p = 0;
+		msg->p[0] = '\n';
+		msg->p[1] = '\0';
 		OutputDebugStringA(msg->buf);
 	}
 
