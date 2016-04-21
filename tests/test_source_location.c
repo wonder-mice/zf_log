@@ -1,6 +1,6 @@
-#include <stdio.h>
 #include <zf_log.c>
 #include <zf_test.h>
+#include <stdio.h>
 
 const char *const c_filename = "test_source_location.c";
 static char g_srcloc_buf[ZF_LOG_BUF_SZ];
