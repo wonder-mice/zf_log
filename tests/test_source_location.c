@@ -2,7 +2,7 @@
 #include <zf_test.h>
 #include <stdio.h>
 
-#if defined(_MSC_VER) && !defined(__INTEL_COMPILER)
+#if defined(_MSC_VER) && !defined(__INTEL_COMPILER) && !defined(snprintf)
 	#define snprintf(buf, len, ...) _snprintf_s(buf, len, _TRUNCATE, __VA_ARGS__)
 #endif
 
