@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <zf_log.c>
 #include <zf_test.h>
 
