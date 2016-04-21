@@ -540,6 +540,11 @@ static void buffer_callback(zf_log_message *msg, char *buf)
 	msg->e = (msg->p = msg->buf = buf) + g_buf_sz;
 }
 
+static const char *funcname(const char *func)
+{
+	return func? func: "";
+}
+
 static const char *filename(const char *file)
 {
 	const char *f = file;
@@ -717,10 +722,10 @@ static void put_src(zf_log_message *const msg, const src_location *const src)
 #if ZF_LOG_OPTIMIZE_SIZE
 	int n;
 	n = snprintf(msg->p, nprintf_size(msg), "%s@%s:%u ",
-				 src->func, filename(src->file), src->line);
+				 funcname(src->func), filename(src->file), src->line);
 	put_nprintf(msg, n);
 #else
-	msg->p = put_string(src->func, msg->p, msg->e);
+	msg->p = put_string(funcname(src->func), msg->p, msg->e);
 	if (msg->p < msg->e) *msg->p++ = '@';
 	msg->p = put_string(filename(src->file), msg->p, msg->e);
 	if (msg->p < msg->e) *msg->p++ = ':';

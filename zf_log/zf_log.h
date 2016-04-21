@@ -194,6 +194,58 @@
 	#define _ZF_LOG_TAG 0
 #endif
 
+/* Source location is part of a log line that describes location (function or
+ * method name, file name and line number, e.g. "runloop@main.cpp:68") of a
+ * log statement that produced it.
+ * Source location formats are:
+ * - ZF_LOG_SRCLOC_NONE - don't add source location to log line.
+ * - ZF_LOG_SRCLOC_SHORT - add source location in short form (file and line
+ *   number, e.g. "@main.cpp:68").
+ * - ZF_LOG_SRCLOC_LONG - add source location in long form (function or method
+ *   name, file and line number, e.g. "runloop@main.cpp:68").
+ */
+#define ZF_LOG_SRCLOC_NONE	0
+#define ZF_LOG_SRCLOC_SHORT 1
+#define ZF_LOG_SRCLOC_LONG	2
+
+/* Source location format is configured per compilation module (.c/.cpp/.m
+ * file) by defining ZF_LOG_DEF_SRCLOC or ZF_LOG_SRCLOC. ZF_LOG_SRCLOC has
+ * higer priority and when defined overrides value provided by
+ * ZF_LOG_DEF_SRCLOC.
+ *
+ * Common practice is to define default format with ZF_LOG_DEF_SRCLOC in
+ * build script (e.g. Makefile, CMakeLists.txt, gyp, etc.) for the entire
+ * project or target:
+ *
+ *   CC_ARGS := -DZF_LOG_DEF_SRCLOC=ZF_LOG_SRCLOC_LONG
+ *
+ * And when necessary to override it with ZF_LOG_LEVEL in .c/.cpp/.m files
+ * before including zf_log.h:
+ *
+ *   #define ZF_LOG_SRCLOC ZF_LOG_SRCLOC_NONE
+ *   #include <zf_log.h>
+ *
+ * If both ZF_LOG_DEF_SRCLOC and ZF_LOG_SRCLOC are undefined, then
+ * ZF_LOG_SRCLOC_NONE will be used for release builds (NDEBUG is defined) and
+ * ZF_LOG_SRCLOC_LONG otherwise (NDEBUG is not defined).
+ */
+#if defined(ZF_LOG_SRCLOC)
+	#define _ZF_LOG_SRCLOC ZF_LOG_SRCLOC
+#elif defined(ZF_LOG_DEF_SRCLOC)
+	#define _ZF_LOG_SRCLOC ZF_LOG_DEF_SRCLOC
+#else
+	#ifdef NDEBUG
+		#define _ZF_LOG_SRCLOC ZF_LOG_SRCLOC_NONE
+	#else
+		#define _ZF_LOG_SRCLOC ZF_LOG_SRCLOC_LONG
+	#endif
+#endif
+#if ZF_LOG_SRCLOC_LONG == _ZF_LOG_SRCLOC
+	#define _ZF_LOG_FUNCTION __FUNCTION__
+#else
+	#define _ZF_LOG_FUNCTION 0
+#endif
+
 /* Static (compile-time) initialization support allows to configure logging
  * before entering main() function. This mostly useful in C++ where functions
  * and methods could be called during initialization of global objects. Those
@@ -599,7 +651,7 @@ void _zf_log_write_mem_aux(
  * Library assuming UTF-8 encoding for all strings (char *), including format
  * string itself.
  */
-#ifdef NDEBUG
+#if ZF_LOG_SRCLOC_NONE == _ZF_LOG_SRCLOC
 	#define _ZF_LOG_IMP(lvl, tag, ...) \
 			do { \
 				if (ZF_LOG_ON(lvl)) \
@@ -624,25 +676,25 @@ void _zf_log_write_mem_aux(
 	#define _ZF_LOG_IMP(lvl, tag, ...) \
 			do { \
 				if (ZF_LOG_ON(lvl)) \
-					_zf_log_write_d(__FUNCTION__, __FILE__, __LINE__, \
+					_zf_log_write_d(_ZF_LOG_FUNCTION, __FILE__, __LINE__, \
 							lvl, tag, __VA_ARGS__); \
 			} _ZF_LOG_ONCE
 	#define _ZF_LOG_MEM_IMP(lvl, tag, d, d_sz, ...) \
 			do { \
 				if (ZF_LOG_ON(lvl)) \
-					_zf_log_write_mem_d(__FUNCTION__, __FILE__, __LINE__, \
+					_zf_log_write_mem_d(_ZF_LOG_FUNCTION, __FILE__, __LINE__, \
 							lvl, tag, d, d_sz, __VA_ARGS__); \
 			} _ZF_LOG_ONCE
 	#define _ZF_LOG_AUX_IMP(log, lvl, tag, ...) \
 			do { \
 				if (ZF_LOG_ON(lvl)) \
-					_zf_log_write_aux_d(__FUNCTION__, __FILE__, __LINE__, \
+					_zf_log_write_aux_d(_ZF_LOG_FUNCTION, __FILE__, __LINE__, \
 							log, lvl, tag, __VA_ARGS__); \
 			} _ZF_LOG_ONCE
 	#define _ZF_LOG_MEM_AUX_IMP(log, lvl, tag, d, d_sz, ...) \
 			do { \
 				if (ZF_LOG_ON(lvl)) \
-					_zf_log_write_mem_aux_d(__FUNCTION__, __FILE__, __LINE__, \
+					_zf_log_write_mem_aux_d(_ZF_LOG_FUNCTION, __FILE__, __LINE__, \
 							log, lvl, tag, d, d_sz, __VA_ARGS__); \
 			} _ZF_LOG_ONCE
 #endif
