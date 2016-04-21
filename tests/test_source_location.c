@@ -2,6 +2,10 @@
 #include <zf_test.h>
 #include <stdio.h>
 
+#if defined(_MSC_VER) && !defined(__INTEL_COMPILER)
+	#define snprintf(buf, len, ...) _snprintf_s(buf, len, _TRUNCATE, __VA_ARGS__)
+#endif
+
 const char *const c_filename = "test_source_location.c";
 static char g_srcloc_buf[ZF_LOG_BUF_SZ];
 static const char *g_srcloc;
