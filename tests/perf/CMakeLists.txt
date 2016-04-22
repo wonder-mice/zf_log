@@ -21,6 +21,24 @@ endif()
 option(ZF_LOG_PERF_TEST_SAVE_TEMPS "Save preprocessor and disassembler output" OFF)
 option(ZF_LOG_PERF_TEST_ZF_LOG_OS "Add zf_log built with ZF_LOG_OPTIMIZE_SIZE to performance tests" OFF)
 
+# Launch rules are target properties (RULE_LAUNCH_COMPILE, RULE_LAUNCH_LINK)
+# that are used to time compilation and linking. Tests that require this
+# properties will be disabled if current generator doesn't support launch
+# rules. See CMake documentation for up to date list of generators that support
+# launch rules.
+if(CMAKE_GENERATOR MATCHES "Makefiles" OR
+   CMAKE_GENERATOR MATCHES "Ninja")
+	set(LAUNCH_RULES ON)
+else()
+	message(WARNING "Timing compilation and linking is not supported by \"${CMAKE_GENERATOR}\" generator!")
+	set(LAUNCH_RULES OFF)
+endif()
+# Since a lot of 3rd party dependencies envolved, it's only so much we can do here.
+# Non-Unix support is possible, but not in the scope right now.
+if(NOT UNIX)
+	message(WARNING "Performance tests only maintained for Unix platforms!")
+endif()
+
 function(add_target target)
 	cmake_parse_arguments(arg
 		"STATICLIB;EXECUTABLE;NO_THREADS"
@@ -216,8 +234,10 @@ function(add_executable_size_test lib)
 	list(APPEND PARAMETERS "-p" "call_site_size:fmti:${lib}:1:$<TARGET_FILE:test_call_site_size.fmti.${lib}.1>")
 	list(APPEND PARAMETERS "-p" "call_site_size:fmti:${lib}:2:$<TARGET_FILE:test_call_site_size.fmti.${lib}.2>")
 	list(APPEND PARAMETERS "-p" "executable_size:m1:${lib}:$<TARGET_FILE:test_executable_size.m1.${lib}>")
-	list(APPEND PARAMETERS "-p" "compile_time:${lib}:$<TARGET_PROPERTY:test_call_site_size.str.${lib}.1,TIME_COMPILE>")
-	list(APPEND PARAMETERS "-p" "link_time:${lib}:$<TARGET_PROPERTY:test_executable_size.m1.${lib},TIME_LINK>")
+	if(LAUNCH_RULES)
+		list(APPEND PARAMETERS "-p" "compile_time:${lib}:$<TARGET_PROPERTY:test_call_site_size.str.${lib}.1,TIME_COMPILE>")
+		list(APPEND PARAMETERS "-p" "link_time:${lib}:$<TARGET_PROPERTY:test_executable_size.m1.${lib},TIME_LINK>")
+	endif()
 	set(PARAMETERS "${PARAMETERS}" PARENT_SCOPE)
 endfunction()
 

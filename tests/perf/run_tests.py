@@ -299,9 +299,11 @@ def run_executable_size(params, result):
 							  compare=cmp_percentage(0.0, key=lambda x: x.value)):
 			best.set_best()
 
-def run_build_time(params, result, id):
+def run_build_time(params, result, id, optional=False):
 	if type(result) is not dict:
 		raise RuntimeError("Not a dictionary")
+	if optional and id not in params:
+		return
 	params = params[id]
 	values = dict()
 	for subj in params:
@@ -338,8 +340,8 @@ def run_tests(params):
 	result = dict()
 	run_call_site_size(params, result)
 	run_executable_size(params, result)
-	run_build_time(params, result, "compile_time")
-	run_build_time(params, result, "link_time")
+	run_build_time(params, result, "compile_time", optional=True)
+	run_build_time(params, result, "link_time", optional=True)
 	run_speed(params, result, take_threads_variants())
 	return result
 
