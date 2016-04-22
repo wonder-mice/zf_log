@@ -20,6 +20,7 @@ endif()
 
 option(ZF_LOG_PERF_TEST_SAVE_TEMPS "Save preprocessor and disassembler output" OFF)
 option(ZF_LOG_PERF_TEST_ZF_LOG_OS "Add zf_log built with ZF_LOG_OPTIMIZE_SIZE to performance tests" OFF)
+option(ZF_LOG_PERF_TEST_VERBOSE_3P_BUILD "Enable verbose build output for 3rd party libraries (noisy)" OFF)
 
 # Launch rules are target properties (RULE_LAUNCH_COMPILE, RULE_LAUNCH_LINK)
 # that are used to time compilation and linking. Tests that require this
@@ -37,6 +38,12 @@ endif()
 # Non-Unix support is possible, but not in the scope right now.
 if(NOT UNIX)
 	message(WARNING "Performance tests only maintained for Unix platforms!")
+endif()
+# For convenience, ZF_LOG_PERF_TEST_VERBOSE_3P_BUILD is inverse of what is
+# actually needed. SILENT_3P_BUILD variable will be used instead.
+set(SILENT_3P_BUILD ON)
+if(ZF_LOG_PERF_TEST_VERBOSE_3P_BUILD)
+	set(SILENT_3P_BUILD OFF)
 endif()
 
 function(add_target target)
@@ -127,6 +134,12 @@ ExternalProject_Add(spdlog_ep
 		"-DCMAKE_OSX_ARCHITECTURES:string=${CMAKE_OSX_ARCHITECTURES}"
 		"-DCMAKE_OSX_DEPLOYMENT_TARGET:string=${CMAKE_OSX_DEPLOYMENT_TARGET}"
 		"-DCMAKE_OSX_SYSROOT:path=${CMAKE_OSX_SYSROOT}"
+	LOG_DOWNLOAD ${SILENT_3P_BUILD}
+	LOG_UPDATE ${SILENT_3P_BUILD}
+	LOG_CONFIGURE ${SILENT_3P_BUILD}
+	LOG_BUILD ${SILENT_3P_BUILD}
+	LOG_TEST ${SILENT_3P_BUILD}
+	LOG_INSTALL ${SILENT_3P_BUILD}
 )
 add_library(spdlog INTERFACE)
 add_dependencies(spdlog spdlog_ep)
@@ -143,6 +156,12 @@ ExternalProject_Add(easylog_ep
 	BUILD_COMMAND ""
 	INSTALL_COMMAND "${CMAKE_COMMAND}" -E copy_directory
 		"<SOURCE_DIR>/src" "<INSTALL_DIR>/include"
+	LOG_DOWNLOAD ${SILENT_3P_BUILD}
+	LOG_UPDATE ${SILENT_3P_BUILD}
+	LOG_CONFIGURE ${SILENT_3P_BUILD}
+	LOG_BUILD ${SILENT_3P_BUILD}
+	LOG_TEST ${SILENT_3P_BUILD}
+	LOG_INSTALL ${SILENT_3P_BUILD}
 )
 add_library(easylog INTERFACE)
 add_dependencies(easylog easylog_ep)
@@ -170,6 +189,12 @@ ExternalProject_Add(g3log_ep
 		"<SOURCE_DIR>/src/g3log" "<INSTALL_DIR>/include/g3log"
 		COMMAND "${CMAKE_COMMAND}" -E copy_if_different
 		"<BINARY_DIR>/${G3LOG_LIBRARY}" "<INSTALL_DIR>/lib/${G3LOG_LIBRARY}"
+	LOG_DOWNLOAD ${SILENT_3P_BUILD}
+	LOG_UPDATE ${SILENT_3P_BUILD}
+	LOG_CONFIGURE ${SILENT_3P_BUILD}
+	LOG_BUILD ${SILENT_3P_BUILD}
+	LOG_TEST ${SILENT_3P_BUILD}
+	LOG_INSTALL ${SILENT_3P_BUILD}
 )
 add_library(g3log INTERFACE)
 add_dependencies(g3log g3log_ep)
@@ -193,6 +218,12 @@ ExternalProject_Add(glog_ep
 		"-DCMAKE_OSX_ARCHITECTURES:string=${CMAKE_OSX_ARCHITECTURES}"
 		"-DCMAKE_OSX_DEPLOYMENT_TARGET:string=${CMAKE_OSX_DEPLOYMENT_TARGET}"
 		"-DCMAKE_OSX_SYSROOT:path=${CMAKE_OSX_SYSROOT}"
+	LOG_DOWNLOAD ${SILENT_3P_BUILD}
+	LOG_UPDATE ${SILENT_3P_BUILD}
+	LOG_CONFIGURE ${SILENT_3P_BUILD}
+	LOG_BUILD ${SILENT_3P_BUILD}
+	LOG_TEST ${SILENT_3P_BUILD}
+	LOG_INSTALL ${SILENT_3P_BUILD}
 )
 add_library(glog INTERFACE)
 add_dependencies(glog glog_ep)
@@ -206,26 +237,41 @@ function(get_test_library lib var)
 	set(${var} "${lib}" PARENT_SCOPE)
 endfunction()
 
+function(get_test_compile_options lib var)
+	set(compile_options)
+	if(lib STREQUAL "g3log")
+		# g3log public headers generate "braced-scalar-init" warnings
+		set(compile_options "-Wno-braced-scalar-init")
+	endif()
+	set(${var} "${compile_options}" PARENT_SCOPE)
+endfunction()
+
 function(add_executable_size_test lib)
 	get_test_library("${lib}" test_library)
+	get_test_compile_options("${lib}" compile_options)
 	add_target(test_call_site_size.str.${lib}.1 STATICLIB LIBRARIES "${lib}"
+		COMPILE_OPTIONS ${compile_options}
 		TIME_COMPILE "${CMAKE_CURRENT_BINARY_DIR}/compile_time.${lib}.json"
 		SOURCES test_executable_size.cpp
 		DEFINES "TEST_LIBRARY=${test_library}"
 			"TEST_SEVERAL_STATEMENTS")
 	add_target(test_call_site_size.str.${lib}.2 STATICLIB LIBRARIES "${lib}"
+		COMPILE_OPTIONS ${compile_options}
 		SOURCES test_executable_size.cpp
 		DEFINES "TEST_LIBRARY=${test_library}"
 			"TEST_SEVERAL_STATEMENTS" "TEST_EXTRA_STATEMENT")
 	add_target(test_call_site_size.fmti.${lib}.1 STATICLIB LIBRARIES "${lib}"
+		COMPILE_OPTIONS ${compile_options}
 		SOURCES test_executable_size.cpp
 		DEFINES "TEST_LIBRARY=${test_library}"
 			"TEST_FORMAT_INTS" "TEST_SEVERAL_STATEMENTS")
 	add_target(test_call_site_size.fmti.${lib}.2 STATICLIB LIBRARIES "${lib}"
+		COMPILE_OPTIONS ${compile_options}
 		SOURCES test_executable_size.cpp
 		DEFINES "TEST_LIBRARY=${test_library}"
 			"TEST_FORMAT_INTS" "TEST_SEVERAL_STATEMENTS" "TEST_EXTRA_STATEMENT")
 	add_target(test_executable_size.m1.${lib} EXECUTABLE LIBRARIES "${lib}" NO_THREADS
+		COMPILE_OPTIONS ${compile_options}
 		TIME_LINK "${CMAKE_CURRENT_BINARY_DIR}/link_time.${lib}.json"
 		SOURCES test_executable_size.cpp
 		DEFINES "TEST_LIBRARY=${test_library}")
@@ -252,19 +298,24 @@ add_executable_size_test(glog)
 
 function(add_speed_test lib)
 	get_test_library("${lib}" test_library)
+	get_test_compile_options("${lib}" compile_options)
 	add_target(test_speed.str.${lib} EXECUTABLE
+		COMPILE_OPTIONS ${compile_options}
 		SOURCES test_speed.cpp
 		DEFINES "TEST_LIBRARY=${test_library}" "TEST_NULL_SINK"
 		LIBRARIES "${lib}")
 	add_target(test_speed.fmti.${lib} EXECUTABLE
+		COMPILE_OPTIONS ${compile_options}
 		SOURCES test_speed.cpp
 		DEFINES "TEST_LIBRARY=${test_library}" "TEST_NULL_SINK" "TEST_FORMAT_INTS"
 		LIBRARIES "${lib}")
 	add_target(test_speed.str-off.${lib} EXECUTABLE
+		COMPILE_OPTIONS ${compile_options}
 		SOURCES test_speed.cpp
 		DEFINES "TEST_LIBRARY=${test_library}" "TEST_NULL_SINK" "TEST_LOG_OFF"
 		LIBRARIES "${lib}")
 	add_target(test_speed.slowf-off.${lib} EXECUTABLE
+		COMPILE_OPTIONS ${compile_options}
 		SOURCES test_speed.cpp
 		DEFINES "TEST_LIBRARY=${test_library}" "TEST_NULL_SINK" "TEST_FORMAT_SLOW_FUNC" "TEST_LOG_OFF"
 		LIBRARIES "${lib}")
