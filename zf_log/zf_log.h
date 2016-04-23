@@ -219,7 +219,7 @@
  *
  *   CC_ARGS := -DZF_LOG_DEF_SRCLOC=ZF_LOG_SRCLOC_LONG
  *
- * And when necessary to override it with ZF_LOG_LEVEL in .c/.cpp/.m files
+ * And when necessary to override it with ZF_LOG_SRCLOC in .c/.cpp/.m files
  * before including zf_log.h:
  *
  *   #define ZF_LOG_SRCLOC ZF_LOG_SRCLOC_NONE
@@ -244,6 +244,73 @@
 	#define _ZF_LOG_FUNCTION __FUNCTION__
 #else
 	#define _ZF_LOG_FUNCTION 0
+#endif
+
+/* Censoring provides conditional logging of secret information, also known as
+ * Personally Identifiable Information (PII) or Sensitive Personal Information
+ * (SPI). Censoring can be either enabled (ZF_LOG_CENSORED) or disabled
+ * (ZF_LOG_UNCENSORED). When censoring is enabled, log statements marked as
+ * "secrets" will be ignored and will have zero overhead (arguments also will
+ * not be evaluated).
+ */
+#define ZF_LOG_CENSORED   1
+#define ZF_LOG_UNCENSORED 0
+
+/* Censoring is configured per compilation module (.c/.cpp/.m file) by defining
+ * ZF_LOG_DEF_CENSORING or ZF_LOG_CENSORING. ZF_LOG_CENSORING has higer priority
+ * and when defined overrides value provided by ZF_LOG_DEF_CENSORING.
+ *
+ * Common practice is to define default censoring with ZF_LOG_DEF_CENSORING in
+ * build script (e.g. Makefile, CMakeLists.txt, gyp, etc.) for the entire
+ * project or target:
+ *
+ *   CC_ARGS := -DZF_LOG_DEF_CENSORING=ZF_LOG_CENSORED
+ *
+ * And when necessary to override it with ZF_LOG_CENSORING in .c/.cpp/.m files
+ * before including zf_log.h (consider doing it only for debug purposes and be
+ * very careful not to push such temporary changes to source control):
+ *
+ *   #define ZF_LOG_CENSORING ZF_LOG_UNCENSORED
+ *   #include <zf_log.h>
+ *
+ * If both ZF_LOG_DEF_CENSORING and ZF_LOG_CENSORING are undefined, then
+ * ZF_LOG_CENSORED will be used for release builds (NDEBUG is defined) and
+ * ZF_LOG_UNCENSORED otherwise (NDEBUG is not defined).
+ */
+#if defined(ZF_LOG_CENSORING)
+	#define _ZF_LOG_CENSORING ZF_LOG_CENSORING
+#elif defined(ZF_LOG_DEF_CENSORING)
+	#define _ZF_LOG_CENSORING ZF_LOG_DEF_CENSORING
+#else
+	#ifdef NDEBUG
+		#define _ZF_LOG_CENSORING ZF_LOG_CENSORED
+	#else
+		#define _ZF_LOG_CENSORING ZF_LOG_UNCENSORED
+	#endif
+#endif
+
+/* Check censoring at compile time. Evaluates to true when censoring is disabled
+ * (i.e. when secrets will be logged). For example:
+ *
+ *   #if ZF_LOG_SECRETS
+ *       char ssn[16];
+ *       getSocialSecurityNumber(ssn);
+ *       ZF_LOGI("Customer ssn: %s", ssn);
+ *   #endif
+ */
+#define ZF_LOG_SECRETS (ZF_LOG_UNCENSORED == _ZF_LOG_CENSORING)
+
+/* Mark log statement as "secret". Log statements that are marked as secrets
+ * will NOT be executed when censoring is enabled (see ZF_LOG_CENSORED).
+ * Example:
+ *
+ *   ZF_LOG_SECRET(ZF_LOGI("Credit card: %s", credit_card));
+ *   ZF_LOG_SECRET(ZF_LOGD_MEM(cipher, cipher_sz, "Cipher bytes:"));
+ */
+#if ZF_LOG_SECRETS
+	#define ZF_LOG_SECRET(f) do { f; } _ZF_LOG_ONCE
+#else
+	#define ZF_LOG_SECRET(f) do { _ZF_LOG_NEVER { f; } } _ZF_LOG_ONCE
 #endif
 
 /* Static (compile-time) initialization support allows to configure logging

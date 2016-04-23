@@ -53,6 +53,14 @@ Features:
   ZF_LOGI("This is int %s", 42);
   ```
 
+* Conditional logging of sensitive information (also known as Personally
+  Identifiable Information or PII):
+
+  ```c
+  /* will be logged only when logging of sensitive information is enabled */
+  ZF_LOG_SECRET(ZF_LOGI("Credit card number: %s", credit_card));
+  ```
+
 * Custom output functions
 * Compile time configuration of logging level
 * Run time configuration of logging level
