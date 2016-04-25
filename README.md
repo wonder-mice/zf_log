@@ -4,6 +4,8 @@
 zf_log
 ========
 
+[![Join the chat at https://gitter.im/wonder-mice/zf_log](https://badges.gitter.im/wonder-mice/zf_log.svg)](https://gitter.im/wonder-mice/zf_log?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 ### Core logging library for C, Objective-C and C++
 
 Following the [Unix way](https://en.wikipedia.org/wiki/Unix_philosophy), this
