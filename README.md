@@ -1,5 +1,6 @@
 [![Build Status](https://travis-ci.org/wonder-mice/zf_log.svg?branch=master)](https://travis-ci.org/wonder-mice/zf_log)
-[![Build status](https://ci.appveyor.com/api/projects/status/u9rmuaw147q578w0/branch/master?svg=true)](https://ci.appveyor.com/project/wonder-mice/zf-log/branch/master)
+[![Build Status](https://ci.appveyor.com/api/projects/status/u9rmuaw147q578w0/branch/master?svg=true)](https://ci.appveyor.com/project/wonder-mice/zf-log/branch/master)
+[![Gitter Chat](https://badges.gitter.im/wonder-mice/zf_log.svg)](https://gitter.im/wonder-mice/zf_log?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 zf_log
 ========
