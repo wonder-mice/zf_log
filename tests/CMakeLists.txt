@@ -86,22 +86,6 @@ add_test_target(test_compilation_cpp SOURCES test_compilation_cpp.cpp CXXSTD 11)
 add_executable(filesize_check filesize_check.c)
 set(CODE_SIZE_SOURCE_DIR "${CMAKE_CURRENT_BINARY_DIR}/code_size_tests")
 
-# copy reference zf_log.h to compare with
-add_custom_command(OUTPUT "${CODE_SIZE_SOURCE_DIR}/prev/zf_log.h"
-	COMMAND "${CMAKE_COMMAND}" -E copy_if_different
-		"${CMAKE_CURRENT_SOURCE_DIR}/zf_log.h.master"
-		"${CODE_SIZE_SOURCE_DIR}/prev/zf_log.h"
-	DEPENDS
-		"${CMAKE_CURRENT_SOURCE_DIR}/zf_log.h.master")
-
-# copy current zf_log.h to compare with
-add_custom_command(OUTPUT "${CODE_SIZE_SOURCE_DIR}/curr/zf_log.h"
-	COMMAND "${CMAKE_COMMAND}" -E copy_if_different
-		"${CMAKE_CURRENT_SOURCE_DIR}/zf_log.h.master"
-		"${CODE_SIZE_SOURCE_DIR}/curr/zf_log.h"
-	DEPENDS
-		"${CMAKE_CURRENT_SOURCE_DIR}/zf_log.h.master")
-
 function(save_preprocessor_output target)
 	if(MSVC)
 		# MSVC lacks this feature, /P suppresses compilation.
@@ -111,44 +95,57 @@ function(save_preprocessor_output target)
 	endif()
 endfunction()
 
-function(add_code_size_test name)
-	# "-save-temps" will put all ".s" files directly in the "tests" build
-	# directory which is not specific for the target. Since it's useful to
-	# examine those files, test source file will copied with different
-	# names for *-prev and *-curr targets. That way generated "*.s" files
-	# will have different names too.
-
-	# copy source for prev
-	add_custom_command(OUTPUT "${CODE_SIZE_SOURCE_DIR}/${name}-prev.c"
-		COMMAND "${CMAKE_COMMAND}" -E copy_if_different
-			"${CMAKE_CURRENT_SOURCE_DIR}/${name}.c"
-			"${CODE_SIZE_SOURCE_DIR}/${name}-prev.c"
-		DEPENDS
-			"${CMAKE_CURRENT_SOURCE_DIR}/${name}.c")
-	# copy source for curr
-	add_custom_command(OUTPUT "${CODE_SIZE_SOURCE_DIR}/${name}-curr.c"
-		COMMAND "${CMAKE_COMMAND}" -E copy_if_different
-			"${CMAKE_CURRENT_SOURCE_DIR}/${name}.c"
-			"${CODE_SIZE_SOURCE_DIR}/${name}-curr.c"
-		DEPENDS
-			"${CMAKE_CURRENT_SOURCE_DIR}/${name}.c")
-	# prev library
-	add_library(${name}-prev STATIC
-		"${CODE_SIZE_SOURCE_DIR}/prev/zf_log.h"
-		"${CODE_SIZE_SOURCE_DIR}/${name}-prev.c")
-	target_include_directories(${name}-prev PRIVATE "${CODE_SIZE_SOURCE_DIR}/prev")
-	save_preprocessor_output(${name}-prev)
-	# curr library
-	add_library(${name}-curr STATIC
-		"${CODE_SIZE_SOURCE_DIR}/curr/zf_log.h"
-		"${CODE_SIZE_SOURCE_DIR}/${name}-curr.c")
-	target_include_directories(${name}-curr PRIVATE "${CODE_SIZE_SOURCE_DIR}/curr")
-	save_preprocessor_output(${name}-curr)
-	# test case
-	add_dependencies(filesize_check ${name}-prev ${name}-curr)
-	add_test(NAME ${name}_check
-		COMMAND filesize_check "$<TARGET_FILE:${name}-prev>" "$<TARGET_FILE:${name}-curr>")
+function(add_copy_command src dst)
+	add_custom_command(OUTPUT "${dst}"
+		COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${src}" "${dst}"
+		DEPENDS "${src}")
+	set_source_files_properties("${dst}" PROPERTIES GENERATED TRUE)
 endfunction()
 
-add_code_size_test(test_call_site_size_msg_only)
-add_code_size_test(test_call_site_size_fmt_args)
+# copy reference and current versions of zf_log.h
+add_copy_command("${CMAKE_CURRENT_SOURCE_DIR}/zf_log.h.master" "${CODE_SIZE_SOURCE_DIR}/prev/zf_log.h")
+add_copy_command("${PROJECT_SOURCE_DIR}/zf_log/zf_log.h" "${CODE_SIZE_SOURCE_DIR}/curr/zf_log.h")
+
+function(add_code_size_test target)
+	cmake_parse_arguments(arg
+		""
+		""
+		"SOURCES;DEFINES"
+		${ARGN})
+	set(prev_sources "${CODE_SIZE_SOURCE_DIR}/prev/zf_log.h")
+	set(curr_sources "${CODE_SIZE_SOURCE_DIR}/curr/zf_log.h")
+	foreach(src ${arg_SOURCES})
+		# "-save-temps" will put all ".s" files directly in the "tests" build
+		# directory which is not specific for the target. Since it's useful to
+		# examine those files, test sources will be copied with different
+		# names for *-prev and *-curr targets. That way generated "*.s" files
+		# will have different names too and will not overwrite each other.
+		get_filename_component(src_name "${src}" NAME_WE)
+		get_filename_component(src_ext "${src}" EXT)
+		get_filename_component(src_path "${src}" ABSOLUTE)
+		set(src_copy_prev "${CODE_SIZE_SOURCE_DIR}/${target}-${src_name}-prev${src_ext}")
+		set(src_copy_curr "${CODE_SIZE_SOURCE_DIR}/${target}-${src_name}-curr${src_ext}")
+		add_copy_command("${src_path}" "${src_copy_prev}")
+		add_copy_command("${src_path}" "${src_copy_curr}")
+		list(APPEND prev_sources "${src_copy_prev}")
+		list(APPEND curr_sources "${src_copy_curr}")
+	endforeach()
+
+	# prev library
+	add_library(${target}-prev STATIC ${prev_sources})
+	target_include_directories(${target}-prev PRIVATE "${CODE_SIZE_SOURCE_DIR}/prev")
+	target_compile_definitions(${target}-prev PRIVATE ${arg_DEFINES})
+	save_preprocessor_output(${target}-prev)
+	# curr library
+	add_library(${target}-curr STATIC ${curr_sources})
+	target_include_directories(${target}-curr PRIVATE "${CODE_SIZE_SOURCE_DIR}/curr")
+	target_compile_definitions(${target}-curr PRIVATE ${arg_DEFINES})
+	save_preprocessor_output(${target}-curr)
+	# test case
+	add_dependencies(filesize_check ${target}-prev ${target}-curr)
+	add_test(NAME ${target}_check
+		COMMAND filesize_check "$<TARGET_FILE:${target}-prev>" "$<TARGET_FILE:${target}-curr>")
+endfunction()
+
+add_code_size_test(test_call_site_size_msg_only SOURCES test_call_site_size_msg_only.c)
+add_code_size_test(test_call_site_size_fmt_args SOURCES test_call_site_size_fmt_args.c)
