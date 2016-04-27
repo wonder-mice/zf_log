@@ -71,6 +71,7 @@ add_test_target_group(test_source_location_short_Os SOURCES test_source_location
 add_test_target_group(test_source_location_long_Os SOURCES test_source_location.c
 		DEFINES ZF_LOG_SRCLOC=ZF_LOG_SRCLOC_LONG TEST_SRCLOC=ZF_LOG_SRCLOC_LONG ZF_LOG_OPTIMIZE_SIZE=1)
 
+add_test_target_group(test_conditional SOURCES test_conditional.c)
 add_test_target_group(test_censoring_off SOURCES test_censoring.c DEFINES ZF_LOG_CENSORING=ZF_LOG_UNCENSORED TEST_LOG_SECRETS=1)
 add_test_target_group(test_censoring_on SOURCES test_censoring.c DEFINES ZF_LOG_CENSORING=ZF_LOG_CENSORED TEST_LOG_SECRETS=0)
 

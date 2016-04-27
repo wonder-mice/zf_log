@@ -297,21 +297,11 @@
  *       getSocialSecurityNumber(ssn);
  *       ZF_LOGI("Customer ssn: %s", ssn);
  *   #endif
+ *
+ * See ZF_LOG_SECRET() macro for a more convenient way of guarding single log
+ * statement.
  */
 #define ZF_LOG_SECRETS (ZF_LOG_UNCENSORED == _ZF_LOG_CENSORING)
-
-/* Mark log statement as "secret". Log statements that are marked as secrets
- * will NOT be executed when censoring is enabled (see ZF_LOG_CENSORED).
- * Example:
- *
- *   ZF_LOG_SECRET(ZF_LOGI("Credit card: %s", credit_card));
- *   ZF_LOG_SECRET(ZF_LOGD_MEM(cipher, cipher_sz, "Cipher bytes:"));
- */
-#if ZF_LOG_SECRETS
-	#define ZF_LOG_SECRET(f) do { f; } _ZF_LOG_ONCE
-#else
-	#define ZF_LOG_SECRET(f) do { _ZF_LOG_NEVER { f; } } _ZF_LOG_ONCE
-#endif
 
 /* Static (compile-time) initialization support allows to configure logging
  * before entering main() function. This mostly useful in C++ where functions
@@ -443,21 +433,23 @@
 
 #if defined(_MSC_VER) && !defined(__INTEL_COMPILER)
 	#define _ZF_LOG_INLINE __inline
-	#define _ZF_LOG_ONCE \
+	#define _ZF_LOG_IF(cond) \
 		__pragma(warning(push)) \
 		__pragma(warning(disable:4127)) \
-		while(0) \
+		if(cond) \
 		__pragma(warning(pop))
-	#define _ZF_LOG_NEVER \
+	#define _ZF_LOG_WHILE(cond) \
 		__pragma(warning(push)) \
 		__pragma(warning(disable:4127)) \
-		if(0) \
+		while(cond) \
 		__pragma(warning(pop))
 #else
 	#define _ZF_LOG_INLINE inline
-	#define _ZF_LOG_ONCE while(0)
-	#define _ZF_LOG_NEVER if(0)
+	#define _ZF_LOG_IF(cond) if(cond)
+	#define _ZF_LOG_WHILE(cond) while(cond)
 #endif
+#define _ZF_LOG_NEVER _ZF_LOG_IF(0)
+#define _ZF_LOG_ONCE _ZF_LOG_WHILE(0)
 
 #ifdef __cplusplus
 extern "C" {
@@ -578,6 +570,27 @@ zf_log_spec;
 #ifdef __cplusplus
 }
 #endif
+
+/* Execute log statement if condition is true. Example:
+ *
+ *   ZF_LOG_IF(1 < 2, ZF_LOGI("Log this"));
+ *   ZF_LOG_IF(1 > 2, ZF_LOGI("Don't log this"));
+ *
+ * Keep in mind though, that if condition can't be evaluated at compile time,
+ * then it will be evaluated at run time. This will increase exectuable size
+ * and can have noticeable performance overhead. Try to limit conditions to
+ * expressions that can be evaluated at compile time.
+ */
+#define ZF_LOG_IF(cond, f) do { _ZF_LOG_IF((cond)) { f; } } _ZF_LOG_ONCE
+
+/* Mark log statement as "secret". Log statements that are marked as secrets
+ * will NOT be executed when censoring is enabled (see ZF_LOG_CENSORED).
+ * Example:
+ *
+ *   ZF_LOG_SECRET(ZF_LOGI("Credit card: %s", credit_card));
+ *   ZF_LOG_SECRET(ZF_LOGD_MEM(cipher, cipher_sz, "Cipher bytes:"));
+ */
+#define ZF_LOG_SECRET(f) ZF_LOG_IF(ZF_LOG_SECRETS, f)
 
 /* Check "current" log level at compile time (ignoring "output" log level).
  * Evaluates to true when specified log level is enabled. For example:
