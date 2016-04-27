@@ -187,6 +187,7 @@
 #define RETVAL_UNUSED(expr) do { while(expr) break; } while(0)
 #define STATIC_ASSERT(name, cond) \
 	typedef char assert_##name[(cond)? 1: -1]
+#define ASSERT_UNREACHABLE(why) assert(!sizeof(why))
 #ifndef _countof
 	#define _countof(xs) (sizeof(xs) / sizeof((xs)[0]))
 #endif
@@ -275,7 +276,7 @@ static INSTRUMENTED_CONST buffer_cb g_buffer_cb = buffer_callback;
 		case ZF_LOG_FATAL:
 			return ANDROID_LOG_FATAL;
 		default:
-			assert(!"Bad log level");
+			ASSERT_UNREACHABLE("Bad log level");
 			return ANDROID_LOG_UNKNOWN;
 		}
 	}
@@ -318,7 +319,7 @@ static INSTRUMENTED_CONST buffer_cb g_buffer_cb = buffer_callback;
 		case ZF_LOG_FATAL:
 			return 0; /* ASL_LEVEL_EMERG / kCFLogLevelEmergency */;
 		default:
-			assert(!"Bad log level");
+			ASSERT_UNREACHABLE("Bad log level");
 			return 0; /* ASL_LEVEL_EMERG / kCFLogLevelEmergency */;
 		}
 	}
@@ -421,7 +422,7 @@ static char lvl_char(const int lvl)
 	case ZF_LOG_FATAL:
 		return 'F';
 	default:
-		assert(!"Bad log level");
+		ASSERT_UNREACHABLE("Bad log level");
 		return '?';
 	}
 }
