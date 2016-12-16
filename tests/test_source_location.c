@@ -44,8 +44,13 @@ static void test_function()
 			 c_filename, line);
 #endif
 #if ZF_LOG_SRCLOC_LONG==TEST_SRCLOC
+<<<<<<< HEAD
 	snprintf(expected, sizeof(expected), "%s@%s:%u",
 			 __FUNCTION__, c_filename, line);
+=======
+	snprintf(expected, sizeof(expected), "%s@%s:%u\t",
+			 _ZF_LOG_FUNCTION, c_filename, line);
+>>>>>>> 310041e... fixed __func__ related errors in test_source_location.c
 #endif
 	TEST_VERIFY_EQUAL(strcmp(expected, g_srcloc), 0);
 }
