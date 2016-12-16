@@ -132,6 +132,39 @@
 #ifndef ZF_LOG_EOL
 	#define ZF_LOG_EOL "\n"
 #endif
+/* String to put between parts of log line (date, time, pid, tid, level, tag,
+ * message).
+ */
+#ifndef ZF_LOG_SEPARATOR_DEFAULT
+	#define ZF_LOG_SEPARATOR_DEFAULT " "
+#endif
+/* String that separates time part from previous part.
+ */
+#ifndef ZF_LOG_SEPARATOR_TIME
+	#define ZF_LOG_SEPARATOR_TIME ZF_LOG_SEPARATOR_DEFAULT
+#endif
+/* String that separates context part (pid, tid, source location) from previous
+ * part.
+ */
+#ifndef ZF_LOG_SEPARATOR_CONTEXT
+	#define ZF_LOG_SEPARATOR_CONTEXT ZF_LOG_SEPARATOR_DEFAULT
+#endif
+/* String that separates log level part from previous part.
+ */
+#ifndef ZF_LOG_SEPARATOR_LEVEL
+	#define ZF_LOG_SEPARATOR_LEVEL ZF_LOG_SEPARATOR_DEFAULT
+#endif
+/* String that separates log tag part from previous part.
+ */
+#ifndef ZF_LOG_SEPARATOR_TAG
+	#define ZF_LOG_SEPARATOR_TAG ZF_LOG_SEPARATOR_DEFAULT
+#endif
+/* String that separates log message part from previous part.
+ */
+#ifndef ZF_LOG_SEPARATOR_MESSAGE
+	#define ZF_LOG_SEPARATOR_MESSAGE ZF_LOG_SEPARATOR_DEFAULT
+#endif
+
 /* Number of bytes to reserve for EOL in the log line buffer (must be >0).
  * Must be larger than or equal to length of ZF_LOG_EOL with terminating null.
  */
@@ -220,6 +253,8 @@
 	#endif
 #endif
 
+#define SEP(what) ZF_LOG_SEPARATOR_##what
+
 typedef void (*time_cb)(struct tm *const tm, unsigned *const usec);
 typedef void (*pid_cb)(int *const pid, int *const tid);
 typedef void (*buffer_cb)(zf_log_message *msg, char *buf);
@@ -249,6 +284,7 @@ STATIC_ASSERT(eol_sz_less_than_buf_sz, ZF_LOG_EOL_SZ < ZF_LOG_BUF_SZ);
 #if !defined(_WIN32) && !defined(_WIN64)
 	STATIC_ASSERT(buf_sz_less_than_pipe_buf, ZF_LOG_BUF_SZ <= PIPE_BUF);
 #endif
+STATIC_ASSERT(time, 0 < sizeof(SEP(TIME)));
 static const char c_hex[] = "0123456789abcdef";
 
 static INSTRUMENTED_CONST unsigned g_buf_sz = ZF_LOG_BUF_SZ - ZF_LOG_EOL_SZ;
@@ -648,6 +684,20 @@ static INLINE char *put_uint(unsigned v, const unsigned w, const char wc,
 }
 #endif
 
+#define PUT_CSTR_CHECKED(p, e, STR) \
+	do { \
+		for (unsigned i = 0, f = sizeof(STR) - 1; (e) > (p) && f > i; ++i) { \
+			*(p)++ = (STR)[i]; \
+		} \
+	} while(0)
+
+#define PUT_CSTR_R(p, STR) \
+	do { \
+		for (unsigned i = sizeof(STR) - 1; 0 < i--) { \
+			*--(p) = (STR)[i]; \
+		} \
+	} while(0)
+
 static void put_ctx(zf_log_message *const msg)
 {
 	struct tm tm;
@@ -659,7 +709,8 @@ static void put_ctx(zf_log_message *const msg)
 #if ZF_LOG_OPTIMIZE_SIZE
 	int n;
 	n = snprintf(msg->p, nprintf_size(msg),
-				 "%02u-%02u %02u:%02u:%02u.%03u %5i %5i %c ",
+				 "%02u-%02u"SEP(DATE)"%02u:%02u:%02u.%03u"SEP(TIME)"%5i"SEP(PID)"%5i"SEP(TID)"%c"SEP(LEVEL),
+				 (unsigned)(tm.tm_year - 100),
 				 (unsigned)(tm.tm_mon + 1), (unsigned)tm.tm_mday,
 				 (unsigned)tm.tm_hour, (unsigned)tm.tm_min, (unsigned)tm.tm_sec,
 				 (unsigned)msec,
@@ -669,13 +720,13 @@ static void put_ctx(zf_log_message *const msg)
 	char buf[64];
 	char *const e = buf + sizeof(buf);
 	char *p = e;
-	*--p = ' ';
+	PUT_CSTR_R(p, SEP(LEVEL))
 	*--p = lvl_char(msg->lvl);
-	*--p = ' ';
+	PUT_CSTR_R(p, SEP(TID))
 	p = put_int_r(tid, 5, ' ', p);
-	*--p = ' ';
+	PUT_CSTR_R(p, SEP(PID))
 	p = put_int_r(pid, 5, ' ', p);
-	*--p = ' ';
+	PUT_CSTR_R(p, SEP(TIME))
 	p = put_uint_r(msec, 3, '0', p);
 	*--p = '.';
 	p = put_uint_r((unsigned)tm.tm_sec, 2, '0', p);
@@ -683,7 +734,7 @@ static void put_ctx(zf_log_message *const msg)
 	p = put_uint_r((unsigned)tm.tm_min, 2, '0', p);
 	*--p = ':';
 	p = put_uint_r((unsigned)tm.tm_hour, 2, '0', p);
-	*--p = ' ';
+	PUT_CSTR_R(p, SEP(DATE))
 	p = put_uint_r((unsigned)tm.tm_mday, 2, '0', p);
 	*--p = '-';
 	p = put_uint_r((unsigned)tm.tm_mon + 1, 2, '0', p);
@@ -712,9 +763,9 @@ static void put_tag(zf_log_message *const msg, const char *const tag)
 		}
 	}
 	msg->tag_e = msg->p;
-	if (msg->tag_b != msg->p && msg->e != msg->p)
+	if (msg->tag_b != msg->p)
 	{
-		*msg->p++ = ' ';
+		PUT_CSTR_CHECKED(msg->p, msg->e, SEP(TAG))
 	}
 }
 
@@ -722,7 +773,7 @@ static void put_src(zf_log_message *const msg, const src_location *const src)
 {
 #if ZF_LOG_OPTIMIZE_SIZE
 	int n;
-	n = snprintf(msg->p, nprintf_size(msg), "%s@%s:%u ",
+	n = snprintf(msg->p, nprintf_size(msg), "%s@%s:%u"SEP(SRC),
 				 funcname(src->func), filename(src->file), src->line);
 	put_nprintf(msg, n);
 #else
@@ -731,7 +782,7 @@ static void put_src(zf_log_message *const msg, const src_location *const src)
 	msg->p = put_string(filename(src->file), msg->p, msg->e);
 	if (msg->p < msg->e) *msg->p++ = ':';
 	msg->p = put_uint(src->line, 0, '\0', msg->p, msg->e);
-	if (msg->p < msg->e) *msg->p++ = ' ';
+	PUT_CSTR_CHECKED(msg->p, msg->e, SEP(SRC));
 #endif
 }
 
