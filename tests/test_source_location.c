@@ -45,7 +45,7 @@ static void test_function()
 #endif
 #if ZF_LOG_SRCLOC_LONG==TEST_SRCLOC
 	snprintf(expected, sizeof(expected), "%s@%s:%u",
-			 __FUNCTION__, c_filename, line);
+			__func__, c_filename, line);
 #endif
 	TEST_VERIFY_EQUAL(strcmp(expected, g_srcloc), 0);
 }
