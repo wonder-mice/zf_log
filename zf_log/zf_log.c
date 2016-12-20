@@ -220,8 +220,15 @@
 	#endif
 #endif
 
+#ifdef ZF_LOG_WITH_DATE_TIME
 typedef void (*time_cb)(struct tm *const tm, unsigned *const usec);
+#endif
+#ifdef ZF_LOG_WITH_MSEC_TICK
+typedef void (*systick_cb)(unsigned long *const tick);
+#endif
+#ifdef ZF_LOG_WITH_PID_TID
 typedef void (*pid_cb)(int *const pid, int *const tid);
+#endif
 typedef void (*buffer_cb)(zf_log_message *msg, char *buf);
 
 typedef struct src_location
@@ -239,8 +246,15 @@ typedef struct mem_block
 }
 mem_block;
 
+#ifdef ZF_LOG_WITH_DATE_TIME
 static void time_callback(struct tm *const tm, unsigned *const usec);
+#endif
+#ifdef ZF_LOG_WITH_MSEC_TICK
+static void systick_callback(unsigned long * const tick);
+#endif
+#ifdef ZF_LOG_WITH_PID_TID
 static void pid_callback(int *const pid, int *const tid);
+#endif
 static void buffer_callback(zf_log_message *msg, char *buf);
 
 STATIC_ASSERT(eol_fits_eol_sz, sizeof(ZF_LOG_EOL) <= ZF_LOG_EOL_SZ);
@@ -252,8 +266,15 @@ STATIC_ASSERT(eol_sz_less_than_buf_sz, ZF_LOG_EOL_SZ < ZF_LOG_BUF_SZ);
 static const char c_hex[] = "0123456789abcdef";
 
 static INSTRUMENTED_CONST unsigned g_buf_sz = ZF_LOG_BUF_SZ - ZF_LOG_EOL_SZ;
+#ifdef ZF_LOG_WITH_DATE_TIME
 static INSTRUMENTED_CONST time_cb g_time_cb = time_callback;
+#endif
+#ifdef ZF_LOG_WITH_MSEC_TICK
+static INSTRUMENTED_CONST systick_cb g_systick_cb = systick_callback;
+#endif
+#ifdef ZF_LOG_WITH_PID_TID
 static INSTRUMENTED_CONST pid_cb g_pid_cb = pid_callback;
+#endif
 static INSTRUMENTED_CONST buffer_cb g_buffer_cb = buffer_callback;
 
 #if ZF_LOG_USE_ANDROID_LOG
@@ -447,10 +468,13 @@ static char lvl_char(const int lvl)
 #define TCACHE
 #define TCACHE_STALE (0x40000000)
 #define TCACHE_FLUID (0x40000000 | 0x80000000)
+#ifdef ZF_LOG_WITH_DATE_TIME
 static unsigned g_tcache_mode = TCACHE_STALE;
 static struct timeval g_tcache_tv = {0, 0};
 static struct tm g_tcache_tm = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+#endif
 
+#ifdef ZF_LOG_WITH_DATE_TIME
 static INLINE int tcache_get(const struct timeval *const tv, struct tm *const tm)
 {
 	unsigned mode;
@@ -485,7 +509,9 @@ static INLINE void tcache_set(const struct timeval *const tv, struct tm *const t
 	}
 }
 #endif
+#endif
 
+#ifdef ZF_LOG_WITH_DATE_TIME
 static void time_callback(struct tm *const tm, unsigned *const msec)
 {
 #if defined(_WIN32) || defined(_WIN64)
@@ -501,7 +527,7 @@ static void time_callback(struct tm *const tm, unsigned *const msec)
 	*msec = st.wMilliseconds;
 #else
 	struct timeval tv;
-	gettimeofday(&tv, 0);
+	gettimeofday(&tv, NULL);
 	#ifndef TCACHE
 		localtime_r(&tv.tv_sec, tm);
 	#else
@@ -514,7 +540,25 @@ static void time_callback(struct tm *const tm, unsigned *const msec)
 	*msec = (unsigned)tv.tv_usec / 1000;
 #endif
 }
+#endif
 
+#ifdef ZF_LOG_WITH_MSEC_TICK
+static void systick_callback(unsigned long *const tick)
+{
+#if defined(_WIN32) || defined(_WIN64)
+	*tick = GetTickCount();
+#elif defined(__ANDROID__)
+#elif defined(__linux__)
+#elif defined(__MACH__)
+#else
+	struct timeval tv;
+	gettimeofday(&tv, NULL);
+	*tick = (unsigned long)((tv.tv_sec * 1000ul) + (tv.tv_usec / 1000ul));
+#endif
+}
+#endif
+
+#ifdef ZF_LOG_WITH_PID_TID
 static void pid_callback(int *const pid, int *const tid)
 {
 #if defined(_WIN32) || defined(_WIN64)
@@ -532,9 +576,11 @@ static void pid_callback(int *const pid, int *const tid)
 #elif defined(__MACH__)
 	*tid = (int)pthread_mach_thread_np(pthread_self());
 #else
+	(void)tid;
 	#define Platform not supported
 #endif
 }
+#endif
 
 static void buffer_callback(zf_log_message *msg, char *buf)
 {
@@ -611,12 +657,14 @@ static INLINE char *put_uint_r(const unsigned v, const unsigned w, const char wc
 	return put_integer_r(v, 0, w, wc, e);
 }
 
+#ifdef ZF_LOG_WITH_PID_TID
 static INLINE char *put_int_r(const int v, const unsigned w, const char wc,
 							  char *const e)
 {
 	return 0 <= v? put_integer_r((unsigned)v, 0, w, wc, e)
 				 : put_integer_r((unsigned)-v, -1, w, wc, e);
 }
+#endif
 
 static INLINE char *put_stringn(const char *const s_p, const char *const s_e,
 								char *const p, char *const e)
@@ -650,14 +698,29 @@ static INLINE char *put_uint(unsigned v, const unsigned w, const char wc,
 
 static void put_ctx(zf_log_message *const msg)
 {
+#ifdef ZF_LOG_WITH_DATE_TIME
 	struct tm tm;
 	unsigned msec;
+#endif
+#ifdef ZF_LOG_WITH_MSEC_TICK
+	unsigned long tick;
+#endif
+#ifdef ZF_LOG_WITH_PID_TID
 	int pid, tid;
+#endif
+#ifdef ZF_LOG_WITH_DATE_TIME
 	g_time_cb(&tm, &msec);
+#endif
+#ifdef ZF_LOG_WITH_MSEC_TICK
+	g_systick_cb(&tick);
+#endif
+#ifdef ZF_LOG_WITH_PID_TID
 	g_pid_cb(&pid, &tid);
-
+#endif
 #if ZF_LOG_OPTIMIZE_SIZE
 	int n;
+#ifdef ZF_LOG_WITH_PID_TID
+#ifdef ZF_LOG_WITH_DATE_TIME
 	n = snprintf(msg->p, nprintf_size(msg),
 				 "%02u-%02u %02u:%02u:%02u.%03u %5i %5i %c ",
 				 (unsigned)(tm.tm_mon + 1), (unsigned)tm.tm_mday,
@@ -665,6 +728,30 @@ static void put_ctx(zf_log_message *const msg)
 				 (unsigned)msec,
 				 pid, tid, (char)lvl_char(msg->lvl));
 	put_nprintf(msg, n);
+#elif defined (ZF_LOG_WITH_MSEC_TICK)
+	n = snprintf(msg->p, nprintf_size(msg),
+				 "%03u %5i %5i %c ",
+				 (unsigned)tick,
+				 pid, tid, (char)lvl_char(msg->lvl));
+	put_nprintf(msg, n);
+#endif
+#else
+#ifdef ZF_LOG_WITH_DATE_TIME
+	n = snprintf(msg->p, nprintf_size(msg),
+				 "%02u-%02u %02u:%02u:%02u.%03u %c ",
+				 (unsigned)(tm.tm_mon + 1), (unsigned)tm.tm_mday,
+				 (unsigned)tm.tm_hour, (unsigned)tm.tm_min, (unsigned)tm.tm_sec,
+				 (unsigned)msec,
+				 (char)lvl_char(msg->lvl));
+	put_nprintf(msg, n);
+#elif defined (ZF_LOG_WITH_MSEC_TICK)
+	n = snprintf(msg->p, nprintf_size(msg),
+				 "%03u %c ",
+				 (unsigned)tick,
+				 (char)lvl_char(msg->lvl));
+	put_nprintf(msg, n);
+#endif
+#endif
 #else
 	char buf[64];
 	char *const e = buf + sizeof(buf);
@@ -672,10 +759,17 @@ static void put_ctx(zf_log_message *const msg)
 	*--p = ' ';
 	*--p = lvl_char(msg->lvl);
 	*--p = ' ';
+#ifdef ZF_LOG_WITH_PID_TID
 	p = put_int_r(tid, 5, ' ', p);
 	*--p = ' ';
 	p = put_int_r(pid, 5, ' ', p);
 	*--p = ' ';
+#endif
+#ifdef ZF_LOG_WITH_MSEC_TICK
+	p = put_uint_r(tick, 3, '0', p);
+	*--p = ' ';
+#endif
+#ifdef ZF_LOG_WITH_DATE_TIME
 	p = put_uint_r(msec, 3, '0', p);
 	*--p = '.';
 	p = put_uint_r((unsigned)tm.tm_sec, 2, '0', p);
@@ -687,6 +781,7 @@ static void put_ctx(zf_log_message *const msg)
 	p = put_uint_r((unsigned)tm.tm_mday, 2, '0', p);
 	*--p = '-';
 	p = put_uint_r((unsigned)tm.tm_mon + 1, 2, '0', p);
+#endif
 	msg->p = put_stringn(p, e, msg->p, msg->e);
 #endif
 }
@@ -825,7 +920,7 @@ static void _zf_log_write_imp(
 	{
 		put_tag(&msg, tag);
 	}
-	if (0 != src && ZF_LOG_PUT_SRC & mask)
+	if (0 != src && (ZF_LOG_PUT_SRC & mask))
 	{
 		put_src(&msg, src);
 	}
@@ -834,7 +929,7 @@ static void _zf_log_write_imp(
 		put_msg(&msg, fmt, va);
 	}
 	log->output->callback(&msg, log->output->arg);
-	if (0 != mem && ZF_LOG_PUT_MSG & mask)
+	if (0 != mem && (ZF_LOG_PUT_MSG & mask))
 	{
 		output_mem(log, &msg, mem);
 	}

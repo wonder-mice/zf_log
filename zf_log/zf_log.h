@@ -161,7 +161,7 @@
  *
  * Tag identifies component or module. It is configured per compilation module
  * (.c/.cpp/.m file) by defining ZF_LOG_TAG or ZF_LOG_DEF_TAG. ZF_LOG_TAG has
- * higer priority and when defined overrides value provided by ZF_LOG_DEF_TAG.
+ * higher priority and when defined overrides value provided by ZF_LOG_DEF_TAG.
  * When defined, value must evaluate to (const char *), so for strings double
  * quotes must be used.
  *
@@ -170,7 +170,7 @@
  *
  *   CC_ARGS := -DZF_LOG_DEF_TAG=\"MISC\"
  *
- * And when necessary could be overriden with ZF_LOG_TAG in .c/.cpp/.m files
+ * And when necessary could be overridden with ZF_LOG_TAG in .c/.cpp/.m files
  * before including zf_log.h:
  *
  *   #define ZF_LOG_TAG "MAIN"
@@ -241,7 +241,7 @@
 	#endif
 #endif
 #if ZF_LOG_SRCLOC_LONG == _ZF_LOG_SRCLOC
-	#define _ZF_LOG_FUNCTION __FUNCTION__
+	#define _ZF_LOG_FUNCTION __func__
 #else
 	#define _ZF_LOG_FUNCTION 0
 #endif
@@ -302,6 +302,39 @@
  * statement.
  */
 #define ZF_LOG_SECRETS (ZF_LOG_UNCENSORED == _ZF_LOG_CENSORING)
+
+/* To minimize the context output you can define ZF_LOG_CTX to one of the following
+ * values.
+ *   #define ZF_LOG_CTX ZF_LOG_CTX_FULL
+ *   #include <zf_log.h>
+ *
+ * If this define is not set the default context with Date, time, pid and tid is used.
+ */
+#define ZF_LOG_CTX_FULL 0
+#define ZF_LOG_CTX_MSEC_TICK_TID_PID 1
+#define ZF_LOG_CTX_DATE_TIME 2
+#define ZF_LOG_CTX_MSEC_TICK 3
+#define ZF_LOG_CTX_PID_TID 4
+
+#if defined(ZF_LOG_CTX)
+	#define _ZF_LOG_CTX ZF_LOG_CTX
+#else
+	#define _ZF_LOG_CTX ZF_LOG_CTX_FULL
+#endif
+
+#if ZF_LOG_CTX_FULL == _ZF_LOG_CTX
+	#define ZF_LOG_WITH_DATE_TIME
+	#define ZF_LOG_WITH_PID_TID
+#elif ZF_LOG_CTX_MSEC_TICK_TID_PID == _ZF_LOG_CTX
+	#define ZF_LOG_WITH_MSEC_TICK
+	#define ZF_LOG_WITH_PID_TID
+#elif ZF_LOG_CTX_DATE_TIME == _ZF_LOG_CTX
+	#define ZF_LOG_WITH_DATE_TIME
+#elif ZF_LOG_CTX_MSEC_TICK == _ZF_LOG_CTX
+	#define ZF_LOG_WITH_MSEC_TICK
+#elif ZF_LOG_CTX_PID_TID == _ZF_LOG_CTX
+	#define ZF_LOG_WITH_PID_TID
+#endif
 
 /* Static (compile-time) initialization support allows to configure logging
  * before entering main() function. This mostly useful in C++ where functions
