@@ -241,13 +241,9 @@
 	#endif
 #endif
 #if ZF_LOG_SRCLOC_LONG == _ZF_LOG_SRCLOC
-	#if defined(_WIN32) || defined(_WIN64)
-		#define _ZF_LOG_FUNCTION __FUNCTION__
-	#else
-		#define _ZF_LOG_FUNCTION __func__
-	#endif
+	#define _ZF_LOG_SRCLOC_FUNCTION _ZF_LOG_FUNCTION
 #else
-	#define _ZF_LOG_FUNCTION 0
+	#define _ZF_LOG_SRCLOC_FUNCTION 0
 #endif
 
 /* Censoring provides conditional logging of secret information, also known as
@@ -433,6 +429,12 @@
 	#define _ZF_LOG_PRINTFLIKE(a, b) __printflike(a, b)
 #else
 	#define _ZF_LOG_PRINTFLIKE(a, b)
+#endif
+
+#if defined(_WIN32) || defined(_WIN64)
+    #define _ZF_LOG_FUNCTION __FUNCTION__
+#else
+    #define _ZF_LOG_FUNCTION __func__
 #endif
 
 #if defined(_MSC_VER) && !defined(__INTEL_COMPILER)
@@ -767,25 +769,25 @@ void _zf_log_write_mem_aux(
 	#define ZF_LOG_WRITE(lvl, tag, ...) \
 			do { \
 				if (ZF_LOG_ON(lvl)) \
-					_zf_log_write_d(_ZF_LOG_FUNCTION, __FILE__, __LINE__, \
+					_zf_log_write_d(_ZF_LOG_SRCLOC_FUNCTION, __FILE__, __LINE__, \
 							lvl, tag, __VA_ARGS__); \
 			} _ZF_LOG_ONCE
 	#define ZF_LOG_WRITE_MEM(lvl, tag, d, d_sz, ...) \
 			do { \
 				if (ZF_LOG_ON(lvl)) \
-					_zf_log_write_mem_d(_ZF_LOG_FUNCTION, __FILE__, __LINE__, \
+					_zf_log_write_mem_d(_ZF_LOG_SRCLOC_FUNCTION, __FILE__, __LINE__, \
 							lvl, tag, d, d_sz, __VA_ARGS__); \
 			} _ZF_LOG_ONCE
 	#define ZF_LOG_WRITE_AUX(log, lvl, tag, ...) \
 			do { \
 				if (ZF_LOG_ON(lvl)) \
-					_zf_log_write_aux_d(_ZF_LOG_FUNCTION, __FILE__, __LINE__, \
+					_zf_log_write_aux_d(_ZF_LOG_SRCLOC_FUNCTION, __FILE__, __LINE__, \
 							log, lvl, tag, __VA_ARGS__); \
 			} _ZF_LOG_ONCE
 	#define ZF_LOG_WRITE_MEM_AUX(log, lvl, tag, d, d_sz, ...) \
 			do { \
 				if (ZF_LOG_ON(lvl)) \
-					_zf_log_write_mem_aux_d(_ZF_LOG_FUNCTION, __FILE__, __LINE__, \
+					_zf_log_write_mem_aux_d(_ZF_LOG_SRCLOC_FUNCTION, __FILE__, __LINE__, \
 							log, lvl, tag, d, d_sz, __VA_ARGS__); \
 			} _ZF_LOG_ONCE
 #endif
