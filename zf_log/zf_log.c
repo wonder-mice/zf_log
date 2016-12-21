@@ -133,36 +133,46 @@
 	#define ZF_LOG_EOL "\n"
 #endif
 /* String to put between parts of log line (date, time, pid, tid, level, tag,
- * message).
+ * source, message). If ZF_LOG_OPTIMIZE_SIZE is defined, can NOT contain
+ * following characters: '%', '\0'.
  */
 #ifndef ZF_LOG_SEPARATOR_DEFAULT
 	#define ZF_LOG_SEPARATOR_DEFAULT " "
 #endif
-/* String that separates time part from previous part.
+/* String that separates date and following part.
+ */
+#ifndef ZF_LOG_SEPARATOR_DATE
+	#define ZF_LOG_SEPARATOR_DATE ZF_LOG_SEPARATOR_DEFAULT
+#endif
+/* String that separates time and following part.
  */
 #ifndef ZF_LOG_SEPARATOR_TIME
 	#define ZF_LOG_SEPARATOR_TIME ZF_LOG_SEPARATOR_DEFAULT
 #endif
-/* String that separates context part (pid, tid, source location) from previous
- * part.
+/* String that separates PID and following part.
  */
-#ifndef ZF_LOG_SEPARATOR_CONTEXT
-	#define ZF_LOG_SEPARATOR_CONTEXT ZF_LOG_SEPARATOR_DEFAULT
+#ifndef ZF_LOG_SEPARATOR_PID
+	#define ZF_LOG_SEPARATOR_PID ZF_LOG_SEPARATOR_DEFAULT
 #endif
-/* String that separates log level part from previous part.
+/* String that separates TID and following part.
+ */
+#ifndef ZF_LOG_SEPARATOR_TID
+	#define ZF_LOG_SEPARATOR_TID ZF_LOG_SEPARATOR_DEFAULT
+#endif
+/* String that separates log level and following part.
  */
 #ifndef ZF_LOG_SEPARATOR_LEVEL
 	#define ZF_LOG_SEPARATOR_LEVEL ZF_LOG_SEPARATOR_DEFAULT
 #endif
-/* String that separates log tag part from previous part.
+/* String that separates tag and following part.
  */
 #ifndef ZF_LOG_SEPARATOR_TAG
 	#define ZF_LOG_SEPARATOR_TAG ZF_LOG_SEPARATOR_DEFAULT
 #endif
-/* String that separates log message part from previous part.
+/* String that separates source location and following part.
  */
-#ifndef ZF_LOG_SEPARATOR_MESSAGE
-	#define ZF_LOG_SEPARATOR_MESSAGE ZF_LOG_SEPARATOR_DEFAULT
+#ifndef ZF_LOG_SEPARATOR_SRC
+	#define ZF_LOG_SEPARATOR_SRC ZF_LOG_SEPARATOR_DEFAULT
 #endif
 
 /* Number of bytes to reserve for EOL in the log line buffer (must be >0).
@@ -682,19 +692,20 @@ static INLINE char *put_uint(unsigned v, const unsigned w, const char wc,
 	char *sp = put_uint_r(v, w, wc, se);
 	return put_stringn(sp, se, p, e);
 }
+
+#define PUT_CSTR_R(p, STR) \
+	do { \
+		for (unsigned i = sizeof(STR) - 1; 0 < i--;) { \
+			*--(p) = (STR)[i]; \
+		} \
+	} while(0)
+
 #endif
 
 #define PUT_CSTR_CHECKED(p, e, STR) \
 	do { \
-		for (unsigned i = 0, f = sizeof(STR) - 1; (e) > (p) && f > i; ++i) { \
+		for (unsigned i = 0; (e) > (p) && (sizeof(STR) - 1) > i; ++i) { \
 			*(p)++ = (STR)[i]; \
-		} \
-	} while(0)
-
-#define PUT_CSTR_R(p, STR) \
-	do { \
-		for (unsigned i = sizeof(STR) - 1; 0 < i--) { \
-			*--(p) = (STR)[i]; \
 		} \
 	} while(0)
 
@@ -710,7 +721,6 @@ static void put_ctx(zf_log_message *const msg)
 	int n;
 	n = snprintf(msg->p, nprintf_size(msg),
 				 "%02u-%02u"SEP(DATE)"%02u:%02u:%02u.%03u"SEP(TIME)"%5i"SEP(PID)"%5i"SEP(TID)"%c"SEP(LEVEL),
-				 (unsigned)(tm.tm_year - 100),
 				 (unsigned)(tm.tm_mon + 1), (unsigned)tm.tm_mday,
 				 (unsigned)tm.tm_hour, (unsigned)tm.tm_min, (unsigned)tm.tm_sec,
 				 (unsigned)msec,
@@ -720,13 +730,13 @@ static void put_ctx(zf_log_message *const msg)
 	char buf[64];
 	char *const e = buf + sizeof(buf);
 	char *p = e;
-	PUT_CSTR_R(p, SEP(LEVEL))
+	PUT_CSTR_R(p, SEP(LEVEL));
 	*--p = lvl_char(msg->lvl);
-	PUT_CSTR_R(p, SEP(TID))
+	PUT_CSTR_R(p, SEP(TID));
 	p = put_int_r(tid, 5, ' ', p);
-	PUT_CSTR_R(p, SEP(PID))
+	PUT_CSTR_R(p, SEP(PID));
 	p = put_int_r(pid, 5, ' ', p);
-	PUT_CSTR_R(p, SEP(TIME))
+	PUT_CSTR_R(p, SEP(TIME));
 	p = put_uint_r(msec, 3, '0', p);
 	*--p = '.';
 	p = put_uint_r((unsigned)tm.tm_sec, 2, '0', p);
@@ -734,7 +744,7 @@ static void put_ctx(zf_log_message *const msg)
 	p = put_uint_r((unsigned)tm.tm_min, 2, '0', p);
 	*--p = ':';
 	p = put_uint_r((unsigned)tm.tm_hour, 2, '0', p);
-	PUT_CSTR_R(p, SEP(DATE))
+	PUT_CSTR_R(p, SEP(DATE));
 	p = put_uint_r((unsigned)tm.tm_mday, 2, '0', p);
 	*--p = '-';
 	p = put_uint_r((unsigned)tm.tm_mon + 1, 2, '0', p);
@@ -765,7 +775,7 @@ static void put_tag(zf_log_message *const msg, const char *const tag)
 	msg->tag_e = msg->p;
 	if (msg->tag_b != msg->p)
 	{
-		PUT_CSTR_CHECKED(msg->p, msg->e, SEP(TAG))
+		PUT_CSTR_CHECKED(msg->p, msg->e, SEP(TAG));
 	}
 }
 
