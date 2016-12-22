@@ -698,7 +698,7 @@ static INLINE char *put_uint(unsigned v, const unsigned w, const char wc,
 		for (unsigned i = sizeof(STR) - 1; 0 < i--;) { \
 			*--(p) = (STR)[i]; \
 		} \
-	} while(0)
+	} _ZF_LOG_ONCE
 
 #endif
 
@@ -707,7 +707,7 @@ static INLINE char *put_uint(unsigned v, const unsigned w, const char wc,
 		for (unsigned i = 0; (e) > (p) && (sizeof(STR) - 1) > i; ++i) { \
 			*(p)++ = (STR)[i]; \
 		} \
-	} while(0)
+	} _ZF_LOG_ONCE
 
 static void put_ctx(zf_log_message *const msg)
 {
