@@ -1,3 +1,6 @@
+#if defined(_WIN32) || defined(_WIN64)
+	#define _CRT_NONSTDC_NO_WARNINGS
+#endif
 #define ZF_LOG_ANDROID_LOG 0
 #define ZF_LOG_BUF_SZ 128
 #define ZF_LOG_MEM_WIDTH 16
@@ -8,26 +11,65 @@
 #include <stddef.h>
 #include <string.h>
 
-#define ASSERT_FITS(s) \
-	((sizeof((s)) < ZF_LOG_BUF_SZ)? (s): ((char **)0)[0])
+#define MESSAGE_EXPECTED_PRINTF_FMT__             ""
+#define MESSAGE_EXPECTED_PRINTF_FMT__YEAR         "2016"
+#define MESSAGE_EXPECTED_PRINTF_FMT__MONTH        "12"
+#define MESSAGE_EXPECTED_PRINTF_FMT__DAY          "23"
+#define MESSAGE_EXPECTED_PRINTF_FMT__HOUR         "12"
+#define MESSAGE_EXPECTED_PRINTF_FMT__MINUTE       "34"
+#define MESSAGE_EXPECTED_PRINTF_FMT__SECOND       "56"
+#define MESSAGE_EXPECTED_PRINTF_FMT__MILLISECOND  "789"
+#define MESSAGE_EXPECTED_PRINTF_FMT__PID          " 9876"
+#define MESSAGE_EXPECTED_PRINTF_FMT__TID          " 5432"
+#define MESSAGE_EXPECTED_PRINTF_FMT__LEVEL        "I"
+#define MESSAGE_EXPECTED_PRINTF_FMT__TAG(ps, ts)  "prefix" ps "TAG" ts
+#define MESSAGE_EXPECTED_PRINTF_FMT__FUNCTION     "function"
+#define MESSAGE_EXPECTED_PRINTF_FMT__FILENAME     "file"
+#define MESSAGE_EXPECTED_PRINTF_FMT__FILELINE     "42"
+#define MESSAGE_EXPECTED_PRINTF_FMT__S(s)         s
+#define MESSAGE_EXPECTED_PRINTF_FMT__F_INIT(expr) ""
+#define MESSAGE_EXPECTED_PRINTF_FMT__F_UINT(w, v) "%" #w "u"
+#define MESSAGE_EXPECTED_PRINTF_FMT(field) \
+	_PP_CONCAT_3(MESSAGE_EXPECTED_PRINTF_FMT_, _, field)
+
+#define MESSAGE_EXPECTED_PRINTF_VAL__
+#define MESSAGE_EXPECTED_PRINTF_VAL__YEAR
+#define MESSAGE_EXPECTED_PRINTF_VAL__MONTH
+#define MESSAGE_EXPECTED_PRINTF_VAL__DAY
+#define MESSAGE_EXPECTED_PRINTF_VAL__HOUR
+#define MESSAGE_EXPECTED_PRINTF_VAL__MINUTE
+#define MESSAGE_EXPECTED_PRINTF_VAL__SECOND
+#define MESSAGE_EXPECTED_PRINTF_VAL__MILLISECOND
+#define MESSAGE_EXPECTED_PRINTF_VAL__PID
+#define MESSAGE_EXPECTED_PRINTF_VAL__TID
+#define MESSAGE_EXPECTED_PRINTF_VAL__LEVEL
+#define MESSAGE_EXPECTED_PRINTF_VAL__TAG(ps, ts)
+#define MESSAGE_EXPECTED_PRINTF_VAL__FUNCTION
+#define MESSAGE_EXPECTED_PRINTF_VAL__FILENAME
+#define MESSAGE_EXPECTED_PRINTF_VAL__FILELINE
+#define MESSAGE_EXPECTED_PRINTF_VAL__S(s)
+#define MESSAGE_EXPECTED_PRINTF_VAL__F_INIT(expr)
+#define MESSAGE_EXPECTED_PRINTF_VAL__F_UINT(w, v) ,v
+#define MESSAGE_EXPECTED_PRINTF_VAL(field) \
+	_PP_CONCAT_3(MESSAGE_EXPECTED_PRINTF_VAL_, _, field)
+
+#define MESSAGE_EXPECTED_PRINTF_FMTS \
+	_PP_MAP(MESSAGE_EXPECTED_PRINTF_FMT, ZF_LOG_MESSAGE_CTX_FORMAT) \
+	_PP_MAP(MESSAGE_EXPECTED_PRINTF_FMT, ZF_LOG_MESSAGE_TAG_FORMAT) \
+	_PP_MAP(MESSAGE_EXPECTED_PRINTF_FMT, ZF_LOG_MESSAGE_SRC_FORMAT)
+
+#define MESSAGE_EXPECTED_PRINTF_VALS \
+	_PP_MAP(MESSAGE_EXPECTED_PRINTF_VAL, ZF_LOG_MESSAGE_CTX_FORMAT) \
+	_PP_MAP(MESSAGE_EXPECTED_PRINTF_VAL, ZF_LOG_MESSAGE_TAG_FORMAT) \
+	_PP_MAP(MESSAGE_EXPECTED_PRINTF_VAL, ZF_LOG_MESSAGE_SRC_FORMAT)
 
 static const char c_test_fmt[] =
 	"Lorem ipsum dolor sit amet.";
 static const char c_test_mem[] =
 	"Here's to the crazy ones.";
 
-static const char *const c_msg_expected_lines[] = {
-	ASSERT_FITS("12-23 12:34:56.789  9876  5432 I prefix.TAG function@file:42 "
-				"Lorem ipsum dolor sit amet.")
-};
-static const char *const c_mem_expected_lines[] = {
-	ASSERT_FITS("12-23 12:34:56.789  9876  5432 I prefix.TAG function@file:42 "
-				"Lorem ipsum dolor sit amet."),
-	ASSERT_FITS("12-23 12:34:56.789  9876  5432 I prefix.TAG function@file:42 "
-				"48657265277320746f20746865206372  Here's to the cr"),
-	ASSERT_FITS("12-23 12:34:56.789  9876  5432 I prefix.TAG function@file:42 "
-				"617a79206f6e65732e00              azy ones.?")
-};
+static const char *c_msg_expected_lines[1];
+static const char *c_mem_expected_lines[3];
 
 #define MAX_LINES 4
 static char g_lines[MAX_LINES][ZF_LOG_BUF_SZ];
@@ -75,6 +117,7 @@ static void mock_time_callback(struct tm *const tm, unsigned *const msec)
 	tm->tm_hour = 12;
 	tm->tm_mday = 23;
 	tm->tm_mon = 11;
+	tm->tm_year = 2016 - 1900;
 	*msec = 789;
 }
 
@@ -192,6 +235,39 @@ static void test_mem_output()
 	}
 }
 
+static void init_expected_lines()
+{
+	char expected_header[256];
+	char line[512];
+
+	_PP_MAP(_ZF_LOG_MESSAGE_FORMAT_INIT, ZF_LOG_MESSAGE_CTX_FORMAT)
+	_PP_MAP(_ZF_LOG_MESSAGE_FORMAT_INIT, ZF_LOG_MESSAGE_TAG_FORMAT)
+	_PP_MAP(_ZF_LOG_MESSAGE_FORMAT_INIT, ZF_LOG_MESSAGE_SRC_FORMAT)
+#if _ZF_LOG_MESSAGE_FORMAT_FIELDS(ZF_LOG_MESSAGE_CTX_FORMAT) || \
+	_ZF_LOG_MESSAGE_FORMAT_FIELDS(ZF_LOG_MESSAGE_TAG_FORMAT) || \
+	_ZF_LOG_MESSAGE_FORMAT_FIELDS(ZF_LOG_MESSAGE_SRC_FORMAT)
+	snprintf(expected_header, sizeof(expected_header),
+			MESSAGE_EXPECTED_PRINTF_FMTS
+			MESSAGE_EXPECTED_PRINTF_VALS);
+#else
+	*expected_header ='\0';
+#endif
+
+	snprintf(line, sizeof(line), "%s%s", expected_header,
+			 "Lorem ipsum dolor sit amet.");
+	c_msg_expected_lines[0] = strdup(line);
+
+	snprintf(line, sizeof(line), "%s%s", expected_header,
+			 "Lorem ipsum dolor sit amet.");
+	c_mem_expected_lines[0] = strdup(line);
+	snprintf(line, sizeof(line), "%s%s", expected_header,
+			 "48657265277320746f20746865206372  Here's to the cr");
+	c_mem_expected_lines[1] = strdup(line);
+	snprintf(line, sizeof(line), "%s%s", expected_header,
+			 "617a79206f6e65732e00              azy ones.?");
+	c_mem_expected_lines[2] = strdup(line);
+}
+
 int main(int argc, char *argv[])
 {
 	(void)argc; (void)argv;
@@ -200,6 +276,8 @@ int main(int argc, char *argv[])
 	g_buffer_cb = mock_buffer_callback;
 	zf_log_set_output_v(ZF_LOG_PUT_STD, 0, mock_output_callback);
 	zf_log_set_tag_prefix("prefix");
+
+	init_expected_lines();
 
 	test_msg_output();
 	test_mem_output();

@@ -63,6 +63,7 @@ Features:
   ```
 
 * Custom output functions
+* Custom log message formats
 * Compile time configuration of logging level
 * Run time configuration of logging level
 * Optional built-in support for Android log and Apple system log (iOS, OS X)

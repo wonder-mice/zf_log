@@ -58,6 +58,30 @@ add_test_target_group(test_log_level_override SOURCES test_log_level_override.c)
 add_test_target_group(test_log_message_content SOURCES test_log_message_content.c)
 add_test_target_group(test_log_message_content_Os SOURCES test_log_message_content.c DEFINES ZF_LOG_OPTIMIZE_SIZE=1)
 
+add_test_target_group(test_log_message_content_empty_format SOURCES test_log_message_content.c DEFINES
+	"ZF_LOG_MESSAGE_CTX_FORMAT=()"
+	"ZF_LOG_MESSAGE_TAG_FORMAT=()"
+	"ZF_LOG_MESSAGE_SRC_FORMAT=()")
+add_test_target_group(test_log_message_content_empty_format_Os SOURCES test_log_message_content.c DEFINES
+	"ZF_LOG_OPTIMIZE_SIZE=1"
+	"ZF_LOG_MESSAGE_CTX_FORMAT=()"
+	"ZF_LOG_MESSAGE_TAG_FORMAT=()"
+	"ZF_LOG_MESSAGE_SRC_FORMAT=()")
+
+# Here we use several F_INIT() fields in a row to workaround CMake problem with ";", which acts
+# as a list separator in CMake. If not for CMake, context format specification could look like:
+#   #define ZF_LOG_MESSAGE_CTX_FORMAT \
+#       (YEAR, S("-ctx:"), F_INIT(( struct { int v; } f_box_a; f_box_a.v = 45; )), F_UINT(4, f_box_a.v))
+add_test_target_group(test_log_message_content_custom_fields SOURCES test_log_message_content.c DEFINES
+	"ZF_LOG_MESSAGE_CTX_FORMAT=(YEAR, S(\"-ctx:\"), F_INIT(( struct { int v )), F_INIT(( } f_box_a )), F_INIT(( f_box_a.v = 45 )), F_UINT(4, f_box_a.v))"
+	"ZF_LOG_MESSAGE_TAG_FORMAT=(S(\"-tag:\"), F_INIT(( struct { int v )), F_INIT(( } f_box_b )), F_INIT(( f_box_b.v = 36 )), F_UINT(4, f_box_b.v))"
+	"ZF_LOG_MESSAGE_SRC_FORMAT=(S(\"-src:\"), F_INIT(( struct { int v )), F_INIT(( } f_box_c )), F_INIT(( f_box_c.v = 27 )), F_UINT(4, f_box_c.v))")
+add_test_target_group(test_log_message_content_custom_fields_Os SOURCES test_log_message_content.c DEFINES
+	"ZF_LOG_OPTIMIZE_SIZE=1"
+	"ZF_LOG_MESSAGE_CTX_FORMAT=(YEAR, S(\"ctx:\"), F_INIT(( struct { int v )), F_INIT(( } f_box_a )), F_INIT(( f_box_a.v = 45 )), F_UINT(4, f_box_a.v))"
+	"ZF_LOG_MESSAGE_TAG_FORMAT=(S(\"tag:\"), F_INIT(( struct { int v )), F_INIT(( } f_box_b )), F_INIT(( f_box_b.v = 36 )), F_UINT(4, f_box_b.v))"
+	"ZF_LOG_MESSAGE_SRC_FORMAT=(S(\"src:\"), F_INIT(( struct { int v )), F_INIT(( } f_box_c )), F_INIT(( f_box_c.v = 27 )), F_UINT(4, f_box_c.v))")
+
 add_test_target_group(test_source_location_none SOURCES test_source_location.c
 		DEFINES ZF_LOG_SRCLOC=ZF_LOG_SRCLOC_NONE TEST_SRCLOC=ZF_LOG_SRCLOC_NONE)
 add_test_target_group(test_source_location_short SOURCES test_source_location.c
