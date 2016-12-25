@@ -12,6 +12,10 @@
 #include <stdio.h>
 #include <string.h>
 
+#if defined(_MSC_VER) && !defined(__INTEL_COMPILER) && !defined(snprintf)
+    #define snprintf(buf, len, ...) _snprintf_s(buf, len, _TRUNCATE, __VA_ARGS__)
+#endif
+
 #define MESSAGE_EXPECTED_PRINTF_FMT__             ""
 #define MESSAGE_EXPECTED_PRINTF_FMT__YEAR         "2016"
 #define MESSAGE_EXPECTED_PRINTF_FMT__MONTH        "12"
