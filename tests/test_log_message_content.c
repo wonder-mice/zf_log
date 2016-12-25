@@ -9,6 +9,7 @@
 #define ZF_LOG_TAG "TAG"
 #include <zf_log.c>
 #include <stddef.h>
+#include <stdio.h>
 #include <string.h>
 
 #define MESSAGE_EXPECTED_PRINTF_FMT__             ""
