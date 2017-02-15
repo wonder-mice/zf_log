@@ -6,7 +6,6 @@ compiler:
 
 os:
 - osx
-- linux
 
 env:
   - OPTIONS="-DZF_LOG_EXAMPLES:bool=ON -DZF_LOG_TESTS:bool=ON -DCMAKE_BUILD_TYPE:string=Debug"
@@ -41,25 +40,6 @@ matrix:
 
 install: true
 
-before_script:
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then 
-    mkdir build.make && cd build.make && cmake ${OPTIONS} ..;
-    fi
-  
 script:
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; 
-    find . -name "CMakeLists.txt" -exec sed -i .bak -e "s/VERSION 3.2/VERSION 2.8/g" {} \;
-    mkdir build.make && cd build.make && cmake ${OPTIONS} .. && cmake --build . && ctest --output-on-failure; 
-    fi
- 
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; 
-    cmake --build . && ctest --output-on-failure; 
-    fi
-
-addons:
-    apt:
-        sources:
-            - george-edison55-precise-backports # cmake 3.2.3
-        packages:
-            - cmake
-            - cmake-data
+  - find . -name "CMakeLists.txt" -exec sed -i .bak -e "s/VERSION 3.2/VERSION 2.8/g" {} \;
+  - mkdir build.make && cd build.make && cmake ${OPTIONS} .. && cmake --build . && ctest --output-on-failure
