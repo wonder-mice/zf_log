@@ -39,12 +39,9 @@ environment:
     
 build_script: 
   
-  # Use MinGW from Qt tools because version is higher
-  # * http://www.appveyor.com/docs/installed-software#qt
-  - cmd: set MINGW_PATH=C:\Qt\Tools\mingw492_32\bin
-
-  # Workaround for CMake not wanting sh.exe on PATH for MinGW
+  # set path for mingw
   - set PATH=%PATH:C:\Program Files (x86)\Git\bin;=%
+  - set PATH=C:\MinGW\bin;%PATH%
   
   - ps: mkdir build.msvc
   - ps: cd build.msvc
