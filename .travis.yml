@@ -55,3 +55,11 @@ script:
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; 
     cmake --build . && ctest --output-on-failure; 
     fi
+
+addons:
+    apt:
+        sources:
+            - george-edison55-precise-backports # cmake 3.2.3
+        packages:
+            - cmake
+            - cmake-data
