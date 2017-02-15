@@ -39,8 +39,8 @@ environment:
     
 build_script: 
   
-  # set path for mingw
-  - set PATH=%PATH:C:\Program Files (x86)\Git\bin;=%
+  # Rename sh.exe as sh.exe in PATH interferes with MinGW.
+  - rename "C:\Program Files\Git\usr\bin\sh.exe" "sh2.exe"
   - set PATH=C:\MinGW\bin;%PATH%
   
   - ps: mkdir build.msvc
