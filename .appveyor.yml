@@ -41,7 +41,7 @@ build_script:
   
   # Rename sh.exe as sh.exe in PATH interferes with MinGW.
   - rename "C:\Program Files\Git\usr\bin\sh.exe" "sh2.exe"
-  - set PATH=C:\MinGW\bin;%PATH%
+  - set PATH=C:\Qt\5.7\mingw53_32\bin;%PATH%
   
   - ps: mkdir build.msvc
   - ps: cd build.msvc
