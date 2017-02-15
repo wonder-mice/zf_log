@@ -30,7 +30,19 @@ environment:
     CONFIG: Debug
     OPTIONS: -DZF_LOG_EXAMPLES:bool=ON -DZF_LOG_TESTS:bool=ON
 
-build_script:
+  - GENERATOR: "MinGW Makefiles"
+    CONFIG: Release
+    OPTIONS: -DZF_LOG_EXAMPLES:bool=ON -DZF_LOG_TESTS:bool=ON
+  - GENERATOR: "MinGW Makefiles"
+    CONFIG: Debug
+    OPTIONS: -DZF_LOG_EXAMPLES:bool=ON -DZF_LOG_TESTS:bool=ON
+    
+build_script: 
+  
+  # Use MinGW from Qt tools because version is higher
+  # * http://www.appveyor.com/docs/installed-software#qt
+  - cmd: set MINGW_PATH=C:\Qt\Tools\mingw492_32\bin
+
   - ps: mkdir build.msvc
   - ps: cd build.msvc
   - cmake "-G%GENERATOR%" %OPTIONS% ..
