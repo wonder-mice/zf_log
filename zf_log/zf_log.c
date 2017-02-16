@@ -468,6 +468,9 @@
 #if defined(_MSC_VER) && !defined(__INTEL_COMPILER)
 	#pragma warning(disable:4204) /* nonstandard extension used: non-constant aggregate initializer */
 	#define memccpy _memccpy
+#endif
+
+#if (defined(_MSC_VER) && !defined(__INTEL_COMPILER)) || defined(__MINGW32__)
 	#define vsnprintf(s, sz, fmt, va) fake_vsnprintf(s, sz, fmt, va)
 	static int fake_vsnprintf(char *s, size_t sz, const char *fmt, va_list ap)
 	{
