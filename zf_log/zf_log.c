@@ -470,7 +470,7 @@
 	#define memccpy _memccpy
 #endif
 
-#if (defined(_MSC_VER) && !defined(__INTEL_COMPILER)) || defined(__MINGW32__)
+#if (defined(_MSC_VER) && !defined(__INTEL_COMPILER)) || defined(__MINGW64__)
 	#define vsnprintf(s, sz, fmt, va) fake_vsnprintf(s, sz, fmt, va)
 	static int fake_vsnprintf(char *s, size_t sz, const char *fmt, va_list ap)
 	{
