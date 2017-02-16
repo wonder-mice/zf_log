@@ -270,6 +270,11 @@
 		#define _GNU_SOURCE
 	#endif
 #endif
+#if defined(__MINGW32__)
+	#ifdef __STRICT_ANSI__
+		#undef __STRICT_ANSI__
+	#endif
+#endif
 #include <assert.h>
 #include <ctype.h>
 #include <string.h>

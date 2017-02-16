@@ -30,7 +30,16 @@ environment:
     CONFIG: Debug
     OPTIONS: -DZF_LOG_EXAMPLES:bool=ON -DZF_LOG_TESTS:bool=ON
 
+  - GENERATOR: "MinGW Makefiles"
+    CONFIG: Debug
+    OPTIONS: -DZF_LOG_EXAMPLES:bool=ON -DZF_LOG_TESTS:bool=ON
+  - GENERATOR: "MinGW Makefiles"
+    CONFIG: Release
+    OPTIONS: -DZF_LOG_EXAMPLES:bool=ON -DZF_LOG_TESTS:bool=ON
+
 build_script:
+  - if "MinGW Makefiles"=="%GENERATOR%" set PATH=%PATH:C:\Program Files\Git\usr\bin;=%
+  - if "MinGW Makefiles"=="%GENERATOR%" set PATH=C:\MinGW\bin;%PATH%
   - ps: mkdir build.msvc
   - ps: cd build.msvc
   - cmake "-G%GENERATOR%" %OPTIONS% ..
