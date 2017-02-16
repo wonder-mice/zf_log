@@ -431,7 +431,7 @@
 	#define _ZF_LOG_PRINTFLIKE(a, b)
 #endif
 
-#if defined(_WIN32) || defined(_WIN64)
+#if (defined(_WIN32) || defined(_WIN64)) && !defined(__GNUC__)
 	#define _ZF_LOG_FUNCTION __FUNCTION__
 #else
 	#define _ZF_LOG_FUNCTION __func__
