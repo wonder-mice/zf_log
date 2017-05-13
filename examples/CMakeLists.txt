@@ -24,3 +24,6 @@ target_link_libraries(file_output zf_log)
 
 add_executable(args_eval args_eval.c)
 target_link_libraries(args_eval zf_log)
+
+add_executable(strip_log_messages strip_log_messages.c)
+target_link_libraries(strip_log_messages zf_log)
