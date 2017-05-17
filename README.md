@@ -145,6 +145,14 @@ option when embedding into a library project is `ZF_LOG_LIBRARY_PREFIX`. It
 could be used to decorate zf_log exported symbols to avoid linker conflicts
 (when that library project is used in other project that is also uses zf_log).
 
+#### Minimizing Output File Size
+
+As part of zf_log's main to be small, log strings below the current log level
+can be compiled out using optimization features in modern compilers. Not all
+compilers will be capable of this, but gcc provides this functionality using
+the ```-fdata-sections``` and ```-ffunction-sections``` compile flags, the
+link flag ```-Wl,--gc-sections```, and size optomization flag ```-Os```.
+
 ### Embedding with CMake
 
 Another options is avaibale for projects that are using CMake. Copy
