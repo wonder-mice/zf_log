@@ -148,10 +148,12 @@ could be used to decorate zf_log exported symbols to avoid linker conflicts
 #### Minimizing Output File Size
 
 As part of zf_log's main to be small, log strings below the current log level
-can be compiled out using optimization features in modern compilers. Not all
-compilers will be capable of this, but gcc provides this functionality using
-the ```-fdata-sections``` and ```-ffunction-sections``` compile flags, the
-link flag ```-Wl,--gc-sections```, and size optomization flag ```-Os```.
+can be compiled out using optimization features in modern compilers. In
+```Debug``` builds, unused strings may not be compiled out and a ```Release```
+build may be necessary. Not all compilers will be capable of optimizing out
+unused parts of a program, but gcc provides this functionality using the
+```-fdata-sections``` and ```-ffunction-sections``` compile flags, the link flag
+```-Wl,--gc-sections```, and size optimization flag ```-Os```.
 
 ### Embedding with CMake
 
