@@ -16,7 +16,7 @@ int main(int argc, char *argv[])
 	const char data[] =
 			"Lorem ipsum dolor sit amet, consectetur adipiscing elit. "
 			"Aliquam pharetra orci id velit porttitor tempus.";
-	ZF_LOGW_MEM(data, sizeof(data), "Lorem ipsum at %p:", data);
+	ZF_LOGW_MEM(data, sizeof(data), "Lorem ipsum at %p:", (const void *) data);
 
 	return 0;
 }
