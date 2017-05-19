@@ -426,9 +426,13 @@
 #endif
 
 #if defined(__printflike)
-	#define _ZF_LOG_PRINTFLIKE(a, b) __printflike(a, b)
+	#define _ZF_LOG_PRINTFLIKE(str_index, first_to_check) \
+		__printflike(str_index, first_to_check)
+#elif defined(__GNUC__)
+	#define _ZF_LOG_PRINTFLIKE(str_index, first_to_check) \
+		__attribute__((format(__printf__, str_index, first_to_check)))
 #else
-	#define _ZF_LOG_PRINTFLIKE(a, b)
+	#define _ZF_LOG_PRINTFLIKE(str_index, first_to_check)
 #endif
 
 #if (defined(_WIN32) || defined(_WIN64)) && !defined(__GNUC__)
