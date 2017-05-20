@@ -303,6 +303,24 @@
  */
 #define ZF_LOG_SECRETS (ZF_LOG_UNCENSORED == _ZF_LOG_CENSORING)
 
+/*
+ * If a log message would otherwise be unused, it can be stripped from the
+ * output binary by defining ZF_LOG_STRIP_UNUSED. This is achieved by changing
+ * the log macro to output a statement with no side effects. The default is not
+ * to strip unlogged messages. For ecample:
+ *
+ *   #define ZF_LOG_STRIP_UNUSED ZF_LOG_DO_STRIP_UNUSED
+ *
+ * This can help keep down file sizes where they are a premium and cut down on
+ * shipping dead code.
+ */
+#define ZF_LOG_DO_STRIP_UNUSED 0
+#define ZF_LOG_DO_NOT_STRIP_UNUSED 1
+
+#ifndef ZF_LOG_STRIP_UNUSED
+    #define ZF_LOG_STRIP_UNUSED ZF_LOG_DO_NOT_STRIP_UNUSED
+#endif
+
 /* Static (compile-time) initialization support allows to configure logging
  * before entering main() function. This mostly useful in C++ where functions
  * and methods could be called during initialization of global objects. Those
@@ -798,8 +816,12 @@ void _zf_log_write_mem_aux(
 
 static _ZF_LOG_INLINE void _zf_log_unused(const int dummy, ...) {(void)dummy;}
 
+#if ZF_LOG_STRIP_UNUSED == ZF_LOG_DO_STRIP_UNUSED
+#define _ZF_LOG_UNUSED(...) do {} while(0)
+#else
 #define _ZF_LOG_UNUSED(...) \
 		do { _ZF_LOG_NEVER _zf_log_unused(0, __VA_ARGS__); } _ZF_LOG_ONCE
+#endif
 
 #if ZF_LOG_ENABLED_VERBOSE
 	#define ZF_LOGV(...) \
