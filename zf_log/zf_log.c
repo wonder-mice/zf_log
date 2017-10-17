@@ -628,8 +628,9 @@ void zf_log_out_stderr_callback(const zf_log_message *const msg, void *arg)
 #if defined(_WIN32) || defined(_WIN64)
 	/* WriteFile() is atomic for local files opened with FILE_APPEND_DATA and
 	   without FILE_WRITE_DATA */
+	DWORD written;
 	WriteFile(GetStdHandle(STD_ERROR_HANDLE), msg->buf,
-			  (DWORD)(msg->p - msg->buf + eol_len), 0, 0);
+			  (DWORD)(msg->p - msg->buf + eol_len), &written, 0);
 #else
 	/* write() is atomic for buffers less than or equal to PIPE_BUF. */
 	RETVAL_UNUSED(write(STDERR_FILENO, msg->buf,
