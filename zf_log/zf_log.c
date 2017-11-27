@@ -769,7 +769,7 @@ static void time_callback(struct tm *const tm, unsigned *const msec)
 	SYSTEMTIME st;
 	GetLocalTime(&st);
 	tm->tm_year = st.wYear;
-	tm->tm_mon = st.wMonth;
+	tm->tm_mon = st.wMonth - 1;
 	tm->tm_mday = st.wDay;
 	tm->tm_wday = st.wDayOfWeek;
 	tm->tm_hour = st.wHour;
