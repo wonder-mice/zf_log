@@ -43,7 +43,7 @@ struct tdata {
 };
 
 #if defined(_WIN32)
-HANDLE ttable[MT_MCOUNT];
+HANDLE ttable[MT_THREADS];
 
 DWORD WINAPI logger_func(LPVOID priv) {
 	struct tdata *td = priv;
@@ -118,7 +118,7 @@ static void start_test(void) {
 
 	for (n=0; n < MT_THREADS; n++) {
 #if defined(_WIN32)
-		WaitForSingleObject(ttable[n], 0);
+		WaitForSingleObject(ttable[n], INFINITE);
 #elif defined(__unix__)
 		pthread_join(ttable[n], NULL);
 #endif
