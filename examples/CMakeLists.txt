@@ -24,3 +24,9 @@ target_link_libraries(file_output zf_log)
 
 add_executable(args_eval args_eval.c)
 target_link_libraries(args_eval zf_log)
+
+if(ZF_LOG_USE_OUTFILE_SYNC)
+	add_executable(multithread_output multithread_output.c)
+	target_link_libraries(multithread_output zf_log pthread)
+	set_property(TARGET multithread_output PROPERTY C_EXTENSIONS ON)
+endif()
