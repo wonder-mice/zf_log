@@ -21,12 +21,10 @@
 
 #elif defined(__unix__)
 	/* covers lots of stuff including linux, but not macs? */
-	#include <errno.h>
-	#include <fcntl.h>
-	#include <sys/stat.h>
-	#include <sys/types.h>
+	#include <stdio.h>
 	#include <unistd.h>
 	#include <pthread.h>
+
 #else
 	#error No sync file output implementation for your OS !
 #endif
@@ -39,7 +37,7 @@ struct sf_out {
 	HANDLE hfil;
 	CRITICAL_SECTION mtx;	//lightweight mutex
 #elif defined(__unix__)
-	int filedes;
+	FILE *hfil;
 	pthread_mutex_t mtx;
 #endif
 };
@@ -63,30 +61,13 @@ static void sf_out_cb(const zf_log_message *msg, void *arg)
 		return;
 	}
 	LeaveCriticalSection(&sf->mtx);
+
 #elif defined(__unix__)
-	ssize_t towrite, writ = 0;
-	ssize_t errval;
-
-	towrite = msg->p - msg->buf + 1;
-
 	pthread_mutex_lock(&sf->mtx);
-	do {
-		errval = write(sf->filedes, &msg->buf[writ], towrite - writ);
-		/* catch non-fatal interrupted writes due to signal */
-		if ((errval == -1) && (errno == EINTR)) {
-			/* nothing written */
-			continue;
-		}
-		if (errval >= 0) {
-			writ += errval;
-			continue;
-		}
-		/* unrecoverable error */
-		break;
-	} while (writ != towrite);
-
+	fwrite(msg->buf, 1, (msg->p - msg->buf + 1), sf->hfil);	// no point in checking for errors
 	pthread_mutex_unlock(&sf->mtx);
 #endif
+
 	return;
 }
 
@@ -100,13 +81,10 @@ void sf_out_close(void) {
 	DeleteCriticalSection(&sf->mtx);
 	CloseHandle(sf->hfil);
 #elif defined(__unix__)
-	int errval;
 	pthread_mutex_destroy(&sf->mtx);
-	do {
-		errval = close(sf->filedes);
-	} while (errval == EINTR);
-
-#endif // if
+	fclose(sf->hfil);
+	sf->hfil = NULL;
+#endif
 	return;
 
 }
@@ -127,13 +105,13 @@ int sf_out_open(const char *const fname) {
 		return -1;
 	}
 
-	sf->filedes = open(fname, O_WRONLY | O_CREAT | O_APPEND);
-	if (sf->filedes == -1) {
+	sf->hfil = fopen(fname, "ab");
+	if (sf->hfil == NULL) {
 		ZF_LOGW("Failed to create/open log file %s", fname);
 		pthread_mutex_destroy(&sf->mtx);
 		return -1;
 	}
-#endif // if
+#endif
 
 	zf_log_set_output_v(ZF_LOG_PUT_STD, sf, sf_out_cb);
 	return 0;
