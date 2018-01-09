@@ -93,7 +93,7 @@ int sf_out_open(const char *const fname) {
 	struct sf_out *sf = &global_sf;
 
 #ifdef _WIN32
-	sf->hfil = CreateFile(fname, GENERIC_WRITE, 0, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+	sf->hfil = CreateFile(fname, FILE_APPEND_DATA, 0, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 	if (sf->hfil == INVALID_HANDLE_VALUE) {
 		ZF_LOGW("Failed to create/open log file %s", fname);
 		return -1;
