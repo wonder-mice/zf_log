@@ -1,14 +1,16 @@
+#ifndef ZF_LOG_USE_CUSTOM_FORMATTING_FUNCTIONS
 #if (defined(_MSC_VER) && !defined(__INTEL_COMPILER)) || defined(__MINGW64__)
-#define VSNPRINTF_S vsnprintf_s
-	#define VSNPRINTF(s, sz, fmt, va) fake_vsnprintf(s, sz, fmt, va)
+#define ZF_LOG_VSNPRINTF_S vsnprintf_s
+	#define ZF_LOG_VSNPRINTF(s, sz, fmt, va) fake_vsnprintf(s, sz, fmt, va)
 	#if ZF_LOG_OPTIMIZE_SIZE
-		#define SNPRINTF(s, sz, ...) fake_snprintf(s, sz, __VA_ARGS__)
+		#define ZF_LOG_SNPRINTF(s, sz, ...) fake_snprintf(s, sz, __VA_ARGS__)
 	#endif
 #else
 	#if ZF_LOG_OPTIMIZE_SIZE
-		#define SNPRINTF snprintf
+		#define ZF_LOG_SNPRINTF snprintf
 	#endif
-#define VSNPRINTF vsnprintf
+#define ZF_LOG_VSNPRINTF vsnprintf
+#endif
 #endif
 
 /* When defined, Android log (android/log.h) will be used by default instead of
@@ -486,7 +488,7 @@
 #if (defined(_MSC_VER) && !defined(__INTEL_COMPILER)) || defined(__MINGW64__)
 	static int fake_vsnprintf(char *s, size_t sz, const char *fmt, va_list ap)
 	{
-		const int n = VSNPRINTF_S(s, sz, _TRUNCATE, fmt, ap);
+		const int n = ZF_LOG_VSNPRINTF_S(s, sz, _TRUNCATE, fmt, ap);
 		return 0 < n? n: (int)sz + 1; /* no need in _vscprintf() for now */
 	}
 	#if ZF_LOG_OPTIMIZE_SIZE
@@ -1074,7 +1076,7 @@ static void put_ctx(zf_log_message *const msg)
 
 	#if ZF_LOG_OPTIMIZE_SIZE
 	int n;
-	n = SNPRINTF(msg->p, nprintf_size(msg),
+	n = ZF_LOG_SNPRINTF(msg->p, nprintf_size(msg),
 				 _PP_MAP(_ZF_LOG_MESSAGE_FORMAT_PRINTF_FMT, ZF_LOG_MESSAGE_CTX_FORMAT)
                  _PP_MAP(_ZF_LOG_MESSAGE_FORMAT_PRINTF_VAL, ZF_LOG_MESSAGE_CTX_FORMAT));
 	put_nprintf(msg, n);
@@ -1156,7 +1158,7 @@ static void put_src(zf_log_message *const msg, const src_location *const src)
 #else
 	#if ZF_LOG_OPTIMIZE_SIZE
 	int n;
-	n = SNPRINTF(msg->p, nprintf_size(msg),
+	n = ZF_LOG_SNPRINTF(msg->p, nprintf_size(msg),
 				 _PP_MAP(_ZF_LOG_MESSAGE_FORMAT_PRINTF_FMT, ZF_LOG_MESSAGE_SRC_FORMAT)
                  _PP_MAP(_ZF_LOG_MESSAGE_FORMAT_PRINTF_VAL, ZF_LOG_MESSAGE_SRC_FORMAT));
 	put_nprintf(msg, n);
@@ -1171,7 +1173,7 @@ static void put_msg(zf_log_message *const msg,
 {
 	int n;
 	msg->msg_b = msg->p;
-	n = VSNPRINTF(msg->p, nprintf_size(msg), fmt, va);
+	n = ZF_LOG_VSNPRINTF(msg->p, nprintf_size(msg), fmt, va);
 	put_nprintf(msg, n);
 }
 
