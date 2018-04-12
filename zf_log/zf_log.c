@@ -1,3 +1,16 @@
+#if (defined(_MSC_VER) && !defined(__INTEL_COMPILER)) || defined(__MINGW64__)
+#define VSNPRINTF_S vsnprintf_s
+	#define VSNPRINTF(s, sz, fmt, va) fake_vsnprintf(s, sz, fmt, va)
+	#if ZF_LOG_OPTIMIZE_SIZE
+		#define SNPRINTF(s, sz, ...) fake_snprintf(s, sz, __VA_ARGS__)
+	#endif
+#else
+	#if ZF_LOG_OPTIMIZE_SIZE
+		#define SNPRINTF snprintf
+	#endif
+#define VSNPRINTF vsnprintf
+#endif
+
 /* When defined, Android log (android/log.h) will be used by default instead of
  * stderr (ignored on non-Android platforms). Date, time, pid and tid (context)
  * will be provided by Android log. Android log features will be used to output
@@ -471,14 +484,12 @@
 #endif
 
 #if (defined(_MSC_VER) && !defined(__INTEL_COMPILER)) || defined(__MINGW64__)
-	#define vsnprintf(s, sz, fmt, va) fake_vsnprintf(s, sz, fmt, va)
 	static int fake_vsnprintf(char *s, size_t sz, const char *fmt, va_list ap)
 	{
-		const int n = vsnprintf_s(s, sz, _TRUNCATE, fmt, ap);
+		const int n = VSNPRINTF_S(s, sz, _TRUNCATE, fmt, ap);
 		return 0 < n? n: (int)sz + 1; /* no need in _vscprintf() for now */
 	}
 	#if ZF_LOG_OPTIMIZE_SIZE
-	#define snprintf(s, sz, ...) fake_snprintf(s, sz, __VA_ARGS__)
 	static int fake_snprintf(char *s, size_t sz, const char *fmt, ...)
 	{
 		va_list va;
@@ -1063,7 +1074,7 @@ static void put_ctx(zf_log_message *const msg)
 
 	#if ZF_LOG_OPTIMIZE_SIZE
 	int n;
-	n = snprintf(msg->p, nprintf_size(msg),
+	n = SNPRINTF(msg->p, nprintf_size(msg),
 				 _PP_MAP(_ZF_LOG_MESSAGE_FORMAT_PRINTF_FMT, ZF_LOG_MESSAGE_CTX_FORMAT)
                  _PP_MAP(_ZF_LOG_MESSAGE_FORMAT_PRINTF_VAL, ZF_LOG_MESSAGE_CTX_FORMAT));
 	put_nprintf(msg, n);
@@ -1145,7 +1156,7 @@ static void put_src(zf_log_message *const msg, const src_location *const src)
 #else
 	#if ZF_LOG_OPTIMIZE_SIZE
 	int n;
-	n = snprintf(msg->p, nprintf_size(msg),
+	n = SNPRINTF(msg->p, nprintf_size(msg),
 				 _PP_MAP(_ZF_LOG_MESSAGE_FORMAT_PRINTF_FMT, ZF_LOG_MESSAGE_SRC_FORMAT)
                  _PP_MAP(_ZF_LOG_MESSAGE_FORMAT_PRINTF_VAL, ZF_LOG_MESSAGE_SRC_FORMAT));
 	put_nprintf(msg, n);
@@ -1160,7 +1171,7 @@ static void put_msg(zf_log_message *const msg,
 {
 	int n;
 	msg->msg_b = msg->p;
-	n = vsnprintf(msg->p, nprintf_size(msg), fmt, va);
+	n = VSNPRINTF(msg->p, nprintf_size(msg), fmt, va);
 	put_nprintf(msg, n);
 }
 
