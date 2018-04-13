@@ -1,3 +1,7 @@
+#ifdef ZF_LOG_CONFIG
+#include "zf_log_config.h"
+#endif
+
 #ifndef ZF_LOG_USE_CUSTOM_FORMATTING_FUNCTIONS
 #if (defined(_MSC_VER) && !defined(__INTEL_COMPILER)) || defined(__MINGW64__)
 #define ZF_LOG_VSNPRINTF_S vsnprintf_s
