@@ -292,6 +292,8 @@
 	#include <sys/time.h>
 	#if defined(__linux__)
 		#include <linux/limits.h>
+	#elif defined(_AIX)
+		#include <limits.h>
 	#else
 		#include <sys/syslimits.h>
 	#endif
@@ -304,7 +306,7 @@
 		#include <sys/syscall.h>
 	#endif
 #endif
-#if defined(__MACH__)
+#if defined(__MACH__) || defined(_AIX)
 	#include <pthread.h>
 #endif
 
@@ -722,7 +724,12 @@ static char lvl_char(const int lvl)
 #define TCACHE_FLUID (0x40000000 | 0x80000000)
 static unsigned g_tcache_mode = TCACHE_STALE;
 static struct timeval g_tcache_tv = {0, 0};
+
+#if defined(_AIX)
+static struct tm g_tcache_tm = {0, 0, 0, 0, 0, 0, 0, 0, 0};
+#else
 static struct tm g_tcache_tm = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+#endif
 
 static INLINE int tcache_get(const struct timeval *const tv, struct tm *const tm)
 {
@@ -816,6 +823,11 @@ static void pid_callback(int *const pid, int *const tid)
 	*tid = syscall(SYS_gettid);
 	#elif defined(__MACH__)
 	*tid = (int)pthread_mach_thread_np(pthread_self());
+	#elif defined(_AIX)
+	pthread_t t = pthread_self();
+	struct __pthrdsinfo tinfo;
+	pthread_getthrds_np(&t, PTHRDSINFO_QUERY_TID, &tinfo, sizeof(tinfo), NULL, 0);
+	*tid = (int)tinfo.__pi_tid;
 	#else
 		#define Platform not supported
 	#endif
