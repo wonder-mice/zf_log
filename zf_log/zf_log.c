@@ -739,7 +739,24 @@ static char lvl_char(const int lvl)
 #define TCACHE_FLUID (0x40000000 | 0x80000000)
 static unsigned g_tcache_mode = TCACHE_STALE;
 static struct timeval g_tcache_tv = {0, 0};
-static struct tm g_tcache_tm = (struct tm){0};
+static struct tm g_tcache_tm =
+{
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+#ifdef __TM_GMTOFF
+		0,
+#endif
+#ifdef __TM_ZONE
+		0,
+#endif
+		0,
+		0
+};
 
 static INLINE int tcache_get(const struct timeval *const tv, struct tm *const tm)
 {
