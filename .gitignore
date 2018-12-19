@@ -1,3 +1,5 @@
 /build.*
 /CMakeLists.txt.user
 /tags
+.cproject
+.project
