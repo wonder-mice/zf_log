@@ -170,9 +170,9 @@ target_link_libraries(my_target zf_log)
 Another option is to build and install the library:
 
 ```bash
-git clone https://github.com/wonder-mice/zf_queue.git zf_queue.git
-mkdir zf_queue.build && cd zf_queue.build
-cmake ../zf_queue.git -DCMAKE_INSTALL_PREFIX=/usr/local
+git clone https://github.com/wonder-mice/zf_log.git zf_log.git
+mkdir zf_log.build && cd zf_log.build
+cmake ../zf_log.git -DCMAKE_INSTALL_PREFIX=/usr/local
 make
 sudo make install
 ```
@@ -198,7 +198,7 @@ target_link_libraries(my_target zf_log)
 To build as a shared library set CMake variable `BUILD_SHARED_LIBS`:
 
 ```bash
-cmake ../zf_queue.git -DBUILD_SHARED_LIBS:BOOL=ON
+cmake ../zf_log.git -DBUILD_SHARED_LIBS:BOOL=ON
 ```
 
 Performance
