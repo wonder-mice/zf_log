@@ -1,3 +1,7 @@
+#ifdef ZF_LOG_USE_CONFIG_HEADER
+	#include "zf_log_config.h"
+#endif
+
 /* When defined, Android log (android/log.h) will be used by default instead of
  * stderr (ignored on non-Android platforms). Date, time, pid and tid (context)
  * will be provided by Android log. Android log features will be used to output

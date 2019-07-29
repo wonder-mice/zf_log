@@ -22,6 +22,7 @@ option(ZF_LOG_PERF_TESTS "Build performance tests (requires Python)" OFF)
 option(ZF_LOG_USE_ANDROID_LOG "Use Android log by defaul when available" OFF)
 option(ZF_LOG_USE_NSLOG "Use NSLog (Apple System Log) by default when available" OFF)
 option(ZF_LOG_USE_DEBUGSTRING "Use OutputDebugString (Windows) by default when available" OFF)
+option(ZF_LOG_USE_CONFIG_HEADER "Include zf_log_config.h header file in zf_log compilation untis" OFF)
 option(ZF_LOG_OPTIMIZE_SIZE "Optimize for size (prefer size over speed)" OFF)
 
 add_subdirectory(zf_log)
