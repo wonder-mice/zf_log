@@ -257,6 +257,19 @@
 #define S(str) S(str)
 #define F_INIT(statements) F_INIT(statements)
 #define F_UINT(width, value) F_UINT(width, value)
+/* To use custom `vsnprintf()` function, define `ZF_LOG_CUSTOM_VSNPRINTF` to have its name. Example:
+ *   #define ZF_LOG_CUSTOM_VSNPRINTF my_vsnprintf
+ */
+#ifdef ZF_LOG_CUSTOM_VSNPRINTF
+	#define _ZF_LOG_VSNPRINTF ZF_LOG_CUSTOM_VSNPRINTF
+#endif
+/* To use custom `snprintf()` function, define `ZF_LOG_CUSTOM_SNPRINTF` to have its name. Example:
+ *   #define ZF_LOG_CUSTOM_SNPRINTF my_snprintf
+ * Note, that it only will be used when `ZF_LOG_OPTIMIZE_SIZE` is enabled.
+ */
+#ifdef ZF_LOG_CUSTOM_SNPRINTF
+	#define _ZF_LOG_SNPRINTF ZF_LOG_CUSTOM_SNPRINTF
+#endif
 /* Number of bytes to reserve for EOL in the log line buffer (must be >0).
  * Must be larger than or equal to length of ZF_LOG_EOL with terminating null.
  */
@@ -476,23 +489,34 @@
 	#define memccpy _memccpy
 #endif
 
-#if (defined(_MSC_VER) && !defined(__INTEL_COMPILER)) || defined(__MINGW64__)
-	#define vsnprintf(s, sz, fmt, va) fake_vsnprintf(s, sz, fmt, va)
-	static int fake_vsnprintf(char *s, size_t sz, const char *fmt, va_list ap)
-	{
-		const int n = vsnprintf_s(s, sz, _TRUNCATE, fmt, ap);
-		return 0 < n? n: (int)sz + 1; /* no need in _vscprintf() for now */
-	}
-	#if ZF_LOG_OPTIMIZE_SIZE
-	#define snprintf(s, sz, ...) fake_snprintf(s, sz, __VA_ARGS__)
-	static int fake_snprintf(char *s, size_t sz, const char *fmt, ...)
-	{
-		va_list va;
-		va_start(va, fmt);
-		const int n = fake_vsnprintf(s, sz, fmt, va);
-		va_end(va);
-		return n;
-	}
+#ifndef _ZF_LOG_VSNPRINTF
+	#if (defined(_MSC_VER) && !defined(__INTEL_COMPILER)) || defined(__MINGW64__)
+		static int fake_vsnprintf(char *s, size_t sz, const char *fmt, va_list ap)
+		{
+			const int n = vsnprintf_s(s, sz, _TRUNCATE, fmt, ap);
+			return 0 < n? n: (int)sz + 1; /* no need in _vscprintf() for now */
+		}
+		#define _ZF_LOG_VSNPRINTF fake_vsnprintf
+	#else
+		#define _ZF_LOG_VSNPRINTF vsnprintf
+	#endif
+#endif
+
+#if ZF_LOG_OPTIMIZE_SIZE
+	#ifndef _ZF_LOG_SNPRINTF
+		#if (defined(_MSC_VER) && !defined(__INTEL_COMPILER)) || defined(__MINGW64__)
+			static int fake_snprintf(char *s, size_t sz, const char *fmt, ...)
+			{
+				va_list va;
+				va_start(va, fmt);
+				const int n = _ZF_LOG_VSNPRINTF(s, sz, fmt, va);
+				va_end(va);
+				return n;
+			}
+			#define _ZF_LOG_SNPRINTF fake_snprintf
+		#else
+			#define _ZF_LOG_SNPRINTF snprintf
+		#endif
 	#endif
 #endif
 
@@ -1079,9 +1103,9 @@ static void put_ctx(zf_log_message *const msg)
 
 	#if ZF_LOG_OPTIMIZE_SIZE
 	int n;
-	n = snprintf(msg->p, nprintf_size(msg),
-				 _PP_MAP(_ZF_LOG_MESSAGE_FORMAT_PRINTF_FMT, ZF_LOG_MESSAGE_CTX_FORMAT)
-                 _PP_MAP(_ZF_LOG_MESSAGE_FORMAT_PRINTF_VAL, ZF_LOG_MESSAGE_CTX_FORMAT));
+	n = _ZF_LOG_SNPRINTF(msg->p, nprintf_size(msg),
+						 _PP_MAP(_ZF_LOG_MESSAGE_FORMAT_PRINTF_FMT, ZF_LOG_MESSAGE_CTX_FORMAT)
+						 _PP_MAP(_ZF_LOG_MESSAGE_FORMAT_PRINTF_VAL, ZF_LOG_MESSAGE_CTX_FORMAT));
 	put_nprintf(msg, n);
 	#else
 	char buf[64];
@@ -1161,9 +1185,9 @@ static void put_src(zf_log_message *const msg, const src_location *const src)
 #else
 	#if ZF_LOG_OPTIMIZE_SIZE
 	int n;
-	n = snprintf(msg->p, nprintf_size(msg),
-				 _PP_MAP(_ZF_LOG_MESSAGE_FORMAT_PRINTF_FMT, ZF_LOG_MESSAGE_SRC_FORMAT)
-                 _PP_MAP(_ZF_LOG_MESSAGE_FORMAT_PRINTF_VAL, ZF_LOG_MESSAGE_SRC_FORMAT));
+	n = _ZF_LOG_SNPRINTF(msg->p, nprintf_size(msg),
+						 _PP_MAP(_ZF_LOG_MESSAGE_FORMAT_PRINTF_FMT, ZF_LOG_MESSAGE_SRC_FORMAT)
+						 _PP_MAP(_ZF_LOG_MESSAGE_FORMAT_PRINTF_VAL, ZF_LOG_MESSAGE_SRC_FORMAT));
 	put_nprintf(msg, n);
 	#else
 	_PP_MAP(_ZF_LOG_MESSAGE_FORMAT_PUT, ZF_LOG_MESSAGE_SRC_FORMAT)
@@ -1176,7 +1200,7 @@ static void put_msg(zf_log_message *const msg,
 {
 	int n;
 	msg->msg_b = msg->p;
-	n = vsnprintf(msg->p, nprintf_size(msg), fmt, va);
+	n = _ZF_LOG_VSNPRINTF(msg->p, nprintf_size(msg), fmt, va);
 	put_nprintf(msg, n);
 }
 
