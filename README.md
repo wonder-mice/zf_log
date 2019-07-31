@@ -154,7 +154,7 @@ call in one of your CMakeLists.txt files. Also see
 configuration options. For example:
 
 ```
-set(ZF_LOG_ANDROID_LOG ON)
+set(ZF_LOG_USE_ANDROID_LOG ON)
 add_subdirectory(zf_log)
 ```
 
