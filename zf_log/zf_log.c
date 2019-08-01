@@ -204,8 +204,6 @@
 		 PID, S(ZF_LOG_DEF_DELIMITER), TID, S(ZF_LOG_DEF_DELIMITER), \
 		 LEVEL, S(ZF_LOG_DEF_DELIMITER))
 #endif
-/* Example:
- */
 /* Specifies log message tag format. It includes tag prefix and tag. Custom
  * information can be added as well. Supported fields:
  * TAG(prefix_delimiter, tag_delimiter), S(str), F_INIT(statements),
