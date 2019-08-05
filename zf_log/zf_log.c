@@ -310,7 +310,7 @@
 	#if defined(__linux__)
 		#include <linux/limits.h>
 	#else
-		#include <limits.h>
+		#include <sys/syslimits.h>
 	#endif
 #endif
 
