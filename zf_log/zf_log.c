@@ -307,7 +307,7 @@
 	#include <sys/time.h>
 	#if defined(__linux__)
 		#include <linux/limits.h>
-	#elif defined(_AIX)
+	#elif defined(_AIX) || defined(__CYGWIN__)
 		#include <limits.h>
 	#else
 		#include <sys/syslimits.h>
