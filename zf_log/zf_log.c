@@ -307,8 +307,10 @@
 	#include <sys/time.h>
 	#if defined(__linux__)
 		#include <linux/limits.h>
-	#else
+	#elif defined(_AIX)
 		#include <limits.h>
+	#else
+		#include <sys/syslimits.h>
 	#endif
 #endif
 
