@@ -751,11 +751,7 @@ static char lvl_char(const int lvl)
 static unsigned g_tcache_mode = TCACHE_STALE;
 static struct timeval g_tcache_tv = {0, 0};
 
-#if defined(_AIX)
-static struct tm g_tcache_tm = {0, 0, 0, 0, 0, 0, 0, 0, 0};
-#else
-static struct tm g_tcache_tm = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-#endif
+static struct tm g_tcache_tm;
 
 static INLINE int tcache_get(const struct timeval *const tv, struct tm *const tm)
 {
