@@ -309,6 +309,10 @@
 		#include <linux/limits.h>
 	#elif defined(_AIX) || defined(__CYGWIN__)
 		#include <limits.h>
+	#elif defined(__FreeBSD__)
+		#include <limits.h>
+		#include <sys/limits.h>
+		#include <pthread_np.h>
 	#else
 		#include <sys/syslimits.h>
 	#endif
@@ -843,6 +847,8 @@ static void pid_callback(int *const pid, int *const tid)
 	*tid = gettid();
 	#elif defined(__linux__)
 	*tid = syscall(SYS_gettid);
+	#elif defined(__FreeBSD__)
+	*tid = pthread_getthreadid_np();
 	#elif defined(__MACH__)
 	*tid = (int)pthread_mach_thread_np(pthread_self());
 	#elif defined(_AIX)
